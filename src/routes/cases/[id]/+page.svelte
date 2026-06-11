@@ -284,6 +284,97 @@
 
 	let selectedImplant = $derived(ps?.implants.find((i) => i.id === ps?.selectedImplantId) ?? null);
 
+	// ---------- implant fine controls ----------
+	function nudgeImplantDepth(deltaMM: number) {
+		if (!ps || !selectedImplant || ps.locked) return;
+		selectedImplant.x += selectedImplant.ax * deltaMM;
+		selectedImplant.y += selectedImplant.ay * deltaMM;
+		selectedImplant.z += selectedImplant.az * deltaMM;
+		ps.saveImplant(selectedImplant.id);
+	}
+
+	function parallelizeImplant() {
+		if (!ps || !selectedImplant || ps.locked) return;
+		const other = ps.implants.find((i) => i.id !== selectedImplant?.id);
+		if (!other) return;
+		selectedImplant.ax = other.ax;
+		selectedImplant.ay = other.ay;
+		selectedImplant.az = other.az;
+		ps.saveImplant(selectedImplant.id);
+	}
+
+	// bone density around the selected implant
+	let densityInfo = $state<{ mean: number; min: number; max: number } | null>(null);
+	let densityTimer: ReturnType<typeof setTimeout>;
+
+	function boneClass(meanHU: number): string {
+		if (meanHU > 1250) return 'D1';
+		if (meanHU > 850) return 'D2';
+		if (meanHU > 350) return 'D3';
+		if (meanHU > 150) return 'D4';
+		return 'D5';
+	}
+
+	$effect(() => {
+		const im = selectedImplant;
+		if (!ps || !im) {
+			densityInfo = null;
+			return;
+		}
+		const payload = {
+			head: { x: im.x, y: im.y, z: im.z },
+			axis: { x: im.ax, y: im.ay, z: im.az },
+			length: im.length,
+			radius: im.diameter / 2 + 1
+		};
+		clearTimeout(densityTimer);
+		densityTimer = setTimeout(async () => {
+			try {
+				const res = await fetch(`/api/datasets/${ps.ds.id}/density`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				if (res.ok) densityInfo = await res.json();
+			} catch {
+				densityInfo = null;
+			}
+		}, 300);
+	});
+
+	// ---------- hotkeys ----------
+	function onKeydown(e: KeyboardEvent) {
+		if (!ps) return;
+		const target = e.target as HTMLElement;
+		if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')
+			return;
+		if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+			ps.cursor.z = Math.max(
+				0,
+				Math.min(ps.ds.slices - 1, ps.cursor.z + (e.key === 'ArrowUp' ? 1 : -1))
+			);
+			e.preventDefault();
+		} else if (e.key === 'PageUp' || e.key === 'PageDown') {
+			ps.cursor.z = Math.max(
+				0,
+				Math.min(ps.ds.slices - 1, ps.cursor.z + (e.key === 'PageUp' ? 5 : -5))
+			);
+			e.preventDefault();
+		} else if (e.key === 'Delete' && ps.selectedImplantId) {
+			deleteSelectedImplant();
+		} else if (e.key === 'Escape') {
+			ps.curveEditMode = false;
+			ps.nerveEditMode = false;
+			ps.measureTool = 'none';
+			ps.pendingMeasure.length = 0;
+			ps.selectedImplantId = null;
+		} else if (/^[1-7]$/.test(e.key) && hasVolume) {
+			const idx = Number(e.key) - 1;
+			const s = stages[idx];
+			if (s && s.key !== 'report') stage = s.key;
+		}
+	}
+
 	// ---------- plan management ----------
 	let planMenuOpen = $state(false);
 
@@ -568,6 +659,8 @@
 <svelte:head>
 	<title>{data.patient.last_name}, {data.patient.first_name} — {data.caseData.title}</title>
 </svelte:head>
+
+<svelte:window onkeydown={onKeydown} />
 
 <header class="case-bar">
 	<a class="btn ghost" href="/?sel={data.patient.id}" title="Back to patient database">
@@ -1026,6 +1119,22 @@
 							<strong>{selectedImplant.tooth ? `Tooth ${selectedImplant.tooth} — ` : ''}</strong>
 							{selectedImplant.manufacturer} {selectedImplant.article}
 						</span>
+						<button class="btn" title="Move 0.5 mm shallower (against axis)" onclick={() => nudgeImplantDepth(-0.5)}>
+							▲ 0.5
+						</button>
+						<button class="btn" title="Move 0.5 mm deeper (along axis)" onclick={() => nudgeImplantDepth(0.5)}>
+							▼ 0.5
+						</button>
+						{#if ps.implants.length > 1}
+							<button class="btn" title="Align axis with the other implant" onclick={parallelizeImplant}>
+								∥ Parallelize
+							</button>
+						{/if}
+						{#if densityInfo}
+							<span class="muted" title="Mean HU in a {(selectedImplant.diameter / 2 + 1).toFixed(1)} mm cylinder around the implant">
+								bone {densityInfo.mean} HU ({boneClass(densityInfo.mean)})
+							</span>
+						{/if}
 						<button class="btn danger" onclick={deleteSelectedImplant}>
 							<Icon name="trash" size={14} /> Remove
 						</button>
