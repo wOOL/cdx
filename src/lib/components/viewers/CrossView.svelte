@@ -14,13 +14,25 @@
 	let {
 		state: ps,
 		halfWidth = 15,
+		uOffset = 0,
+		compact = false,
 		overlayDraw,
 		overlayDeps,
 		onToolPointer
 	}: {
 		state: PlanningState;
 		halfWidth?: number;
-		overlayDraw?: (ctx: CanvasRenderingContext2D, t: ViewTransform, info: ReconInfo) => void;
+		/** arc-length offset from ps.crossU (mm) — for parallel section groups */
+		uOffset?: number;
+		/** hide toggles/labels for use inside a section group */
+		compact?: boolean;
+		overlayDraw?: (
+			ctx: CanvasRenderingContext2D,
+			t: ViewTransform,
+			info: ReconInfo,
+			u: number,
+			frame: { origin: { x: number; y: number }; normal: { x: number; y: number }; tangent: { x: number; y: number } } | null
+		) => void;
 		overlayDeps?: unknown;
 		/** domain coords: w = signed mm offset from the curve along its normal, zmm = height in mm */
 		onToolPointer?: (e: {
@@ -30,6 +42,12 @@
 			native: PointerEvent;
 		}) => boolean;
 	} = $props();
+
+	let effU = $derived.by(() => {
+		const c = ps.curve;
+		if (!c) return 0;
+		return Math.max(0, Math.min(c.length, ps.crossU + uOffset));
+	});
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 	let container: HTMLDivElement | undefined = $state();
@@ -42,13 +60,20 @@
 	let lastWindowKey = '';
 	let fetchSeq = 0;
 	let fetchTimer: ReturnType<typeof setTimeout> | undefined;
+	let lastFrame: {
+		origin: { x: number; y: number };
+		normal: { x: number; y: number };
+		tangent: { x: number; y: number };
+	} | null = null;
 
 	// cross = perpendicular to the curve; tangential = along the curve direction
 	let orientation = $state<'cross' | 'tangential'>('cross');
+	// align the section plane with the selected implant axis
+	let alignToImplant = $state(false);
 
 	$effect(() => {
 		const c = ps.curve;
-		const u = ps.crossU;
+		const u = effU;
 		const orient = orientation;
 		clearTimeout(fetchTimer);
 		if (!c) {
@@ -56,8 +81,22 @@
 			return;
 		}
 		const i = indexAtLength(c, u);
-		const origin = c.points[i];
-		const dir = orient === 'cross' ? c.normals[i] : c.tangents[i];
+		let origin: { x: number; y: number } = c.points[i];
+		let dir = orient === 'cross' ? c.normals[i] : c.tangents[i];
+		let tangent = orient === 'cross' ? c.tangents[i] : c.normals[i];
+		if (alignToImplant && ps.selectedImplantId != null) {
+			const im = ps.implants.find((im) => im.id === ps.selectedImplantId);
+			if (im) {
+				const len = Math.hypot(im.ax, im.ay);
+				if (len > 0.05) {
+					// plane containing the implant axis (and the z direction)
+					origin = { x: im.x, y: im.y };
+					dir = { x: im.ax / len, y: im.ay / len };
+					tangent = { x: -dir.y, y: dir.x };
+				}
+			}
+		}
+		lastFrame = { origin, normal: dir, tangent };
 		const seq = ++fetchSeq;
 		fetchTimer = setTimeout(async () => {
 			loading = true;
@@ -111,12 +150,16 @@
 		ctx.setLineDash([]);
 
 		if (orientation === 'cross') {
-			overlayDraw?.(ctx, t, { stepMM, width: img.width, height: img.height });
+			overlayDraw?.(ctx, t, { stepMM, width: img.width, height: img.height }, effU, lastFrame);
 		}
 
 		ctx.fillStyle = 'rgba(216, 220, 228, 0.85)';
 		ctx.font = '11px Inter, sans-serif';
-		ctx.fillText(`@ ${ps.crossU.toFixed(1)} mm`, 8, canvas.height - 8);
+		ctx.fillText(
+			`@ ${effU.toFixed(1)} mm${uOffset ? ` (${uOffset > 0 ? '+' : ''}${uOffset})` : ''}${alignToImplant ? ' · implant axis' : ''}`,
+			8,
+			canvas.height - 8
+		);
 		drawScaleBar(ctx, t.scaleX / stepMM, canvas.width, canvas.height);
 		if (orientation === 'cross') {
 			// B/L orientation: normal points left of travel; with a counterclockwise-drawn
@@ -168,7 +211,8 @@
 	}
 
 	function toolEvent(type: 'down' | 'move' | 'up', e: PointerEvent): boolean {
-		if (!onToolPointer) return false;
+		// tools operate in the curve frame at ps.crossU — disable in offset/aligned variants
+		if (!onToolPointer || uOffset !== 0 || alignToImplant) return false;
 		const d = domainCoords(e);
 		if (!d) return false;
 		return onToolPointer({ type, w: d.w, zmm: d.zmm, native: e });
@@ -197,20 +241,32 @@
 		onpointerup={onPointerUp}
 		oncontextmenu={(e) => e.preventDefault()}
 	></canvas>
-	<div class="view-label">{orientation === 'cross' ? 'Cross section' : 'Tangential'}</div>
-	<button
-		class="orient-toggle"
-		title="Toggle cross-section / tangential"
-		onclick={() => (orientation = orientation === 'cross' ? 'tangential' : 'cross')}
-	>
-		{orientation === 'cross' ? '⊥' : '∥'}
-	</button>
-	<button
-		class="orient-toggle snap-pos"
-		title="Save view snapshot (PNG)"
-		onclick={() => canvas && downloadCanvas(canvas, `${orientation}_${ps.crossU.toFixed(0)}mm`)}
-		>📷</button
-	>
+	{#if !compact}
+		<div class="view-label">{orientation === 'cross' ? 'Cross section' : 'Tangential'}</div>
+		<button
+			class="orient-toggle"
+			title="Toggle cross-section / tangential"
+			onclick={() => (orientation = orientation === 'cross' ? 'tangential' : 'cross')}
+		>
+			{orientation === 'cross' ? '⊥' : '∥'}
+		</button>
+		<button
+			class="orient-toggle snap-pos"
+			title="Save view snapshot (PNG)"
+			onclick={() => canvas && downloadCanvas(canvas, `${orientation}_${effU.toFixed(0)}mm`)}
+			>📷</button
+		>
+		{#if ps.selectedImplantId != null}
+			<button
+				class="orient-toggle align-pos"
+				class:align-active={alignToImplant}
+				title="Align section to the selected implant axis"
+				onclick={() => (alignToImplant = !alignToImplant)}
+			>
+				⟂⌖
+			</button>
+		{/if}
+	{/if}
 	{#if !ps.curve}
 		<div class="cross-hint muted">Requires a panoramic curve.</div>
 	{/if}
@@ -270,5 +326,15 @@
 	.snap-pos {
 		right: 32px;
 		font-size: 11px;
+	}
+	.align-pos {
+		right: 58px;
+		width: 30px;
+		font-size: 10px;
+	}
+	.align-active {
+		color: var(--accent-bright);
+		border-color: var(--accent);
+		opacity: 1 !important;
 	}
 </style>

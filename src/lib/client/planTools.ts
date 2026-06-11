@@ -385,14 +385,21 @@ function projectToSection(
 	};
 }
 
+export interface SectionFrame {
+	origin: { x: number; y: number };
+	normal: { x: number; y: number };
+	tangent: { x: number; y: number };
+}
+
 export function drawCrossOverlay(
 	ps: PlanningState,
 	ctx: CanvasRenderingContext2D,
 	t: ViewTransform,
 	info: ReconInfo,
-	atU?: number
+	atU?: number,
+	frameOverride?: SectionFrame
 ) {
-	const frame = crossFrame(ps, atU);
+	const frame = frameOverride ?? crossFrame(ps, atU);
 	if (!frame) return;
 	const map = crossMap(ps, t, info);
 

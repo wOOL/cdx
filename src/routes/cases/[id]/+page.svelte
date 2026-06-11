@@ -6,6 +6,7 @@
 	import PanoView from '$lib/components/viewers/PanoView.svelte';
 	import CrossView from '$lib/components/viewers/CrossView.svelte';
 	import { PlanningState, WINDOW_PRESETS } from '$lib/client/planning.svelte';
+	import AdjustGrayscale from '$lib/components/AdjustGrayscale.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
 	import {
@@ -283,6 +284,12 @@
 	}
 
 	let selectedImplant = $derived(ps?.implants.find((i) => i.id === ps?.selectedImplantId) ?? null);
+
+	// cross-section group (3 parallel slices like coDiagnostiX)
+	let crossGroupMode = $state(false);
+	let crossSpacing = $state(2);
+
+	let grayscaleOpen = $state(false);
 
 	// ---------- implant fine controls ----------
 	function stepImplantDim(field: 'diameter' | 'length', dir: 1 | -1) {
@@ -895,6 +902,7 @@
 							<option value={p.name} selected={p.wc === ps.wc && p.ww === ps.ww}>{p.name}</option>
 						{/each}
 					</select>
+					<button class="btn" onclick={() => (grayscaleOpen = true)}>Adjust grayscale…</button>
 					<label class="checkbox-row">
 						<input type="checkbox" bind:checked={ps.crosshairVisible} />
 						<span>Crosshair</span>
@@ -1378,18 +1386,48 @@
 						/>
 					</div>
 					<div class="view panel">
-						<CrossView
-							state={ps}
-							overlayDraw={(ctx, t, info) => ps && drawCrossOverlay(ps, ctx, t, info)}
-							onToolPointer={(e) => (ps ? crossTool(ps, e) : false)}
-							overlayDeps={[objectsVersion]}
-						/>
+						{#if crossGroupMode}
+							<div class="cross-group">
+								{#each [-crossSpacing, 0, crossSpacing] as off (off)}
+									<div class="cross-group-cell">
+										<CrossView
+											state={ps}
+											uOffset={off}
+											compact={off !== 0}
+											overlayDraw={(ctx, t, info, u, frame) =>
+												ps && drawCrossOverlay(ps, ctx, t, info, u, frame ?? undefined)}
+											onToolPointer={off === 0 ? (e) => (ps ? crossTool(ps, e) : false) : undefined}
+											overlayDeps={[objectsVersion]}
+										/>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<CrossView
+								state={ps}
+								overlayDraw={(ctx, t, info, u, frame) =>
+									ps && drawCrossOverlay(ps, ctx, t, info, u, frame ?? undefined)}
+								onToolPointer={(e) => (ps ? crossTool(ps, e) : false)}
+								overlayDeps={[objectsVersion]}
+							/>
+						{/if}
+						<button
+							class="group-toggle"
+							title="Toggle 1 / 3 parallel sections"
+							onclick={() => (crossGroupMode = !crossGroupMode)}
+						>
+							{crossGroupMode ? '1×' : '3×'}
+						</button>
 					</div>
 				</div>
 			{/if}
 		{/if}
 	</main>
 </div>
+
+{#if grayscaleOpen && ps}
+	<AdjustGrayscale state={ps} onclose={() => (grayscaleOpen = false)} />
+{/if}
 
 <!-- add implant dialog -->
 <dialog bind:this={implantDialog}>
@@ -1744,6 +1782,35 @@
 	}
 	.stepper .btn {
 		padding: 2px 7px;
+	}
+	.cross-group {
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
+		gap: 2px;
+		width: 100%;
+		height: 100%;
+	}
+	.cross-group-cell {
+		position: relative;
+		overflow: hidden;
+		border-right: 1px solid var(--border-soft);
+	}
+	.group-toggle {
+		position: absolute;
+		bottom: 6px;
+		right: 6px;
+		z-index: 3;
+		width: 26px;
+		height: 20px;
+		border-radius: 3px;
+		border: 1px solid var(--border);
+		background: var(--bg-2);
+		color: var(--text-dim);
+		font-size: 10px;
+		opacity: 0.4;
+	}
+	.view:hover .group-toggle {
+		opacity: 1;
 	}
 	.stage-bar .tool-btn {
 		position: relative;
