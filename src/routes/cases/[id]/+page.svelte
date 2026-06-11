@@ -22,6 +22,7 @@
 	import PerioChart, { type PerioData } from '$lib/components/PerioChart.svelte';
 	import TemplateMatchDialog from '$lib/components/TemplateMatchDialog.svelte';
 	import VpeDialog from '$lib/components/VpeDialog.svelte';
+	import MeshEditorDialog from '$lib/components/MeshEditorDialog.svelte';
 	import AugmentWizard from '$lib/components/AugmentWizard.svelte';
 	import AiReviewWizard from '$lib/components/AiReviewWizard.svelte';
 	import ProstheticImportDialog from '$lib/components/ProstheticImportDialog.svelte';
@@ -484,7 +485,47 @@
 		if (!ps) return false;
 		if (measureAxialTool(ps, e)) return true;
 		if (measureEditTool(ps, e)) return true;
+		if (axialNerveTool(e)) return true;
 		return curveTool(e);
+	}
+
+	// nerve point placement/dragging directly on the axial view (nerve stage)
+	let axialNerveDrag = -1;
+	function axialNerveTool(e: ToolPointerEvent): boolean {
+		if (!ps || stage !== 'nerve' || !ps.nerveEditMode || ps.activeNerveId == null || ps.locked)
+			return false;
+		const nerve = ps.nerves.find((n) => n.id === ps.activeNerveId);
+		if (!nerve) return false;
+		const mm = { x: e.px * ps.ds.spacing_x, y: e.py * ps.ds.spacing_y };
+		const zmm = ps.cursor.z * ps.ds.spacing_z;
+		if (e.type === 'down') {
+			ps.markEdit();
+			const near = nerve.points.findIndex(
+				(p) => Math.hypot(p.x - mm.x, p.y - mm.y) < 2.5 && Math.abs(p.z - zmm) < 3
+			);
+			if (near >= 0) {
+				axialNerveDrag = near;
+			} else {
+				nerve.points.push({ ...mm, z: zmm });
+				axialNerveDrag = nerve.points.length - 1;
+				ps.saveNerve(nerve.id);
+			}
+			ps.lastNervePoint = { nerveId: nerve.id, index: axialNerveDrag };
+			return true;
+		}
+		if (e.type === 'move' && axialNerveDrag >= 0) {
+			const p = nerve.points[axialNerveDrag];
+			if (p) {
+				nerve.points[axialNerveDrag] = { ...p, x: mm.x, y: mm.y };
+				ps.saveNerve(nerve.id);
+			}
+			return true;
+		}
+		if (e.type === 'up' && axialNerveDrag >= 0) {
+			axialNerveDrag = -1;
+			return true;
+		}
+		return false;
 	}
 
 	// ---------- nerve tools ----------
@@ -998,6 +1039,7 @@
 	let aiReview = $state<{ id: number; name: string; ok: boolean }[] | null>(null);
 	let lastScanClick = $state<{ modelId: number; scanLocal: Vec3 } | null>(null);
 	let meshToolBusy = $state('');
+	let meshEditorOpen = $state(false);
 
 	// AI-assistant job status chip (orange hourglass while running, green check
 	// when results await review — click to open, like the original's icon)
@@ -1281,6 +1323,39 @@
 		);
 		ps.saveModel(m.id);
 		matching.lastRms = null;
+	}
+
+	/** one-click automatic scan→CBCT registration (AI assistant) */
+	async function autoAlignScan() {
+		if (!ps) return;
+		if (matching.modelId == null) matching.modelId = scanModels[0]?.id ?? null;
+		const m = ps.models.find((x) => x.id === matching.modelId);
+		if (!m) return;
+		matching.busy = 'AI aligning…';
+		try {
+			const res = await fetch(`/api/models/${m.id}/auto-align`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ datasetId: ps.ds.id })
+			});
+			const b = await res.json().catch(() => null);
+			if (!res.ok) {
+				alert(
+					b?.message ??
+						'Automatic alignment failed — use point-pair matching and Refine fit (ICP) instead.'
+				);
+				return;
+			}
+			m.transform = b.transform;
+			matching.lastRms = b.rms ?? null;
+			if (b.quality === 'check') {
+				alert(
+					`Low-confidence alignment (RMS ${Number(b.rms).toFixed(2)} mm, ${Math.round((b.inlierFraction ?? 0) * 100)}% inliers) — verify the alignment in the slice views and refine if needed.`
+				);
+			}
+		} finally {
+			matching.busy = '';
+		}
 	}
 
 	/** reuse the registration of an already-aligned scan (same situation scanned twice) */
@@ -3231,6 +3306,14 @@
 						>
 							{matching.busy || 'Refine fit (ICP)'}
 						</button>
+						<button
+							class="btn"
+							disabled={!!matching.busy}
+							title="Automatic scan-to-CBCT registration: matches the scan's occlusal surface to the teeth/bone surface (AI tooth segmentation when present), coarse-to-fine. Verify the result in the slice views."
+							onclick={autoAlignScan}
+						>
+							{matching.busy === 'AI aligning…' ? 'AI aligning…' : 'Align using AI assistant'}
+						</button>
 						<button class="btn" onclick={resetMatching}>Reset</button>
 						<button
 							class="btn"
@@ -3273,6 +3356,17 @@
 						</button>
 						<button class="btn" title="Replace the mesh file, keeping the alignment" onclick={() => replaceInput?.click()}>
 							Replace…
+						</button>
+						<button
+							class="btn"
+							disabled={matching.modelId == null && !scanModels.length}
+							title="Open the Mesh Editor: part detection, hole closing, bridge, remesh, reduce, invert, wax knife, eraser, margin cut, combine — with undo/redo and save-as-copy"
+							onclick={() => {
+								if (matching.modelId == null) matching.modelId = scanModels[0]?.id ?? null;
+								meshEditorOpen = matching.modelId != null;
+							}}
+						>
+							Edit mesh…
 						</button>
 						<input type="file" accept=".stl,.ply" hidden bind:this={replaceInput} onchange={(e) => replaceModelFile(e.currentTarget.files)} />
 						{#if matching.lastRms != null}
@@ -4310,6 +4404,17 @@
 
 {#if showVpe}
 	<VpeDialog caseId={data.caseData.id} planId={data.plan.id} onclose={() => (showVpe = false)} />
+{/if}
+
+{#if meshEditorOpen && matching.modelId != null}
+	<MeshEditorDialog
+		modelId={matching.modelId}
+		caseId={data.caseData.id}
+		onclose={async (changed) => {
+			meshEditorOpen = false;
+			if (changed) await invalidateAll();
+		}}
+	/>
 {/if}
 
 {#if showTemplateMatch && ps}

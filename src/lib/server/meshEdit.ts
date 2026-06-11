@@ -9,9 +9,12 @@
  *   smooth    — Laplacian (λ = 0.5, 3 iterations) on vertices within
  *               `radius` of `center` (no center ⇒ whole mesh). mode
  *               'flatten' is the wax knife: after smoothing, selected
- *               vertices are pushed 0.2 mm inward along their area-weighted
- *               vertex normal (i.e. "smooth with a negative offset" —
- *               removes a thin layer of material).
+ *               vertices are pushed inward along their area-weighted vertex
+ *               normal ("smooth with a negative offset" — removes a thin
+ *               layer of material); mode 'add' pushes outward instead
+ *               (additive wax knife). The offset is picked by `strength`
+ *               A–D (0.1 / 0.2 / 0.35 / 0.5 mm, default B = 0.2 mm — the
+ *               historical flatten offset).
  *   remesh    — one pass: triangles whose centroid lies within the radius
  *               and whose longest edge exceeds 2× the local mean edge
  *               length are midpoint-split (longest edge only), then one
@@ -21,9 +24,12 @@
  *               display mesh, documented limitation).
  *   fillHoles — boundary loops are found via the directed-edge-use map
  *               (an edge with no reverse partner borders a hole); loops of
- *               ≤ 60 edges are closed with a centroid fan oriented
- *               consistently with the surrounding triangles. Longer or
- *               non-walkable (non-manifold) loops are skipped and counted.
+ *               ≤ `maxEdges` edges (default 60) are closed with a centroid
+ *               fan oriented consistently with the surrounding triangles.
+ *               Longer or non-walkable (non-manifold) loops are skipped and
+ *               counted. `exceptLargest` keeps the biggest opening (by edge
+ *               count) untouched; `hole` closes exactly one loop addressed
+ *               by its index in the listHoles() ordering (largest first).
  *   bridge    — connects the two boundary loops nearest to points `a` and
  *               `b` with a triangle strip: loops are aligned at their
  *               closest vertex pair, the walk direction of the second loop
@@ -33,6 +39,43 @@
  *               that interleave in space can self-intersect, and the strip
  *               winding is not guaranteed to match both shells (STL facet
  *               normals are recomputed from the winding on save).
+ *   parts     — connected components over the welded soup (shared-vertex
+ *               connectivity, union-find). `action` deletes the selected
+ *               part, keeps only the selected part, or keeps the largest
+ *               one. Parts are addressed by their index in the listParts()
+ *               ordering (triangle count desc, deterministic tie-break).
+ *   reduce    — decimation to `targetPercent` of the current triangle
+ *               count via uniform-grid vertex clustering: a cell size is
+ *               binary-searched (≤ 14 O(n) passes) so that collapsing all
+ *               vertices of a cell to their mean leaves ≈ target triangles.
+ *               Approximation notes: feature edges are not preserved,
+ *               coincident output triangles are deduplicated, the achieved
+ *               count is approximate (the editor reports the real number),
+ *               and topology may become non-manifold near thin features.
+ *   invert    — flips the winding of every triangle (soup-level, no weld).
+ *   erase     — deletes triangles whose centroid lies within `radius` of
+ *               `center` (sphere). `deep` erases through-thickness instead:
+ *               a cylinder of the same radius along `axis` (the pick
+ *               normal), limited to ±`depth` mm (default 20) from the pick
+ *               point. No rim fill is attempted — follow with fillHoles.
+ *   marginCut — the user draws a closed margin line (≥ 3 picked points on
+ *               the mesh). Triangles are classified by projecting their
+ *               centroid and the polyline onto the loop's best-fit plane
+ *               (Newell normal) and testing the winding number; the chosen
+ *               side ('inside' of the loop or 'outside') is kept, the rest
+ *               deleted. Approximation: classification happens in the
+ *               projection plane, so strongly non-planar margin lines or
+ *               surfaces that fold over the loop normal cut imprecisely
+ *               near the line.
+ *   combine   — concatenates another model's triangle soup into this one,
+ *               transform-aware: the other mesh is mapped through
+ *               inv(selfTransform) · otherTransform so both shells stay
+ *               where the planning views show them. Shells are merely
+ *               concatenated (no boolean union).
+ *
+ * applyMeshEditOps() replays an ordered op list against a pristine
+ * baseline; the list is client-held, so undo/redo are pop/re-push + replay
+ * and the result is deterministic for a given (baseline, ops) pair.
  */
 
 export interface Vec3 {
@@ -41,16 +84,46 @@ export interface Vec3 {
 	z: number;
 }
 
-export type MeshEditOpName = 'smooth' | 'remesh' | 'fillHoles' | 'bridge';
+export type MeshEditOpName =
+	| 'smooth'
+	| 'remesh'
+	| 'fillHoles'
+	| 'bridge'
+	| 'parts'
+	| 'reduce'
+	| 'invert'
+	| 'erase'
+	| 'marginCut'
+	| 'combine';
 
 export interface MeshEditOp {
 	op: MeshEditOpName;
-	/** 'flatten' = wax knife (smooth, then subtract 0.2 mm along the normal) */
-	mode?: 'flatten';
+	/** wax knife: 'flatten' = smooth + negative offset, 'add' = smooth + positive offset */
+	mode?: 'flatten' | 'add';
+	/** wax knife offset preset (A 0.1 / B 0.2 / C 0.35 / D 0.5 mm, default B) */
+	strength?: 'A' | 'B' | 'C' | 'D';
 	center?: Vec3;
 	radius?: number;
 	a?: Vec3;
 	b?: Vec3;
+	/** parts */
+	action?: 'deleteSelected' | 'keepSelected' | 'keepLargest';
+	part?: number;
+	/** fillHoles */
+	hole?: number;
+	exceptLargest?: boolean;
+	maxEdges?: number;
+	/** reduce */
+	targetPercent?: number;
+	/** erase */
+	deep?: boolean;
+	axis?: Vec3;
+	depth?: number;
+	/** marginCut */
+	points?: Vec3[];
+	keep?: 'inside' | 'outside';
+	/** combine */
+	modelId?: number;
 }
 
 export interface MeshEditResult {
@@ -58,10 +131,26 @@ export interface MeshEditResult {
 	report: Record<string, number | string | boolean>;
 }
 
+/** Out-of-band data an op may need (combine loads sibling models). */
+export interface MeshEditContext {
+	/** resolve a sibling model id → its soup + stored column-major 4×4 (or null) */
+	loadModel?: (modelId: number) => { positions: Float32Array; transform: number[] | null } | null;
+	/** stored transform of the model being edited (column-major 4×4 or null) */
+	selfTransform?: number[] | null;
+}
+
 const WELD_TOL = 1e-4; // mm
-const FLATTEN_OFFSET_MM = 0.2;
 const MAX_HOLE_EDGES = 60;
+const MAX_SELECTED_HOLE_EDGES = 5000;
 const SMOOTH_LAMBDA = 0.5;
+const DEEP_ERASE_DEPTH_MM = 20;
+/** wax knife offset presets; B is the historical 0.2 mm flatten offset */
+const WAX_STRENGTH_MM: Record<'A' | 'B' | 'C' | 'D', number> = {
+	A: 0.1,
+	B: 0.2,
+	C: 0.35,
+	D: 0.5
+};
 
 // ---------------------------------------------------------------------------
 // Welded representation
@@ -301,29 +390,72 @@ function dist2(ax: number, ay: number, az: number, b: Vec3): number {
 }
 
 /**
- * Close loops of ≤ maxEdges edges with a centroid fan. The boundary edges run
- * a→b in the direction of the surviving triangles, so fan triangles (b, a, c)
- * provide the missing reverse edges and stay consistently oriented.
+ * Boundary loops in the deterministic "hole index" order used by listHoles()
+ * and the per-hole fillHoles addressing: edge count descending, ties broken
+ * by centroid x → y → z.
+ */
+function sortedLoops(w: Welded): { loops: number[][]; openEdges: number } {
+	const { loops, openEdges } = boundaryLoops(w);
+	const cen = loops.map((l) => loopCentroid(w, l));
+	const order = loops.map((_, i) => i);
+	order.sort((i, j) => {
+		if (loops[i].length !== loops[j].length) return loops[j].length - loops[i].length;
+		if (cen[i].x !== cen[j].x) return cen[i].x - cen[j].x;
+		if (cen[i].y !== cen[j].y) return cen[i].y - cen[j].y;
+		return cen[i].z - cen[j].z;
+	});
+	return { loops: order.map((i) => loops[i]), openEdges };
+}
+
+function fillOneLoop(w: Welded, loop: number[]): void {
+	const c = loopCentroid(w, loop);
+	const cid = addVertex(w, c.x, c.y, c.z);
+	for (let i = 0; i < loop.length; i++) {
+		const a = loop[i];
+		const b = loop[(i + 1) % loop.length];
+		w.tris.push(b, a, cid);
+	}
+}
+
+interface FillOptions {
+	maxEdges?: number;
+	exceptLargest?: boolean;
+	/** close exactly this loop (listHoles index); overrides the other options */
+	hole?: number;
+}
+
+/**
+ * Close boundary loops with a centroid fan. The boundary edges run a→b in the
+ * direction of the surviving triangles, so fan triangles (b, a, c) provide
+ * the missing reverse edges and stay consistently oriented.
  */
 function fillLoops(
 	w: Welded,
-	maxEdges: number
+	opts: FillOptions
 ): { holesFilled: number; holesSkipped: number; openEdges: number } {
-	const { loops, openEdges } = boundaryLoops(w);
+	const { loops, openEdges } = sortedLoops(w);
 	let holesFilled = 0;
 	let holesSkipped = 0;
-	for (const loop of loops) {
-		if (loop.length > maxEdges) {
+	if (opts.hole != null) {
+		const loop = loops[opts.hole];
+		if (!loop) throw new Error(`Hole ${opts.hole} not found (${loops.length} open loops)`);
+		if (loop.length > MAX_SELECTED_HOLE_EDGES) {
+			throw new Error(`Hole too large to close (${loop.length} edges)`);
+		}
+		fillOneLoop(w, loop);
+		return { holesFilled: 1, holesSkipped: 0, openEdges };
+	}
+	const maxEdges = opts.maxEdges ?? MAX_HOLE_EDGES;
+	for (let i = 0; i < loops.length; i++) {
+		if (opts.exceptLargest && i === 0) {
+			holesSkipped++;
+			continue; // loops are sorted largest-first
+		}
+		if (loops[i].length > maxEdges) {
 			holesSkipped++;
 			continue;
 		}
-		const c = loopCentroid(w, loop);
-		const cid = addVertex(w, c.x, c.y, c.z);
-		for (let i = 0; i < loop.length; i++) {
-			const a = loop[i];
-			const b = loop[(i + 1) % loop.length];
-			w.tris.push(b, a, cid);
-		}
+		fillOneLoop(w, loops[i]);
 		holesFilled++;
 	}
 	return { holesFilled, holesSkipped, openEdges };
@@ -337,20 +469,23 @@ function opSmooth(
 	positions: Float32Array,
 	center: Vec3 | null,
 	radius: number,
-	mode?: 'flatten'
+	mode?: 'flatten' | 'add',
+	strength?: 'A' | 'B' | 'C' | 'D'
 ): MeshEditResult {
 	const w = weld(positions);
 	const sel = selectVerts(w, center, radius);
 	const moved = smoothVerts(w, sel, 3, SMOOTH_LAMBDA);
-	if (mode === 'flatten') {
-		// wax knife: remove a thin layer by offsetting inward along the normal
+	const offset = WAX_STRENGTH_MM[strength ?? 'B'];
+	if (mode === 'flatten' || mode === 'add') {
+		// wax knife: remove (flatten) or add material by offsetting along the normal
+		const sign = mode === 'flatten' ? -1 : 1;
 		const normals = vertexNormals(w);
 		for (let v = 0; v < sel.length; v++) {
 			if (!sel[v]) continue;
 			const o = v * 3;
-			w.verts[o] -= normals[o] * FLATTEN_OFFSET_MM;
-			w.verts[o + 1] -= normals[o + 1] * FLATTEN_OFFSET_MM;
-			w.verts[o + 2] -= normals[o + 2] * FLATTEN_OFFSET_MM;
+			w.verts[o] += sign * normals[o] * offset;
+			w.verts[o + 1] += sign * normals[o + 1] * offset;
+			w.verts[o + 2] += sign * normals[o + 2] * offset;
 		}
 	}
 	return {
@@ -358,6 +493,7 @@ function opSmooth(
 		report: {
 			op: 'smooth',
 			mode: mode ?? 'laplacian',
+			...(mode ? { strength: strength ?? 'B', offsetMm: offset } : {}),
 			vertices: moved,
 			iterations: 3
 		}
@@ -450,9 +586,9 @@ function opRemesh(positions: Float32Array, center: Vec3 | null, radius: number):
 	};
 }
 
-function opFillHoles(positions: Float32Array): MeshEditResult {
+function opFillHoles(positions: Float32Array, opts: FillOptions = {}): MeshEditResult {
 	const w = weld(positions);
-	const { holesFilled, holesSkipped, openEdges } = fillLoops(w, MAX_HOLE_EDGES);
+	const { holesFilled, holesSkipped, openEdges } = fillLoops(w, opts);
 	return {
 		positions: toSoup(w),
 		report: { op: 'fillHoles', holesFilled, holesSkipped, openEdgesBefore: openEdges }
@@ -525,22 +661,607 @@ function opBridge(positions: Float32Array, a: Vec3, b: Vec3): MeshEditResult {
 	};
 }
 
+// ---------------------------------------------------------------------------
+// Part detection (connected components over the welded soup)
+// ---------------------------------------------------------------------------
+
+/**
+ * Connected components: triangle index lists, sorted deterministically by
+ * triangle count desc → vertex count desc → first triangle index asc, so a
+ * part index is stable across replays of the same intermediate mesh.
+ */
+function components(w: Welded): { tris: number[]; verts: number }[] {
+	const n = vertexCount(w);
+	const parent = new Int32Array(n);
+	for (let i = 0; i < n; i++) parent[i] = i;
+	const find = (a: number): number => {
+		let r = a;
+		while (parent[r] !== r) r = parent[r];
+		while (parent[a] !== r) {
+			const next = parent[a];
+			parent[a] = r;
+			a = next;
+		}
+		return r;
+	};
+	const union = (a: number, b: number): void => {
+		const ra = find(a);
+		const rb = find(b);
+		if (ra !== rb) parent[rb] = ra;
+	};
+	const triCount = w.tris.length / 3;
+	for (let t = 0; t < triCount; t++) {
+		union(w.tris[t * 3], w.tris[t * 3 + 1]);
+		union(w.tris[t * 3], w.tris[t * 3 + 2]);
+	}
+	const byRoot = new Map<number, { tris: number[]; vs: Set<number> }>();
+	for (let t = 0; t < triCount; t++) {
+		const r = find(w.tris[t * 3]);
+		let entry = byRoot.get(r);
+		if (!entry) {
+			entry = { tris: [], vs: new Set() };
+			byRoot.set(r, entry);
+		}
+		entry.tris.push(t);
+		entry.vs.add(w.tris[t * 3]);
+		entry.vs.add(w.tris[t * 3 + 1]);
+		entry.vs.add(w.tris[t * 3 + 2]);
+	}
+	const parts = [...byRoot.values()].map((e) => ({ tris: e.tris, verts: e.vs.size }));
+	parts.sort((a, b) => {
+		if (a.tris.length !== b.tris.length) return b.tris.length - a.tris.length;
+		if (a.verts !== b.verts) return b.verts - a.verts;
+		return a.tris[0] - b.tris[0];
+	});
+	return parts;
+}
+
+export interface MeshPartInfo {
+	index: number;
+	triangles: number;
+	vertices: number;
+}
+
+/** Inspection: connected parts (largest first) with per-part counts. */
+export function listParts(positions: Float32Array): {
+	triangles: number;
+	vertices: number;
+	parts: MeshPartInfo[];
+} {
+	const w = weld(positions);
+	const parts = components(w).map((p, i) => ({
+		index: i,
+		triangles: p.tris.length,
+		vertices: p.verts
+	}));
+	return { triangles: positions.length / 9, vertices: vertexCount(w), parts };
+}
+
+/** Triangle soup of one detected part (listParts index) — used to highlight it. */
+export function partPositions(positions: Float32Array, index: number): Float32Array {
+	const w = weld(positions);
+	const part = components(w)[index];
+	if (!part) throw new Error(`Part ${index} not found`);
+	const out = new Float32Array(part.tris.length * 9);
+	let o = 0;
+	for (const t of part.tris) {
+		for (let v = 0; v < 3; v++) {
+			const id = w.tris[t * 3 + v] * 3;
+			out[o++] = w.verts[id];
+			out[o++] = w.verts[id + 1];
+			out[o++] = w.verts[id + 2];
+		}
+	}
+	return out;
+}
+
+function opParts(
+	positions: Float32Array,
+	action: 'deleteSelected' | 'keepSelected' | 'keepLargest',
+	part?: number
+): MeshEditResult {
+	const w = weld(positions);
+	const parts = components(w);
+	if (parts.length === 0) throw new Error('Mesh has no parts');
+	let keep: Set<number>;
+	if (action === 'keepLargest') {
+		keep = new Set(parts[0].tris);
+	} else {
+		if (part == null || !parts[part]) {
+			throw new Error(`Part ${part ?? '?'} not found (${parts.length} parts)`);
+		}
+		if (action === 'keepSelected') keep = new Set(parts[part].tris);
+		else {
+			keep = new Set<number>();
+			for (let i = 0; i < parts.length; i++) {
+				if (i === part) continue;
+				for (const t of parts[i].tris) keep.add(t);
+			}
+		}
+	}
+	const tris: number[] = [];
+	const total = w.tris.length / 3;
+	for (let t = 0; t < total; t++) {
+		if (keep.has(t)) tris.push(w.tris[t * 3], w.tris[t * 3 + 1], w.tris[t * 3 + 2]);
+	}
+	w.tris = tris;
+	return {
+		positions: toSoup(w),
+		report: {
+			op: 'parts',
+			action,
+			...(part != null ? { part } : {}),
+			partsBefore: parts.length,
+			removedTriangles: total - tris.length / 3
+		}
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Hole inspection
+// ---------------------------------------------------------------------------
+
+export interface MeshHoleInfo {
+	index: number;
+	edges: number;
+	lengthMm: number;
+	centroid: Vec3;
+	/** rim polyline for highlighting, subsampled to ≤ 256 points */
+	loop: Vec3[];
+}
+
+/** Inspection: open boundary loops, largest (most edges) first. */
+export function listHoles(positions: Float32Array): { holes: MeshHoleInfo[]; openEdges: number } {
+	const w = weld(positions);
+	const { loops, openEdges } = sortedLoops(w);
+	const holes = loops.map((loop, index) => {
+		let len = 0;
+		for (let i = 0; i < loop.length; i++) {
+			const a = loop[i] * 3;
+			const b = loop[(i + 1) % loop.length] * 3;
+			len += Math.hypot(
+				w.verts[a] - w.verts[b],
+				w.verts[a + 1] - w.verts[b + 1],
+				w.verts[a + 2] - w.verts[b + 2]
+			);
+		}
+		const step = Math.max(1, Math.ceil(loop.length / 256));
+		const pts: Vec3[] = [];
+		for (let i = 0; i < loop.length; i += step) {
+			const o = loop[i] * 3;
+			pts.push({ x: w.verts[o], y: w.verts[o + 1], z: w.verts[o + 2] });
+		}
+		return {
+			index,
+			edges: loop.length,
+			lengthMm: Math.round(len * 100) / 100,
+			centroid: loopCentroid(w, loop),
+			loop: pts
+		};
+	});
+	return { holes, openEdges };
+}
+
+/** Triangle + welded-vertex counts (the editor's live status line). */
+export function meshStats(positions: Float32Array): { triangles: number; vertices: number } {
+	return { triangles: positions.length / 9, vertices: vertexCount(weld(positions)) };
+}
+
+// ---------------------------------------------------------------------------
+// Reduce (uniform-grid vertex clustering)
+// ---------------------------------------------------------------------------
+
+function clusterCount(positions: Float32Array, cell: number): number {
+	const seen = new Set<string>();
+	let count = 0;
+	const key = (i: number): string =>
+		`${Math.floor(positions[i] / cell)}|${Math.floor(positions[i + 1] / cell)}|${Math.floor(positions[i + 2] / cell)}`;
+	for (let i = 0; i + 8 < positions.length; i += 9) {
+		const a = key(i);
+		const b = key(i + 3);
+		const c = key(i + 6);
+		if (a === b || b === c || a === c) continue;
+		const tri = [a, b, c].sort().join('/');
+		if (seen.has(tri)) continue; // coincident result triangles collapse to one
+		seen.add(tri);
+		count++;
+	}
+	return count;
+}
+
+function opReduce(positions: Float32Array, targetPercent: number): MeshEditResult {
+	const trianglesBefore = positions.length / 9;
+	const pct = Math.min(100, Math.max(1, targetPercent));
+	const target = Math.max(4, Math.round((trianglesBefore * pct) / 100));
+	if (target >= trianglesBefore) {
+		return {
+			positions,
+			report: { op: 'reduce', targetPercent: pct, trianglesBefore, trianglesAfter: trianglesBefore, cellMm: 0 }
+		};
+	}
+	// bbox diagonal bounds the cell-size search
+	let min = [Infinity, Infinity, Infinity];
+	let max = [-Infinity, -Infinity, -Infinity];
+	for (let i = 0; i + 2 < positions.length; i += 3) {
+		for (let k = 0; k < 3; k++) {
+			if (positions[i + k] < min[k]) min[k] = positions[i + k];
+			if (positions[i + k] > max[k]) max[k] = positions[i + k];
+		}
+	}
+	const diag = Math.hypot(max[0] - min[0], max[1] - min[1], max[2] - min[2]) || 1;
+
+	// log-space bisection on the (monotone non-increasing) cluster count
+	let lo = diag / 1e4;
+	let hi = diag;
+	let bestCell = hi;
+	let bestDiff = Infinity;
+	for (let it = 0; it < 14; it++) {
+		const cell = Math.sqrt(lo * hi);
+		const n = clusterCount(positions, cell);
+		const diff = Math.abs(n - target);
+		if (diff < bestDiff) {
+			bestDiff = diff;
+			bestCell = cell;
+		}
+		if (n > target) lo = cell;
+		else hi = cell;
+	}
+
+	// representative = mean of all soup vertices in the cell
+	const cell = bestCell;
+	const acc = new Map<string, [number, number, number, number]>();
+	const keyOf = (i: number): string =>
+		`${Math.floor(positions[i] / cell)}|${Math.floor(positions[i + 1] / cell)}|${Math.floor(positions[i + 2] / cell)}`;
+	for (let i = 0; i + 2 < positions.length; i += 3) {
+		const k = keyOf(i);
+		const a = acc.get(k);
+		if (a) {
+			a[0] += positions[i];
+			a[1] += positions[i + 1];
+			a[2] += positions[i + 2];
+			a[3]++;
+		} else acc.set(k, [positions[i], positions[i + 1], positions[i + 2], 1]);
+	}
+	const out: number[] = [];
+	const seen = new Set<string>();
+	for (let i = 0; i + 8 < positions.length; i += 9) {
+		const ka = keyOf(i);
+		const kb = keyOf(i + 3);
+		const kc = keyOf(i + 6);
+		if (ka === kb || kb === kc || ka === kc) continue;
+		const tri = [ka, kb, kc].sort().join('/');
+		if (seen.has(tri)) continue;
+		seen.add(tri);
+		for (const k of [ka, kb, kc]) {
+			const a = acc.get(k)!;
+			out.push(a[0] / a[3], a[1] / a[3], a[2] / a[3]);
+		}
+	}
+	return {
+		positions: Float32Array.from(out),
+		report: {
+			op: 'reduce',
+			targetPercent: pct,
+			trianglesBefore,
+			trianglesAfter: out.length / 9,
+			cellMm: Math.round(cell * 1000) / 1000
+		}
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Invert / erase / margin cut / combine
+// ---------------------------------------------------------------------------
+
+function opInvert(positions: Float32Array): MeshEditResult {
+	const out = new Float32Array(positions.length);
+	for (let i = 0; i + 8 < positions.length; i += 9) {
+		// keep vertex 0, swap vertices 1 and 2 → winding (and facet normal) flips
+		out[i] = positions[i];
+		out[i + 1] = positions[i + 1];
+		out[i + 2] = positions[i + 2];
+		out[i + 3] = positions[i + 6];
+		out[i + 4] = positions[i + 7];
+		out[i + 5] = positions[i + 8];
+		out[i + 6] = positions[i + 3];
+		out[i + 7] = positions[i + 4];
+		out[i + 8] = positions[i + 5];
+	}
+	return { positions: out, report: { op: 'invert', triangles: out.length / 9 } };
+}
+
+function opErase(
+	positions: Float32Array,
+	center: Vec3,
+	radius: number,
+	deep: boolean,
+	axis: Vec3 | null,
+	depth: number
+): MeshEditResult {
+	const r2 = radius * radius;
+	let ax = 0;
+	let ay = 0;
+	let az = 1;
+	if (deep) {
+		const a = axis ?? { x: 0, y: 0, z: 1 };
+		const len = Math.hypot(a.x, a.y, a.z);
+		if (len > 1e-9) {
+			ax = a.x / len;
+			ay = a.y / len;
+			az = a.z / len;
+		}
+	}
+	const kept: number[] = [];
+	let removed = 0;
+	for (let i = 0; i + 8 < positions.length; i += 9) {
+		const cx = (positions[i] + positions[i + 3] + positions[i + 6]) / 3 - center.x;
+		const cy = (positions[i + 1] + positions[i + 4] + positions[i + 7]) / 3 - center.y;
+		const cz = (positions[i + 2] + positions[i + 5] + positions[i + 8]) / 3 - center.z;
+		let inside: boolean;
+		if (deep) {
+			// cylinder of ±depth along the pick normal (through-thickness erase)
+			const t = cx * ax + cy * ay + cz * az;
+			const rx = cx - t * ax;
+			const ry = cy - t * ay;
+			const rz = cz - t * az;
+			inside = Math.abs(t) <= depth && rx * rx + ry * ry + rz * rz <= r2;
+		} else {
+			inside = cx * cx + cy * cy + cz * cz <= r2;
+		}
+		if (inside) {
+			removed++;
+			continue;
+		}
+		for (let v = 0; v < 9; v++) kept.push(positions[i + v]);
+	}
+	return {
+		positions: Float32Array.from(kept),
+		report: { op: 'erase', deep, removed, radiusMm: radius, ...(deep ? { depthMm: depth } : {}) }
+	};
+}
+
+function opMarginCut(positions: Float32Array, pts: Vec3[], keep: 'inside' | 'outside'): MeshEditResult {
+	if (pts.length < 3) throw new Error('Margin cut needs at least 3 points');
+	// Newell normal + centroid of the (closed) margin polyline
+	let nx = 0;
+	let ny = 0;
+	let nz = 0;
+	let cx = 0;
+	let cy = 0;
+	let cz = 0;
+	for (let i = 0; i < pts.length; i++) {
+		const p = pts[i];
+		const q = pts[(i + 1) % pts.length];
+		nx += (p.y - q.y) * (p.z + q.z);
+		ny += (p.z - q.z) * (p.x + q.x);
+		nz += (p.x - q.x) * (p.y + q.y);
+		cx += p.x;
+		cy += p.y;
+		cz += p.z;
+	}
+	cx /= pts.length;
+	cy /= pts.length;
+	cz /= pts.length;
+	const nl = Math.hypot(nx, ny, nz);
+	if (nl < 1e-9) throw new Error('Margin line is degenerate (collinear points)');
+	nx /= nl;
+	ny /= nl;
+	nz /= nl;
+	// in-plane basis
+	let ux = -ny;
+	let uy = nx;
+	let uz = 0;
+	let ul = Math.hypot(ux, uy, uz);
+	if (ul < 1e-6) {
+		ux = 1;
+		uy = 0;
+		uz = 0;
+		ul = 1;
+	}
+	ux /= ul;
+	uy /= ul;
+	uz /= ul;
+	const vx = ny * uz - nz * uy;
+	const vy = nz * ux - nx * uz;
+	const vz = nx * uy - ny * ux;
+	const proj = (x: number, y: number, z: number): [number, number] => [
+		(x - cx) * ux + (y - cy) * uy + (z - cz) * uz,
+		(x - cx) * vx + (y - cy) * vy + (z - cz) * vz
+	];
+	const poly = pts.map((p) => proj(p.x, p.y, p.z));
+	const insidePoly = (px: number, py: number): boolean => {
+		// winding number over the projected loop
+		let wn = 0;
+		for (let i = 0; i < poly.length; i++) {
+			const [x1, y1] = poly[i];
+			const [x2, y2] = poly[(i + 1) % poly.length];
+			if (y1 <= py) {
+				if (y2 > py && (x2 - x1) * (py - y1) - (px - x1) * (y2 - y1) > 0) wn++;
+			} else if (y2 <= py && (x2 - x1) * (py - y1) - (px - x1) * (y2 - y1) < 0) wn--;
+		}
+		return wn !== 0;
+	};
+	const kept: number[] = [];
+	let removed = 0;
+	for (let i = 0; i + 8 < positions.length; i += 9) {
+		const tx = (positions[i] + positions[i + 3] + positions[i + 6]) / 3;
+		const ty = (positions[i + 1] + positions[i + 4] + positions[i + 7]) / 3;
+		const tz = (positions[i + 2] + positions[i + 5] + positions[i + 8]) / 3;
+		const [px, py] = proj(tx, ty, tz);
+		const inside = insidePoly(px, py);
+		if (inside === (keep === 'inside')) {
+			for (let v = 0; v < 9; v++) kept.push(positions[i + v]);
+		} else removed++;
+	}
+	return {
+		positions: Float32Array.from(kept),
+		report: { op: 'marginCut', keep, removed, kept: kept.length / 9, points: pts.length }
+	};
+}
+
+/** General 4×4 inverse (column-major), Gauss-Jordan. Throws if singular. */
+function invertMat4(m: number[]): number[] {
+	const a = [
+		[m[0], m[4], m[8], m[12], 1, 0, 0, 0],
+		[m[1], m[5], m[9], m[13], 0, 1, 0, 0],
+		[m[2], m[6], m[10], m[14], 0, 0, 1, 0],
+		[m[3], m[7], m[11], m[15], 0, 0, 0, 1]
+	];
+	for (let col = 0; col < 4; col++) {
+		let pivot = col;
+		for (let r = col + 1; r < 4; r++) {
+			if (Math.abs(a[r][col]) > Math.abs(a[pivot][col])) pivot = r;
+		}
+		if (Math.abs(a[pivot][col]) < 1e-12) throw new Error('Model transform is singular');
+		[a[col], a[pivot]] = [a[pivot], a[col]];
+		const d = a[col][col];
+		for (let k = 0; k < 8; k++) a[col][k] /= d;
+		for (let r = 0; r < 4; r++) {
+			if (r === col) continue;
+			const f = a[r][col];
+			if (f === 0) continue;
+			for (let k = 0; k < 8; k++) a[r][k] -= f * a[col][k];
+		}
+	}
+	const inv = new Array<number>(16);
+	for (let c = 0; c < 4; c++) {
+		for (let r = 0; r < 4; r++) inv[c * 4 + r] = a[r][c + 4];
+	}
+	return inv;
+}
+
+function mulMat4(a: number[], b: number[]): number[] {
+	const o = new Array<number>(16).fill(0);
+	for (let c = 0; c < 4; c++) {
+		for (let r = 0; r < 4; r++) {
+			let s = 0;
+			for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k];
+			o[c * 4 + r] = s;
+		}
+	}
+	return o;
+}
+
+const IDENT4 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+
+function opCombine(positions: Float32Array, modelId: number, ctx?: MeshEditContext): MeshEditResult {
+	if (!ctx?.loadModel) throw new Error('combine is not available in this context');
+	const src = ctx.loadModel(modelId);
+	if (!src) throw new Error(`Model ${modelId} not found in this case`);
+	// other-local → world → this-local: inv(selfT) · otherT
+	const selfT = ctx.selfTransform && ctx.selfTransform.length === 16 ? ctx.selfTransform : IDENT4;
+	const otherT = src.transform && src.transform.length === 16 ? src.transform : IDENT4;
+	const M = mulMat4(invertMat4(selfT), otherT);
+	const out = new Float32Array(positions.length + src.positions.length);
+	out.set(positions, 0);
+	const o = positions.length;
+	const p = src.positions;
+	for (let i = 0; i + 2 < p.length; i += 3) {
+		const x = p[i];
+		const y = p[i + 1];
+		const z = p[i + 2];
+		out[o + i] = M[0] * x + M[4] * y + M[8] * z + M[12];
+		out[o + i + 1] = M[1] * x + M[5] * y + M[9] * z + M[13];
+		out[o + i + 2] = M[2] * x + M[6] * y + M[10] * z + M[14];
+	}
+	return {
+		positions: out,
+		report: { op: 'combine', sourceModel: modelId, addedTriangles: p.length / 9 }
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch + replay
+// ---------------------------------------------------------------------------
+
 /** Dispatch a single mesh-edit op over a triangle soup. Throws on bad input. */
-export function applyMeshEdit(positions: Float32Array, op: MeshEditOp): MeshEditResult {
+export function applyMeshEdit(
+	positions: Float32Array,
+	op: MeshEditOp,
+	ctx?: MeshEditContext
+): MeshEditResult {
 	if (positions.length < 9) throw new Error('Mesh is empty');
 	switch (op.op) {
 		case 'smooth':
-			return opSmooth(positions, op.center ?? null, op.radius ?? 5, op.mode);
+			return opSmooth(positions, op.center ?? null, op.radius ?? 5, op.mode, op.strength);
 		case 'remesh':
 			return opRemesh(positions, op.center ?? null, op.radius ?? 5);
 		case 'fillHoles':
-			return opFillHoles(positions);
+			return opFillHoles(positions, {
+				maxEdges: op.maxEdges,
+				exceptLargest: op.exceptLargest,
+				hole: op.hole
+			});
 		case 'bridge':
 			if (!op.a || !op.b) throw new Error('bridge requires points a and b');
 			return opBridge(positions, op.a, op.b);
+		case 'parts':
+			if (!op.action) throw new Error('parts requires an action');
+			return opParts(positions, op.action, op.part);
+		case 'reduce':
+			if (!Number.isFinite(op.targetPercent)) throw new Error('reduce requires targetPercent');
+			return opReduce(positions, op.targetPercent!);
+		case 'invert':
+			return opInvert(positions);
+		case 'erase':
+			if (!op.center) throw new Error('erase requires center {x,y,z}');
+			return opErase(
+				positions,
+				op.center,
+				op.radius ?? 3,
+				op.deep ?? false,
+				op.axis ?? null,
+				op.depth ?? DEEP_ERASE_DEPTH_MM
+			);
+		case 'marginCut':
+			if (!op.points || !op.keep) throw new Error('marginCut requires points and keep side');
+			return opMarginCut(positions, op.points, op.keep);
+		case 'combine':
+			if (op.modelId == null) throw new Error('combine requires modelId');
+			return opCombine(positions, op.modelId, ctx);
 		default:
 			throw new Error(`Unknown op '${(op as { op: string }).op}'`);
 	}
+}
+
+export interface MeshEditReplay {
+	positions: Float32Array;
+	reports: MeshEditResult['report'][];
+	triangles: number;
+	vertices: number;
+}
+
+/**
+ * Replay a client-held op list against the pristine baseline. Deterministic:
+ * the same (baseline, ops) pair always yields the same soup, which makes
+ * undo (pop + replay) and redo (re-push + replay) exact.
+ */
+export function applyMeshEditOps(
+	baseline: Float32Array,
+	ops: MeshEditOp[],
+	ctx?: MeshEditContext
+): MeshEditReplay {
+	let cur = baseline;
+	const reports: MeshEditResult['report'][] = [];
+	for (let i = 0; i < ops.length; i++) {
+		let res: MeshEditResult;
+		try {
+			res = applyMeshEdit(cur, ops[i], ctx);
+		} catch (e) {
+			throw new Error(`op ${i + 1} (${ops[i].op}): ${e instanceof Error ? e.message : e}`);
+		}
+		if (res.positions.length < 9) {
+			throw new Error(`op ${i + 1} (${ops[i].op}) would leave an empty mesh`);
+		}
+		cur = res.positions;
+		reports.push(res.report);
+	}
+	return {
+		positions: cur,
+		reports,
+		triangles: cur.length / 9,
+		vertices: vertexCount(weld(cur))
+	};
 }
 
 // ---------------------------------------------------------------------------

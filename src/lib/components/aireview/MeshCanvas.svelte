@@ -1,20 +1,57 @@
+<script module lang="ts">
+	/** A click on the mesh resolved to a surface point (CPU raycast). */
+	export interface MeshPickHit {
+		x: number;
+		y: number;
+		z: number;
+		/** geometric normal of the hit triangle (from its winding) */
+		nx: number;
+		ny: number;
+		nz: number;
+		meshId: number;
+	}
+
+	/** Point/polyline decoration drawn over the meshes (depth test off). */
+	export interface CanvasOverlay {
+		points: { x: number; y: number; z: number }[];
+		color?: string;
+		/** connect the points with a line strip */
+		line?: boolean;
+		/** close the line strip back to the first point */
+		closed?: boolean;
+		/** point sprite size in px (0 hides the points) */
+		size?: number;
+	}
+</script>
+
 <script lang="ts">
 	/**
 	 * Minimal self-contained WebGL mesh canvas for the AI review wizard's
-	 * "3D objects" step: flat-shaded triangle soups, orbit + zoom, per-mesh
-	 * color/visibility/transform. Intentionally independent of the planning
-	 * viewers (no three.js scene graph — one shader, one VBO pair per mesh).
+	 * "3D objects" step and the Mesh Editor window: flat-shaded triangle
+	 * soups, orbit + zoom, per-mesh color/visibility/transform. Optional
+	 * extras for the editor: `raised` meshes (polygon-offset highlight),
+	 * point/polyline overlays, and pick-on-mesh — a click (when `pickActive`)
+	 * is raycast against the visible soups with a linear Möller–Trumbore
+	 * pass (no BVH; fine for display meshes) and reported via `onpick`.
+	 * Intentionally independent of the planning viewers (no three.js scene
+	 * graph — one shader, one VBO pair per mesh).
 	 */
 	import type { WizardMesh } from './overlay';
 
 	let {
 		meshes,
 		resetTick = 0,
-		height = 340
+		height = 340,
+		overlays = [],
+		pickActive = false,
+		onpick = undefined
 	}: {
-		meshes: WizardMesh[];
+		meshes: (WizardMesh & { raised?: boolean })[];
 		resetTick?: number;
 		height?: number;
+		overlays?: CanvasOverlay[];
+		pickActive?: boolean;
+		onpick?: (hit: MeshPickHit | null) => void;
 	} = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
@@ -29,7 +66,20 @@
 		uModel: WebGLUniformLocation | null;
 		uColor: WebGLUniformLocation | null;
 	} | null = null;
-	const buffers = new Map<number, { pos: WebGLBuffer; nrm: WebGLBuffer; count: number }>();
+	// src tracks the uploaded Float32Array so editor ops (same id, new soup) re-upload
+	const buffers = new Map<
+		number,
+		{ pos: WebGLBuffer; nrm: WebGLBuffer; count: number; src: Float32Array }
+	>();
+	// flat-color program for overlay points / polylines
+	let oProg: WebGLProgram | null = null;
+	let oLoc: {
+		aPos: number;
+		uMvp: WebGLUniformLocation | null;
+		uColor: WebGLUniformLocation | null;
+		uSize: WebGLUniformLocation | null;
+	} | null = null;
+	let oBuf: WebGLBuffer | null = null;
 
 	// orbit camera state
 	let cam = $state({ yaw: 0, pitch: -0.25, dist: 0, cx: 0, cy: 0, cz: 0 });
@@ -133,6 +183,18 @@
 			float d = abs(n.y) * 0.55 + abs(n.z) * 0.25 + abs(n.x) * 0.10;
 			gl_FragColor = vec4(uColor * (0.30 + 0.70 * d), 1.0);
 		}`;
+	const OVS = `
+		attribute vec3 aPos;
+		uniform mat4 uMvp;
+		uniform float uSize;
+		void main() {
+			gl_Position = uMvp * vec4(aPos, 1.0);
+			gl_PointSize = uSize;
+		}`;
+	const OFS = `
+		precision mediump float;
+		uniform vec3 uColor;
+		void main() { gl_FragColor = vec4(uColor, 1.0); }`;
 
 	function initGl(): void {
 		if (!canvas || gl) return;
@@ -155,6 +217,17 @@
 			uModel: gl.getUniformLocation(prog, 'uModel'),
 			uColor: gl.getUniformLocation(prog, 'uColor')
 		};
+		oProg = gl.createProgram()!;
+		gl.attachShader(oProg, compile(gl.VERTEX_SHADER, OVS));
+		gl.attachShader(oProg, compile(gl.FRAGMENT_SHADER, OFS));
+		gl.linkProgram(oProg);
+		oLoc = {
+			aPos: gl.getAttribLocation(oProg, 'aPos'),
+			uMvp: gl.getUniformLocation(oProg, 'uMvp'),
+			uColor: gl.getUniformLocation(oProg, 'uColor'),
+			uSize: gl.getUniformLocation(oProg, 'uSize')
+		};
+		oBuf = gl.createBuffer();
 		gl.enable(gl.DEPTH_TEST);
 	}
 
@@ -201,6 +274,15 @@
 		fitted = true;
 	}
 
+	/** orbit camera position: anterior view (camera towards -y), z up, yaw about z */
+	function cameraEye(): number[] {
+		const cy = Math.cos(cam.yaw);
+		const sy = Math.sin(cam.yaw);
+		const cp = Math.cos(cam.pitch);
+		const sp = Math.sin(cam.pitch);
+		return [cam.cx + cam.dist * cp * sy, cam.cy - cam.dist * cp * cy, cam.cz + cam.dist * sp];
+	}
+
 	function draw(): void {
 		if (!canvas || !gl || !prog || !loc) return;
 		const cw = canvas.width;
@@ -210,16 +292,7 @@
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		if (!fitted || cam.dist === 0) return;
 
-		// orbit: anterior view (camera towards -y), z up, yaw about z
-		const cy = Math.cos(cam.yaw);
-		const sy = Math.sin(cam.yaw);
-		const cp = Math.cos(cam.pitch);
-		const sp = Math.sin(cam.pitch);
-		const eye = [
-			cam.cx + cam.dist * cp * sy,
-			cam.cy - cam.dist * cp * cy,
-			cam.cz + cam.dist * sp
-		];
+		const eye = cameraEye();
 		const view = lookAt(eye, [cam.cx, cam.cy, cam.cz], [0, 0, 1]);
 		const proj = perspective(35, cw / Math.max(1, ch), cam.dist * 0.01, cam.dist * 10);
 		const mvp = mul4(proj, view);
@@ -231,18 +304,24 @@
 		for (const m of meshes) {
 			if (!m.visible || !m.positions || m.positions.length < 9) continue;
 			let buf = buffers.get(m.id);
-			if (!buf) {
-				const pos = gl.createBuffer()!;
+			if (!buf || buf.src !== m.positions) {
+				const pos = buf?.pos ?? gl.createBuffer()!;
 				gl.bindBuffer(gl.ARRAY_BUFFER, pos);
 				gl.bufferData(gl.ARRAY_BUFFER, m.positions, gl.STATIC_DRAW);
-				const nrm = gl.createBuffer()!;
+				const nrm = buf?.nrm ?? gl.createBuffer()!;
 				gl.bindBuffer(gl.ARRAY_BUFFER, nrm);
 				gl.bufferData(gl.ARRAY_BUFFER, flatNormals(m.positions), gl.STATIC_DRAW);
-				buf = { pos, nrm, count: m.positions.length / 3 };
+				buf = { pos, nrm, count: m.positions.length / 3, src: m.positions };
 				buffers.set(m.id, buf);
 			}
 			gl.uniformMatrix4fv(loc.uModel, false, m.transform ? new Float32Array(m.transform) : ident);
 			gl.uniform3fv(loc.uColor, hexToRgb(m.color));
+			if (m.raised) {
+				// pull the highlight towards the camera so it wins z-fighting
+				// against the identical base-mesh triangles underneath
+				gl.enable(gl.POLYGON_OFFSET_FILL);
+				gl.polygonOffset(-1.5, -1.5);
+			}
 			gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
 			gl.enableVertexAttribArray(loc.aPos);
 			gl.vertexAttribPointer(loc.aPos, 3, gl.FLOAT, false, 0, 0);
@@ -250,19 +329,164 @@
 			gl.enableVertexAttribArray(loc.aNrm);
 			gl.vertexAttribPointer(loc.aNrm, 3, gl.FLOAT, false, 0, 0);
 			gl.drawArrays(gl.TRIANGLES, 0, buf.count);
+			if (m.raised) gl.disable(gl.POLYGON_OFFSET_FILL);
+		}
+
+		// overlays: flat-colored points / polylines, always visible (no depth)
+		if (oProg && oLoc && oBuf && overlays.length) {
+			gl.useProgram(oProg);
+			gl.uniformMatrix4fv(oLoc.uMvp, false, mvp);
+			gl.disable(gl.DEPTH_TEST);
+			gl.bindBuffer(gl.ARRAY_BUFFER, oBuf);
+			gl.enableVertexAttribArray(oLoc.aPos);
+			gl.vertexAttribPointer(oLoc.aPos, 3, gl.FLOAT, false, 0, 0);
+			for (const ov of overlays) {
+				const n = ov.points.length;
+				if (n === 0) continue;
+				const data = new Float32Array(n * 3);
+				for (let i = 0; i < n; i++) {
+					data[i * 3] = ov.points[i].x;
+					data[i * 3 + 1] = ov.points[i].y;
+					data[i * 3 + 2] = ov.points[i].z;
+				}
+				gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+				gl.uniform3fv(oLoc.uColor, hexToRgb(ov.color ?? '#f08a24'));
+				if (ov.line && n >= 2) {
+					gl.uniform1f(oLoc.uSize, 1);
+					gl.drawArrays(ov.closed ? gl.LINE_LOOP : gl.LINE_STRIP, 0, n);
+				}
+				const size = ov.size ?? 7;
+				if (size > 0) {
+					gl.uniform1f(oLoc.uSize, size);
+					gl.drawArrays(gl.POINTS, 0, n);
+				}
+			}
+			gl.enable(gl.DEPTH_TEST);
 		}
 	}
 
+	/** Linear Möller–Trumbore raycast through canvas pixel (px, py). */
+	function pickAt(px: number, py: number): MeshPickHit | null {
+		if (!canvas || !fitted || cam.dist === 0) return null;
+		const w = canvas.width;
+		const h = canvas.height;
+		const eye = cameraEye();
+		// camera basis (matches lookAt: up = +z, looking at the orbit center)
+		let fx = cam.cx - eye[0];
+		let fy = cam.cy - eye[1];
+		let fz = cam.cz - eye[2];
+		const fl = Math.hypot(fx, fy, fz) || 1;
+		fx /= fl;
+		fy /= fl;
+		fz /= fl;
+		// right = forward × up, up = (0,0,1) → (fy, -fx, 0); pitch is clamped
+		// well below ±90° so this never degenerates
+		let rx = fy;
+		let ry = -fx;
+		let rz = 0;
+		const rl = Math.hypot(rx, ry, rz) || 1;
+		rx /= rl;
+		ry /= rl;
+		rz /= rl;
+		// trueUp = right × forward
+		const ux = ry * fz - rz * fy;
+		const uy = rz * fx - rx * fz;
+		const uz = rx * fy - ry * fx;
+		const tanH = Math.tan((35 * Math.PI) / 360);
+		const ndcX = ((2 * px) / w - 1) * tanH * (w / Math.max(1, h));
+		const ndcY = (1 - (2 * py) / h) * tanH;
+		let dx = fx + rx * ndcX + ux * ndcY;
+		let dy = fy + ry * ndcX + uy * ndcY;
+		let dz = fz + rz * ndcX + uz * ndcY;
+		const dl = Math.hypot(dx, dy, dz) || 1;
+		dx /= dl;
+		dy /= dl;
+		dz /= dl;
+
+		let best: MeshPickHit | null = null;
+		let bestT = Infinity;
+		for (const m of meshes) {
+			if (!m.visible || !m.positions || m.positions.length < 9) continue;
+			const p = m.positions;
+			const t4 = m.transform;
+			const v = new Float64Array(9);
+			for (let i = 0; i + 8 < p.length; i += 9) {
+				for (let k = 0; k < 3; k++) {
+					const x = p[i + k * 3];
+					const y = p[i + k * 3 + 1];
+					const z = p[i + k * 3 + 2];
+					if (t4) {
+						v[k * 3] = t4[0] * x + t4[4] * y + t4[8] * z + t4[12];
+						v[k * 3 + 1] = t4[1] * x + t4[5] * y + t4[9] * z + t4[13];
+						v[k * 3 + 2] = t4[2] * x + t4[6] * y + t4[10] * z + t4[14];
+					} else {
+						v[k * 3] = x;
+						v[k * 3 + 1] = y;
+						v[k * 3 + 2] = z;
+					}
+				}
+				const e1x = v[3] - v[0];
+				const e1y = v[4] - v[1];
+				const e1z = v[5] - v[2];
+				const e2x = v[6] - v[0];
+				const e2y = v[7] - v[1];
+				const e2z = v[8] - v[2];
+				const px_ = dy * e2z - dz * e2y;
+				const py_ = dz * e2x - dx * e2z;
+				const pz_ = dx * e2y - dy * e2x;
+				const det = e1x * px_ + e1y * py_ + e1z * pz_;
+				if (Math.abs(det) < 1e-12) continue;
+				const inv = 1 / det;
+				const tx = eye[0] - v[0];
+				const ty = eye[1] - v[1];
+				const tz = eye[2] - v[2];
+				const u = (tx * px_ + ty * py_ + tz * pz_) * inv;
+				if (u < 0 || u > 1) continue;
+				const qx = ty * e1z - tz * e1y;
+				const qy = tz * e1x - tx * e1z;
+				const qz = tx * e1y - ty * e1x;
+				const vv = (dx * qx + dy * qy + dz * qz) * inv;
+				if (vv < 0 || u + vv > 1) continue;
+				const t = (e2x * qx + e2y * qy + e2z * qz) * inv;
+				if (t <= 0 || t >= bestT) continue;
+				bestT = t;
+				let nx = e1y * e2z - e1z * e2y;
+				let ny = e1z * e2x - e1x * e2z;
+				let nz = e1x * e2y - e1y * e2x;
+				const nl = Math.hypot(nx, ny, nz) || 1;
+				nx /= nl;
+				ny /= nl;
+				nz /= nl;
+				best = {
+					x: eye[0] + dx * t,
+					y: eye[1] + dy * t,
+					z: eye[2] + dz * t,
+					nx,
+					ny,
+					nz,
+					meshId: m.id
+				};
+			}
+		}
+		return best;
+	}
+
 	$effect(() => {
-		// track: size, reset, camera and per-mesh visible/positions/transform
+		// track: size, reset, camera, overlays and per-mesh visible/positions/transform
 		void wrapW;
 		void cam.yaw;
 		void cam.pitch;
 		void cam.dist;
+		for (const ov of overlays) {
+			void ov.points.length;
+			void ov.color;
+			void ov.closed;
+		}
 		let loadedCount = 0;
 		for (const m of meshes) {
 			void m.visible;
 			void m.transform;
+			void m.raised;
 			if (m.positions) loadedCount++;
 		}
 		if (!canvas) return;
@@ -277,8 +501,10 @@
 	});
 
 	let drag: { x: number; y: number } | null = null;
+	let dragDist = 0;
 	function down(e: PointerEvent): void {
 		drag = { x: e.clientX, y: e.clientY };
+		dragDist = 0;
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 	}
 	function move(e: PointerEvent): void {
@@ -286,10 +512,19 @@
 		const dx = e.clientX - drag.x;
 		const dy = e.clientY - drag.y;
 		drag = { x: e.clientX, y: e.clientY };
+		dragDist += Math.abs(dx) + Math.abs(dy);
 		cam.yaw += dx * 0.008;
 		cam.pitch = Math.max(-1.4, Math.min(1.4, cam.pitch - dy * 0.008));
 	}
-	function up(): void {
+	function up(e: PointerEvent): void {
+		const wasDrag = dragDist > 4;
+		drag = null;
+		// a click (not an orbit drag) in pick mode resolves to a mesh point
+		if (!wasDrag && pickActive && onpick) {
+			onpick(pickAt(e.offsetX, e.offsetY));
+		}
+	}
+	function cancel(): void {
 		drag = null;
 	}
 	function wheel(e: WheelEvent): void {
@@ -301,10 +536,11 @@
 <div class="mc-wrap" bind:clientWidth={wrapW} style="height:{height}px">
 	<canvas
 		bind:this={canvas}
+		class:pick={pickActive}
 		onpointerdown={down}
 		onpointermove={move}
 		onpointerup={up}
-		onpointercancel={up}
+		onpointercancel={cancel}
 		onwheel={wheel}
 	></canvas>
 </div>
@@ -325,5 +561,8 @@
 	}
 	canvas:active {
 		cursor: grabbing;
+	}
+	canvas.pick {
+		cursor: crosshair;
 	}
 </style>
