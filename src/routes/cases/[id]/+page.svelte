@@ -1653,6 +1653,38 @@
 	let guideInsertion = $state<'auto' | 'vertical' | 'view'>('auto');
 	/** captured 3D viewing direction for insertion = 'view' (volume mm, unit) */
 	let customInsertion = $state<{ x: number; y: number; z: number } | null>(null);
+	let undercutPreviewOn = $state(false);
+
+	/** guide removal direction for the undercut preview (opposite of seating) */
+	function removalDir(): { x: number; y: number; z: number } | null {
+		if (guideInsertion === 'view' && customInsertion)
+			return { x: -customInsertion.x, y: -customInsertion.y, z: -customInsertion.z };
+		const ims = ps?.implants ?? [];
+		if (guideInsertion === 'auto' && ims.length) {
+			let x = 0,
+				y = 0,
+				z = 0;
+			for (const im of ims) {
+				x += im.ax;
+				y += im.ay;
+				z += im.az;
+			}
+			const l = Math.hypot(x, y, z) || 1;
+			return { x: -x / l, y: -y / l, z: -z / l };
+		}
+		return data.plan.jaw === 'maxilla' ? { x: 0, y: 0, z: -1 } : { x: 0, y: 0, z: 1 };
+	}
+
+	$effect(() => {
+		// re-apply when the toggle, direction choice, base model or stage changes
+		void [undercutPreviewOn, guideInsertion, customInsertion, guideBaseId, stage];
+		const base = guideBaseId ?? scanModels[0]?.id ?? null;
+		if (stage === 'guide' && undercutPreviewOn && base != null) {
+			defaultVolView?.setUndercutPreview(base, removalDir());
+		} else {
+			defaultVolView?.setUndercutPreview(null, null);
+		}
+	});
 	let guideWindows = $state<{ x: number; y: number; z: number; diameter: number }[]>(
 		(() => {
 			try {
@@ -4573,6 +4605,13 @@
 						>
 							Use view direction
 						</button>
+						<label
+							class="inline-label"
+							title="Color the base model by seating direction: red areas face away (undercuts that block insertion)"
+						>
+							<input type="checkbox" bind:checked={undercutPreviewOn} />
+							Undercuts
+						</label>
 						<div class="tool-sep"></div>
 						<button
 							class="btn"

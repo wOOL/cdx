@@ -31,13 +31,13 @@ listed in GAPS-VIDEO.md (stage-3 section).
 
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
-| 12 | Discover the AI Assistant *(–)* | pending | |
+| 12 | Discover the AI Assistant *(21)* | verifying | wizard parity batch (subset presets, counts, manual-align jump, reset view) |
 | 13 | How to provide data to the AI Assistant *(22)* | verifying | |
 | 14 | How to Review Import Data from the AI Assistant *(22)* | verifying | (wizard refinement batch queued) |
 | 15 | How to merge and use results from the AI Assistant *(22)* | verifying | Create merged model dialog (+ arch quick-picks) |
 | 16 | How to change AI tooth numbering *(17)* | verifying | AI renumbering (builder in flight) |
-| 17 | How to perform AI tooth extraction *(–)* | pending | |
-| 18 | Time saving with the AI Assistant *(–)* | pending | |
+| 17 | How to perform AI tooth extraction *(15)* | verifying | AI tooth extraction (cut/cut+close/alveolus + add-tooth) |
+| 18 | Time saving with the AI Assistant *(–)* | closed | — (marketing) |
 
 ## How-to EXPERT mode
 

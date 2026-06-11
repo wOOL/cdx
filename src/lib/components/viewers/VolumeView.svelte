@@ -93,6 +93,60 @@
 		return { x: d.x / len, y: d.y / len, z: d.z / len };
 	}
 
+	// ---------- undercut preview (guide insertion direction) ----------
+	let undercutPreview: { modelId: number; dir: THREE.Vector3 } | null = null;
+
+	/** Color a model by undercut vs the guide removal direction (null clears). */
+	export function setUndercutPreview(
+		modelId: number | null,
+		dir: { x: number; y: number; z: number } | null
+	): void {
+		undercutPreview =
+			modelId != null && dir
+				? { modelId, dir: new THREE.Vector3(dir.x, dir.y, dir.z).normalize() }
+				: null;
+		applyUndercutPreview();
+		redraw?.();
+	}
+
+	function applyUndercutPreview(): void {
+		for (const [id, mesh] of modelMeshes) {
+			const mat = mesh.material;
+			if (!(mat instanceof THREE.MeshStandardMaterial) || !mesh.geometry) continue;
+			const want = undercutPreview?.modelId === id;
+			if (!want && mesh.userData.undercutColors) {
+				const orig = mesh.userData.origColorAttr as THREE.BufferAttribute | null;
+				if (orig) mesh.geometry.setAttribute('color', orig);
+				else mesh.geometry.deleteAttribute('color');
+				mat.vertexColors = !!orig;
+				mat.needsUpdate = true;
+				mesh.userData.undercutColors = false;
+			}
+			if (want && undercutPreview) {
+				const geo = mesh.geometry;
+				const nor = geo.getAttribute('normal');
+				if (!nor) continue;
+				if (!mesh.userData.undercutColors) {
+					mesh.userData.origColorAttr = geo.getAttribute('color') ?? null;
+				}
+				const nm = new THREE.Matrix3().getNormalMatrix(mesh.matrix);
+				const v = new THREE.Vector3();
+				const colors = new Float32Array(nor.count * 3);
+				for (let i = 0; i < nor.count; i++) {
+					v.fromBufferAttribute(nor, i).applyMatrix3(nm).normalize();
+					const under = v.dot(undercutPreview.dir) < -0.05;
+					colors[i * 3] = under ? 0.92 : 0.45;
+					colors[i * 3 + 1] = under ? 0.28 : 0.66;
+					colors[i * 3 + 2] = under ? 0.28 : 0.95;
+				}
+				geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+				mat.vertexColors = true;
+				mat.needsUpdate = true;
+				mesh.userData.undercutColors = true;
+			}
+		}
+	}
+
 	/** standard anatomical camera perspectives (world: +y = head up, +z = anterior) */
 	function setPerspective(name: string) {
 		if (!cameraRef || !controlsRef) return;
