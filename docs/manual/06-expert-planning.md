@@ -584,7 +584,9 @@ Open the **Report stage** (or *Protocol & report* in EASY):
 The protocol contains patient/plan identification, volume data, the implant list (material
 list, optionally with the plan comment), the per-implant **drill protocol** with bone
 classes and guided drill lengths, active **safety warnings**, the nerve list, implant
-**cross-sections** and the **panoramic overview**.
+**cross-sections** and the **panoramic overview**. A **practice logo** uploaded under
+*Settings → Printout* (PNG, JPEG, BMP or WebP; with *Include logo on reports* checked)
+appears in the header of the printed documents.
 
 - **Print / PDF** opens the browser print dialog.
 - **Print all…** batch-prints a remembered selection of the documents:
