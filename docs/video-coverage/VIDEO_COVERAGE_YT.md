@@ -22,8 +22,8 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 5 | Planning workflow — 7 steps *(26)* | verifying | (insertion undercut coloring pending verdict) |
 | 6 | coDiagnostiX EASY *(43)* | verifying | (vendor integrations → GAPS) |
 | 7 | coDiagnostiX EASY — A Simplified Implant Planning Solution *(42)* | closed | — (already complete) |
-| 8 | Enjoy fast and easy drill guide design (Dental Wings) *(–)* | pending | |
-| 9 | Transformations in Dentistry *(–)* | pending | |
+| 8 | Enjoy fast and easy drill guide design (Dental Wings) *(29)* | verifying | elongated inspection windows (stadium length+angle) |
+| 9 | Transformations in Dentistry *(14)* | closed | — (marketing; already complete) |
 | 10 | Teaser — clinicians *(–)* | pending | |
 | 11 | Teaser — labs *(–)* | pending | |
 
@@ -32,10 +32,10 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
 | 12 | Discover the AI Assistant *(–)* | pending | |
-| 13 | How to provide data to the AI Assistant *(–)* | pending | |
-| 14 | How to Review Import Data from the AI Assistant *(–)* | pending | |
-| 15 | How to merge and use results from the AI Assistant *(–)* | pending | |
-| 16 | How to change AI tooth numbering *(–)* | pending | |
+| 13 | How to provide data to the AI Assistant *(22)* | verifying | |
+| 14 | How to Review Import Data from the AI Assistant *(22)* | verifying | (wizard refinement batch queued) |
+| 15 | How to merge and use results from the AI Assistant *(22)* | verifying | Create merged model dialog (+ arch quick-picks) |
+| 16 | How to change AI tooth numbering *(17)* | verifying | AI renumbering (builder in flight) |
 | 17 | How to perform AI tooth extraction *(–)* | pending | |
 | 18 | Time saving with the AI Assistant *(–)* | pending | |
 

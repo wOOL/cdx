@@ -20,6 +20,7 @@
 	import VirtualToothPicker from '$lib/components/VirtualToothPicker.svelte';
 	import ImplantFinePosition from '$lib/components/ImplantFinePosition.svelte';
 	import MergeModelsDialog from '$lib/components/MergeModelsDialog.svelte';
+	import ToothExtractDialog from '$lib/components/ToothExtractDialog.svelte';
 	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
 	import PerioChart, { type PerioData } from '$lib/components/PerioChart.svelte';
 	import TemplateMatchDialog from '$lib/components/TemplateMatchDialog.svelte';
@@ -63,6 +64,7 @@
 		userAbutmentToSpec
 	} from '$lib/implantLibrary';
 	import { applyMat4, composeMat4, icp, identityMat4, kabsch } from '$lib/registration';
+	import { classifyAiModel } from '$lib/aiReviewMap';
 	import { extractSurfacePoints } from '$lib/client/icpTargets';
 	import { axialContours, primeModel } from '$lib/client/meshContours';
 	import {
@@ -1105,6 +1107,14 @@
 	let freeModelInput = $state<HTMLInputElement | null>(null);
 	let modelStats = $state<{ id: number; text: string } | null>(null);
 	let showMergeModels = $state(false);
+	let showToothExtract = $state(false);
+	let toothExtractScanId = $state<number | null>(null);
+	const aiTeeth = $derived(
+		(ps?.models ?? [])
+			.map((m) => ({ id: m.id, info: classifyAiModel(m.name) }))
+			.filter((x) => x.info.kind === 'tooth' && x.info.fdi != null)
+			.map((x) => ({ id: x.id, fdi: x.info.fdi!, label: `Tooth ${x.info.fdi}` }))
+	);
 
 	// AI-assistant job status chip (orange hourglass while running, green check
 	// when results await review — click to open, like the original's icon)
@@ -3211,6 +3221,19 @@
 							>
 								Adjust position…
 							</button>
+							{#if m.kind === 'scan'}
+								<button
+									class="btn"
+									title="Cut an AI-segmented tooth out of this scan (tooth extraction)"
+									disabled={aiTeeth.length === 0}
+									onclick={() => {
+										toothExtractScanId = m.id;
+										showToothExtract = true;
+									}}
+								>
+									Tooth extraction…
+								</button>
+							{/if}
 							<label class="mp-row">
 								<span>Look</span>
 								<select
@@ -4956,6 +4979,19 @@
 		onclose={() => (showMergeModels = false)}
 		ondone={async () => {
 			showMergeModels = false;
+			await invalidateAll();
+		}}
+	/>
+{/if}
+
+{#if showToothExtract && toothExtractScanId != null}
+	<ToothExtractDialog
+		caseId={data.caseData.id}
+		scanModelId={toothExtractScanId}
+		teeth={aiTeeth}
+		onclose={() => (showToothExtract = false)}
+		ondone={async () => {
+			showToothExtract = false;
 			await invalidateAll();
 		}}
 	/>

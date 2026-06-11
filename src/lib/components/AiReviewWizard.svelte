@@ -973,7 +973,36 @@
 						{:else}
 							<div class="aw-note">{loadErr || 'No 3D preview available.'}</div>
 						{/if}
-						<ToothChart {teeth} ontoggle={toggleTooth} />
+						<ToothChart {teeth} ontoggle={toggleTooth} onrenumber={openRenumber} />
+						{#if renumberFdi != null}
+							<div class="aw-renumber">
+								<span>Change tooth <strong>{renumberFdi}</strong> to</span>
+								<select bind:value={renumberTarget} disabled={renumberBusy} aria-label="New FDI tooth number">
+									{#each [...FDI_UPPER, ...FDI_LOWER] as f (f)}
+										<option value={f}>
+											{f}{f === renumberFdi ? ' — current' : teeth[f] ? ' •' : ''}
+										</option>
+									{/each}
+								</select>
+								<button
+									class="btn primary"
+									onclick={applyRenumber}
+									disabled={renumberBusy || renumberTarget === renumberFdi}
+								>
+									{renumberBusy ? 'Renumbering…' : 'Apply'}
+								</button>
+								<button class="btn" onclick={() => (renumberFdi = null)} disabled={renumberBusy}>
+									Cancel
+								</button>
+							</div>
+							<div class="aw-note">
+								Picking a number on the same arch shifts the contiguous run of neighbouring teeth
+								along with this tooth (• = number in use); a number on the opposite arch relabels
+								only this tooth.
+							</div>
+						{/if}
+						{#if renumberErr}<div class="aw-renumber-err">{renumberErr}</div>{/if}
+						{#if renumberNote}<div class="aw-note">{renumberNote}</div>{/if}
 						{#if nonTeeth.length}
 							<div class="aw-pills">
 								{#each nonTeeth as m (m.id)}
@@ -1365,6 +1394,28 @@
 	}
 	.aw-slider input {
 		flex: 1;
+	}
+	.aw-renumber {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 12px;
+		padding: 6px 10px;
+		border: 1px solid var(--border-soft);
+		border-radius: var(--radius);
+		background: var(--bg-1);
+	}
+	.aw-renumber select {
+		background: var(--bg-2);
+		color: var(--text);
+		border: 1px solid var(--border-soft);
+		border-radius: 4px;
+		padding: 4px 6px;
+		font-size: 12px;
+	}
+	.aw-renumber-err {
+		color: #e06a6a;
+		font-size: 12px;
 	}
 	.aw-pills {
 		display: flex;
