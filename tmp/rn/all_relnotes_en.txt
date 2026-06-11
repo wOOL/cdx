@@ -1,0 +1,551 @@
+===== 10.1.0.html =====
+Release Notes
+coDiagnostiX 10.1
+English
+New surgical guides
+While earlier versions of coDiagnostiX 
+were solely intended
+ for dental implant planning, beginning with version 10, coDiagnostiX is intended for planning in dentistry. This opens the software for a series of 
+new 
+applications
+,
+ while the main workflow continues to be the same.
+Bone reduction 
+guides
+Since in certain cases, bone reduction is necessary prior to dental implant placement, coDiagnostiX 10 now offers the planning and design of bone reduction guides as part of a collection of new features for the edentulous workflow. These guides support cutting of osseous structures by guiding an instrument (e.g. piezo saw) along a predefined 
+p
+rofile.
+coDiagnostiX supports the definition of a cut profile. 
+This profile then serves as a basis in the regular guide design wizard to design a bone reduction guide.
+This procedure can also be applied to external sinus 
+lift
+, apicoectomy, and gingivectomy 
+planning
+.
+Endodontic guides
+With endodontic guides, we now offer a smart and safe treatment approach for cases with pulp canal calcification or root canals that are difficult to locate. Endodontic guides accurately guide the drill to the obliterated root canal to create an access cavity.
+For this, the coDiagnostiX database now includes endodontic drills. Endodontic planning in coDiagnostiX is realized by selecting endodontic drills from the integrated database and placing them in the same way as implants. Subsequently, appropriate sleeves are assigned and a surgical guide designed with the regular coDiagnostiX guide design wizard.
+Model scan import
+We improved the handling of imported surface scans and other 3D objects which are not optimal for treatment planning to better aid virtual tooth extraction and mesh optimization.
+ This new functionality can be found in the Model Scan Import dialog and in the context menu of imported model scans and other 3D 
+objects
+.
+Other
+The loading speed of the implant selection dialog has been significantly improved.
+When a lateral pin is added, it is now automatically placed at the selected tooth and at an angle. This ensures that the pin is in the best position to start fine alignment. In addition, pins are now assigned an undefined tooth position (XX) to prevent them from blocking the tooth position for implants.
+A new printout has been added to allow users more customization options. It contains all images stored in the Image Management for a particular 
+patient
+.
+Improvements in EASY mode
+It&#39;s now possible to measure the distances in the Implant Alignment step in EASY mode. Previously, this function was available only in EXPERT mode.
+The Dataset Preparation step in EASY mode now features a segmentation threshold slider. It allows users to optimize the appearance of their 3D reconstruction from scan data more easily.
+Bugfixing
+Increased stability of the surgical guide designer.
+Fixed a rare problem where producers were not able to read datasets from their locked clients.
+Fixed a rare problem that occurred in the Straumann surgical protocol print-out. Sometimes, the order of tooth positions did not correctly match the dental notation system that was chosen.
+Fixed a problem with five CAMLOG implants, where the visible diameter of the 3D object was 0.4 mm smaller than the value from the catalog. The following implants were affected: K1054.4311, K1054.4313, K1054.4316, 
+K1053.4316, and C1086.3809
+.
+Known issues
+coPeriodontiX is not accessible un
+===== 10.2.0.html =====
+Release Notes
+coDiagnostiX 10.2
+English
+New guides
+coDiagnostiX 10 offers a brand-new set of exciting surgical guides such as 
+bone reduction
+ and 
+endodontic guides
+! For more details see Release Notes 10.1.
+3Shape TRIOS integration
+coDiagnostiX is now fully integrated with 3Shape&rsquo;s TRIOS scanner! Users can send IO scans from the doctor&rsquo;s TRIOS directly to the lab&rsquo;s coDiagnostiX installation via 3Shape Communicate or to their own coDiagnostiX installation via DWOS Gateway.
+Integrated Training
+With the new integrated training, coDiagnostiX offers an additional training option and how-to instructions to newcomers and learners alike, visually guiding users step-by-step. Lessons are constantly expanded and will range from basic functions such as DICOM import and dataset creation to advanced functions such as segmentation.
+New sleeve systems
+New sleeve systems from 
+Medentika, Anthogyr, Zimmer and Straumann South Korea
+ have been added.
+Angulated abutment platform 
+of implants improved
+The planning process for implants with an angulated abutment platform has been improved: angulated zygomatic implants can now be fitted with abutments and it is possible to adjust the rotation of profiled implants according to the bone profile.
+Bug fixes
+A problem with the matching of surface scans imported during a Synergy connection has been fixed.
+Fixed a bug that occasionally prevented paper printouts after a computer reboot.
+Fixed a bug in the implant selection dialog that left tooth positions unmarked even though an implant was planned in that position.
+===== 10.3.0.html =====
+Release Notes
+coDiagnostiX 10.3
+English
+New license 
+option
+: coDiagnostiX EASY PRINT
+For clinicians who own a 3D printer and collaborate with a planning service, coDiagnostiX 10.3 now features a new license option: EASY PRINT. This license option allows you to receive finalized treatment plans via caseXchange from your planning service for printing surgical guides on your own local 3D printer.* 
+Model
+ scan import
+The user interface of the model scan import has been improved with a new dynamic tool panel, toolbar and work view for better ease of use. Among others, new and improved repair, detection and cutting functionalities have also been added.
+Other
+The abutment dialog can now show all implants and abutments from the treatment plan. This makes it easier to adjust the abutment rotation.
+Deleting treatment plans was moved from the plan menu to the plan management dialog. This should help to prevent users from accidentally deleting treatment plans.
+An issue regarding proxy servers requiring authentication has been fixed.
+Sleeves
+CAMLOG Progressive Line Sleeves
+Medentika Procone
+*Available through Straumann Smile in a Box starting from 1 January 2021, and for all validated laboratories starting from 1 March 2021.
+===== 9.10.0.html =====
+Release Notes
+coDiagnostiX 9.10
+English
+coDiagnostiX EASY
+The coDiagnostiX EASY step-by-step implant planning wizard has been completely reworked. It is easy to learn and use yet covers a wide range of treatment scenarios. It offers the full workflow from dataset alignment to export of surgical guides.
+Surgical Guide Designer
+3D objects can now be added to or subtracted from the guide. This enables adding e.g. a digital prosthetic setup or a scanned denture to the guide, in order to register it to the bite during surgery.
+Interface to Mininavident DENACAM Implant Surgery
+With coDiagnostiX 9.10, your planning data can be exported to use within DENACAM Implant Surgery, a 3D navigation system for implantology.
+New sleeve systems
+Biomet 3i Tapered Navigator
+TBR GUIDED CLASSIC/MCI
+Titaniumfix
+Extension for Neodent GM
+Surgical protocols
+Added support for Straumann BLT 2.9.
+Improved readability by changing the way of displaying color codes.
+Further improvements
+coDiagnostiX now supports the
+ Polygon File Format (PLY) 
+as an importable file format. It offers support for e.g. colored intra-oral scans.
+The DICOM import now supports the ISO
+ 2022 IR 13 string format
+ to improve compatibility with Japanese characters.
+In views and on printouts, the 
+readability
+ of measurements was improved by making the font size adjustable.
+A button to quickly add measurements can be added to the toolbar.
+A button to quickly switch view configurations can be added to the toolbar.
+The tooth position of implants can now be displayed in the views.
+New option to disable caseXchange and Order Management notifications.
+Performance optimizations
+Known Issues
+coPeriodontiX is
+temporarily not accessible in version 9.10.
+===== 9.12.0.html =====
+Release Notes
+coDiagnostiX 9.12
+English
+Interactive introduction &amp; help
+It is now easier for new users to get started.
+After the installation of the software, an onboarding wizard is launched, which describes the basic concept of the start screen and explains the difference between EXPERT and EASY modes.
+The EASY mode now offers detailed step-by-step instructions for each workflow task.
+New license options
+In addition to the traditional CLIENT and PRODUCER licenses, version 9.12 offers attractive license modules that are tailored to the needs of specific target groups.
+coDiagnostiX EASY
+coDiagnostiX EASY is ideally suited for clinicians who outsource services to a laboratory or planning center. coDiagnostiX EASY is fully dedicated to the new EASY mode, without access to the EXPERT mode, and is offered at a lower price than the regular CLIENT license.
+coDiagnostiX EASY CHAIRSIDE
+coDiagnostiX EASY CHAIRSIDE is ideally suited for clinicians who own a 3D printer and want to produce a limited quantity of guides in-house. The software is offered as a service in the form of a monthly subscription model, that includes three dataset exports every month.
+Sleeve systems
+Support for the Straumann VeloDrill sleeve system has been added, including a detailed surgical protocol.
+Users of the Neodent Grand Morse sleeve system can now output a surgical protocol.
+For the Japanese market, support for the YDM Sleeve system has been added.
+===== 9.12.1.html =====
+Release Notes
+coDiagnostiX 9.12.1
+English
+Virtual planning export improved
+When converting scans into, for instance, models with implant analogs, the virtual planning export now allows users to store the resulting object directly in the current case planning. Users no longer have to re-import an STL file. This new and convenient import option applies to intraoral, model or impression scans as well as to segmentations and all other user-imported 3D objects.
+Support for digital marker trays
+coDiagnostiX now supports the digital marker trays for the DENACAM system from Mininavident.
+Refined implant-abutment alignment
+An issue regarding abutment alignment has been fixed for implants with a 30% angled shoulder.
+Rapid Shape RSHAPESTL output file format added
+Printing guides on a 
+Rapid Shape
+ printer has become easier. When exporting a surgical guide to the printer, the RSHAPESTL file format now transfers meta data, which helps accelerate the printing process.
+Surgical protocol improvement
+We improved the surgical protocol for Straumann BLX implants, which are placed with the VeloDrill system (coronal widening). 
+coDiagnostiX now uses the most efficient surgical protocol for all BLX 
+implants
+.
+===== 9.14.0.html =====
+Release Notes
+coDiagnostiX 9.14
+English
+New features
+The loading speed of the implant selection dialog has been significantly improved.
+When a lateral pin is added, it is now automatically placed at the selected tooth and at an angle. This ensures that the pin is in the best position to start fine alignment. In addition, pins are now assigned an undefined tooth position (XX) to prevent them from blocking the tooth position for implants.
+A new printout has been added to allow users more customization options. It contains all images stored in the Image Management for a particular patient.
+Improvements in EASY mode
+It&#39;s now possible to measure the distances in the Implant Alignment step in EASY mode. Previously, this function was available only in EXPERT mode.
+The Dataset Preparation step in EASY mode now features a segmentation threshold slider. It allows users to optimize the appearance of their 3D reconstruction from scan data more easily.
+Bugfixing
+Increased stability of the surgical guide designer.
+Fixed a rare problem where producers were not able to read datasets from their locked clients.
+Fixed a rare problem that occurred in the Straumann surgical protocol print-out. Sometimes, the order of tooth positions did not correctly match the dental notation system that was chosen.
+Fixed a problem with five CAMLOG implants, where the visible diameter of the 3D object was 0.4 mm smaller than the value from the catalog. The following implants were affected: K1054.4311, K1054.4313, K1054.4316, K1053.4316, and C1086.3809.
+Known issues
+coPeriodontiX is not accessible until further notice.
+===== 9.15.0.html =====
+Release Notes
+coDiagnostiX 9.15
+English
+3Shape TRIOS integration
+coDiagnostiX is now fully integrated with 3Shape&rsquo;s TRIOS scanner! Users can send IO scans from the doctor&rsquo;s TRIOS directly to the lab&rsquo;s coDiagnostiX installation via 3Shape Communicate or to their own coDiagnostiX installation via DWOS Gateway.
+Integrated Training
+With the new integrated training, coDiagnostiX offers an additional training option and how-to instructions to newcomers and learners alike, visually guiding users step-by-step. Lessons are constantly expanded and will range from basic functions such as DICOM import and dataset creation to advanced functions such as segmentation.
+New sleeve systems
+New sleeve systems from 
+Medentika, Anthogyr, Zimmer and Straumann South Korea
+ have been added.
+Angulated abutment platform 
+of implants improved
+The planning process for implants with an angulated abutment platform has been improved: angulated zygomatic implants can now be fitted with abutments and it is possible to adjust the rotation of profiled implants according to the bone profile.
+Bug fixes
+A problem with the matching of surface scans imported during a Synergy connection has been fixed.
+Fixed a bug that occasionally prevented paper printouts after a computer reboot.
+Fixed a bug in the implant selection dialog that left tooth positions unmarked even though an implant was planned in that position.
+===== 9.16.0.html =====
+Release Notes
+coDiagnostiX 9.16
+English
+New license 
+option
+: coDiagnostiX EASY PRINT
+For clinicians who own a 3D printer and collaborate with a planning service, coDiagnostiX 9.16 now features a new license option: EASY PRINT. This license option allows you to receive finalized treatment plans via caseXchange from your planning service for printing surgical guides on your own local 3D printer.* 
+Model
+ scan import
+We improved the handling of imported surface scans and other 3D objects which are not optimal for treatment planning to better aid virtual tooth extraction and mesh optimization. This new functionality can be found in the Model Scan Import dialog and in the context menu of imported model scans and other 3D objects.
+Other
+The abutment dialog can now show all implants and abutments from the treatment plan. This makes it easier to adjust the abutment rotation.
+Deleting treatment plans was moved from the plan menu to the plan management dialog. This should help to prevent users from accidentally deleting treatment plans.
+An issue regarding proxy servers requiring authentication has been fixed.
+Sleeves
+CAMLOG Progressive Line Sleeves
+Medentika Procone
+*Available through Straumann Smile in a Box starting from 1 January 2021, and for all validated laboratories starting from 1 March 2021.
+===== 9.2.0.html =====
+Release Notes 9.2.0
+Release Notes 9.2.0
+Improvements
+Virtual Planning Export improved
+When using DWOS X-Order format, more information on exported implant data is added to support the DWOS user selecting the correct implant kit. (#3235)
+To further improve the DWOS cross workflow, now all objects which are imported via Prosthetic Design Import will also be exported to DWOS. This affects antagonist scans for example. (#3228)
+Surface matching improved
+Surface scans can now - additionally to multiple segmentations - be registered to already imported surface scans. (#1491, #2931)
+Registration of surface scans is possible in two ways. First, as before, via definition of matching regions. Second, for multiple surface scans that are in the same coordinate system, via applying the registration of a previously registered surface scan.
+Surfaces scans can now be matched to the contact surface of a scan template segmentation (#3202)
+Drill sleeve systems improved
+New sleeve system: TRI Guided Surgery (#3237)
+Bredent sleeve system updated for better digital drill guide support (#3255)
+coDiagnostiX now allows explicit selection of the sleeve to be used for drill guide construction.
+STL import in generic sleeve system designer (#3038)
+Added import functionality of .stl files to Generic Sleeve Wizard. Importing a virtual sleeve model will improve visualization of the generic sleeve during planning and allows the software to automatically generate a sleeve hole, which is required for producing digital drill guides.
+Display of surface scans in sleeve property dialog (#3170)
+When using the sleeve property dialog for editing a sleeve, registered surface scans can now be displayed to take the gingiva into account during sleeve positioning
+Improved sleeve property dialog (#3029, #3031)
+In coDiagnostiX EASY, a button has been introduced that opens the sleeve property dialog for the currently selected implant. Additionally, when no sleeve system is configured for a particular implant, a sleeve system can now be selected from a clear visible sleeve system list. This should improve the usability of the dialog.
+caseXchange improved
+In the caseXchange transfer list, datasets are now sorted by patient name and can be opened directly through the new details popup dialog. (#3095, #3188)
+The order management dialog now displays more contact details like postal address, phone number and email address.
+ (#3299)
+Other
+Added support for multi-frame images to DICOM import (#3338)
+Added support for Bredent reference pins to pin detection dialog (#3303)
+Bugfixes
+===== 9.2.1.html =====
+Release Notes 9.2.1 - Public
+Release Notes 9.2.1
+Minor bug fixes
+Addresses an issue within 
+XOrder
+ export for the DWOS platform (#3452)
+Addresses an issue where aligned surface scans were marked as unaligned (#3397)
+===== 9.2.2.html =====
+Release Notes 9.2.2
+Release Notes 9.2.2
+Webshop connection
+A link to the coDiagnostiX webshop was added to menu and toolbar. It&#39;s only visible if the webshop is available in your region or country. (#3450)
+Virtual Planning Export
+Offsets for Straumann Implant Kits automatically suggested if DWOS XOrder is selected for export (#3396)
+Print reports
+To increase the ease of use, coDiagnostiX stores the selected printer, paper type, and orientation after printing a report. (#3417)
+Viewer Mode if license expired
+coDiagnostiX datasets can be viewed in read-only mode if the licence is expired. (#3383)
+Other
+In addition, this update includes over 35 other improvements and bugfixes.
+===== 9.2.3.html =====
+Release Notes 9.2.3
+Release Notes 9.2.3
+Minor bug fix
+Addresses an issue with renewing the license from within the software (#3632, #3657)
+===== 9.2.4.html =====
+Release Notes 9.2.4
+Release Notes 9.2.4
+Neodent Sleeve System
+coDiagnostiX now supports Neodent&rsquo;s drill sleeve system (#3492).
+===== 9.5.2.html =====
+Release Notes 9.5.2 Combined
+Release Notes 9.5.2
+English
+New features and improvements within coDiagnostiX&trade; 9.5
+Bone supported drill guides
+coDiagnostiX&trade; 9.5 allows to create bone-supported drill guides. It is also possible to design drill guides with a combination of teeth and bone support. For this purpose a new optional wizard page was added to the digital drill guide wizard.
+Further drill guide improvements
+In addition to the sleeve socket diameter, the height of the socket can now be specified.
+For selected implant series, you can now have rotation markers engraved into the drill guide to enable precise placement of previously planned restoration.
+DWOS Synergy
+Integrated real-time implant and restoration design data.
+DWOS Synergy opens up a completely seamless and time-saving workflow between coDiagnostiX&trade; and DWOS. Transfer your coDiagnosiX&trade; implant planning to DWOS and get back the restoration planning in real time. Collaborate in your local network with just one click - or over the Internet with a free DWOS Synergy account.
+Virtual Planning Export
+Our Virtual Planning Export has been completely redesigned and contains the following new features:
+Virtual model builder
+Multi STL file export
+Selectable export coordinate systems (STL)
+Selection of scanbodies from various manufacturers
+Better user interface
+Further improvements of coDiagnostiX&trade; 9.5
+Surgical protocol for Bredent implants
+New sleeve systems: Dental Wings, Neodent, Implant Solutions
+Inline comment function for planning objects
+Filter implants by geographical region
+Improved workflow for SQL Network Database
+Improved performance and stability
+Improved quality of surface meshes exported with Virtual Planning Export (#3974, #4005).
+Solved problems in Synergy, Digital Drill Guide wizard, DICOM import, coDiagnostiX EASY, and printouts.
+===== 9.5.4.html =====
+Release Notes 9.5.4
+Release Notes 9.5.4
+English
+Support for new CAMLOG sleeves (#3777).
+Support for BEGO sleeves (#3776).
+Added Synergy support for custom abutment with waxing (#3995).
+Data received via Synergy can now be transferred to the coDiagnostiX iPad app (#4022).
+Improved support for bredent SKY5X (#3304).
+Solved problems in digital drill guide designer, archiving, treatment evaluation, and time zone handling.
+===== 9.6.0.html =====
+Release Notes 9.6
+Release Notes 9.6
+English
+DWOS Synergy now supports the transfer of stock abutments.
+Within a DWOS Synergy session, abutments planned in coDiagnostiX and contained in the coDiagnostiX database will now be transferred to DWOS. This allows for easier planning and design of all-on-four cases and restorations.
+Transfer of planning data to bone block augmentation manufacturers
+coDiagnostiX patient cases with bone and implant planning information can now be exported or directly sent (via caseXchange) to bone block manufacturers to have them produce customized bone blocks.
+Transfer of planning data to radiographic assessment service providers
+coDiagnostiX now allows patient cases to be sent via caseXchange to service providers to obtain radiographic assessment.
+Transfer of planning data to Bien-Air&rsquo;s iChiropro app
+coDiagnostiX now offers an interface to iChiropro which provides surgical protocol information and pre-programmed operating sequences.
+Support for new sleeve systems added
+The database now includes
+ 3D Diagnostix and Neoss sleeve systems.
+Improved support for Bego&rsquo;s sleeve system. 
+coDiagnostiX now supports non rotation-symmetric sleeve bodies.
+Several user interface improvements in caseXchange, e.g.
+Quick search in caseXchange
+Plan name displayed in order management
+Email address clickable in order management
+Contact information can be copied to clipboard
+Hotkeys to access caseXchange and order management from start screen
+===== 9.6.1.html =====
+Release Notes 9.6.1
+English
+(#4400) New stereo 3D mode &ldquo;side-by-side&rdquo; for use with 3D displays.
+(#4436) In digital drill guide wizard, default settings were changed to not use large connectors and add labels embossed.
+(#2129) Added option to set advanced DICOM import as default.
+(#4402) When aligning views to implants a bigger view area is displayed.
+(#4309) Problem with adding measurements to a planning containing abutments solved.
+(#4443) Distance of implant move in plan comparison dialog now correctly calculated.
+(#4385) Sleeve adjustment dialog multi selection consistency fixed.
+(#4282) In Virtual Planning Export, the export settings for segmentations can be adjusted. 
+New sleeve systems added: C.Hafner, Sweden&amp;Martina and BioHorizons.
+Several minor bugs were fixed.
+===== 9.6.2.html =====
+Release Notes 9.6.2
+English
+Problem with DICOM import fixed which in some cases caused imported data being too dark (#4470).
+Several minor bugs fixed.
+===== 9.6.3.html =====
+Release Notes 9.6.3
+English
+Improvements in digital drill guide wizard:
+Added option to display sleeves during definition of bone support regions (#4014).
+Wizard now persistently stores selected segmentation for bone support regions (#4015).
+Diameter and height of inspection windows can now be modified using mouse wheel - analogously to sleeve body size (#4065).
+Sleeve calibration matrix can now be generated via the context menu of a planned sleeve (#3599).
+Zoom with mouse wheel enabled for all 3D views in the wizard (#4492).
+In virtual planning export, segmentation export quality has been improved in many cases (#4499).
+Solved an issue when transferring implants via caseXchange (#4503).
+Several minor bugs fixed.
+===== 9.6.4.html =====
+Release Notes 9.6.4
+English
+Planning layout added to show tangential view and 3D view only (#4523).
+Improved support of surgical procedure for Straumann Bone Level Tapered Implant (#4569).
+In digital drill guide wizard, a problem was fixed with displaying sleeves while editing bone support (#4575).
+Infrequent problem with printing on Windows 10 fixed (#4564).
+Several minor bugs fixed.
+===== 9.6.5.html =====
+Release Notes 9.6.5
+English
+Added support in caseXchange and order management for an additional identification number per contact (#4706)
+Surgical protocol information for Straumann implants is provided to BienAir&rsquo;s iChiropro (#4529)
+Addresses some issues with the BienAir iChiropro link
+Addresses an issue in the treatment evaluation module (#4727)
+User information if Synergy connection partner uses another protocol version added (#4432)
+Several other minor bugs fixed
+===== 9.7.0.html =====
+Release Notes 9.7
+English
+DWOS Synergy Improvements
+Complete prosthetic information
+All prosthetic elements from DWOS are now transferred to coDiagnostiX. This includes bridge elements, pontics, crowns etc.
+In turn, bone information can be sent from coDiagnostiX to DWOS.
+Additional information when sharing cases
+When sharing cases through DWOS Synergy, the name of the laboratory/clinician is now transferred and displayed for easier identification.
+Improvements in drill guide design
+Dual scan method supported
+coDiagnostiX now supports the direct import of a segmentation from a second dataset.
+A special option allows to use a denture&rsquo;s intaglio surface for drill guide design.
+Lateral fixation improved
+Support for drill guides with lateral fixation  has been improved. Lateral pins can now be assigned to an undefined tooth position and are automatically included in the drill guide.
+Regular tooth positions are no longer occupied by fixation pins.
+Free design of support surfaces
+The new drawing tool lets the user freely design a drill guide&rsquo;s support surface to realize e.g. palatal or gingiva support.
+Palatal support may provide a more reliable fit of drill guides in edentulous cases.
+Connector preview
+A new option in the drill guide design wizard displays the sequence of the guide&rsquo;s contact points indicating positions where connectors will be be generated.
+Presets for labels
+coDiagnostiX now offers factory and user-defined presets for drill guide labels to speed up work.
+Easier export of sleeve calibration matrix
+The calibration matrix for a sleeve can now be exported directly through a sleeve&rsquo;s context menu and is, thus, available prior to drill guide design.
+Improved support for edentulous cases
+Dual scan method supported
+Improved support for lateral fixation
+Free design of supporting surface to realize palatal support
+Display of abutment axes for angulated abutments (useful e.g. for implant-borne full dentures)
+Further improvements
+Sleeve systems and selection box
+With Dentaurum and Sweden &amp; Martina, two new sleeve systems have been added.
+The sequence of sleeve systems displayed in the selection box has been reworked. Sleeve systems offered by the implant manufacturer are now shown on top.
+Improved iChiropro support
+Additional implant manufacturers are supported.
+More information are transferred to iChiropro, including:
+the Implant Details printout from coDiagnostiX
+surgical protocol information for Straumann implants
+Support &amp; information center
+The new support and information center provides centralized access for all help, support and training issues.
+A news section informs the user about pending updates and upcoming events.
+===== 9.7.1.html =====
+Release Notes 9.7.1
+English
+Feature updates
+3DDX guided surgery kit: Support for new laterally opened sleeves added.
+Implant Solutions sleeve system updated.
+Neoss sleeve system updated to support 5mm and 6mm sleeves.
+Biologitech sleeve system support was added.
+Straumann guided surgery does now support rotationally locked sleeve holes.
+French, Japanese and Spanish translations updated.
+Updated the English user help.
+Bug fixes
+Fixes problems with the digital drill guide wizard, dongles after computer standby, the screenshot printout, display of DICOM slices, and an online update problem with network dongle installations.
+===== 9.7.2.html =====
+Release Notes 9.7.2
+English
+DWOS Synergy workflow improved
+A Synergy session can now be
+ initiated even
+ if the coDiagnostiX user has not paid a G
+uide Fee
+. In DWOS, the export of manufacturing files is blocked until a Guide Fee is settled in coDiagnostiX. This makes the Synergy workflow easier than before and also prevents the surgeon from paying undue fees 
+if the surgical guide ends up not being manufactured, or sent to manufacturing by his lab
+.
+Surgical protocols and sleeves
+Straumann surgical protocol has been improved. It now also includes information on the fine implant bed preparation.
+3DDX sleeves with side opening can now be aligned in their rotational
+position (either vestibular or oral).
+Generic sleeve system was renamed to &ldquo;
+Custom sleeve system
+&rdquo;.
+===== 9.7.3.html =====
+Release Notes 9.7.3
+English
+Labelling changes due to UDI regulations by the US authority FDA.
+===== 9.7.4.html =====
+Release Notes 9.7.4
+English
+Fixed a bug which made it impossible to carry out the surgery as originally intended when the surgical protocol was used in combination with specific implants. The following implants are affected:
+Straumann Bone Level Tapered Roxolid SLActive:
+021.0010 (L: 10mm; 
+&#8960;
+ 2.9mm; SC)
+021.0012 (L: 12mm; 
+&#8960;
+ 2.9mm; SC)
+021.0014 (L: 14mm; 
+&#8960;
+ 2.9mm; SC)
+===== 9.7.5.html =====
+Release Notes 9.7.5
+English
+coDiagnostiX does now offer information on whether a dataset has been unlocked for production, when this was done and by which license number. This information can be found in the Plan menu under &ldquo;Check lock state for production&rdquo;.
+In Synergy, the doctor&rsquo;s name which is entered in DWOS/CARES is now displayed in the inbox to make it easier to identify
+the case if several cases have been shared.
+For digital drill guides, the diameter and height of inspection windows can now be set down to 0.4 millimeters. This allows advanced guide features like flushing channels (small diameter) or slots for drill handles (low height).
+When a dataset is locked after archiving, it can now be unlocked even if the corresponding message had been dismissed. In the main menu, go to Patient &gt; Remove archive lock.
+Added support for the new Straumann 2.2 mm sleeve.
+Dental Wings sleeve system renamed as Meisinger.
+Revised the surgical protocol for Straumann 2.8 mm sleeves and 8 mm BLT implants.
+Revised 3DDX and Neoss sleeve systems
+.
+===== 9.7.6.html =====
+Release Notes 9.7.6
+English
+Fixes a problem with plans that have been received via caseXchange. If such plans contained implants which were not available in the local implant database, some plans could not be loaded.
+Improved 
+coDiagnostiX&rsquo; ability
+ to automatically fix problems in its system environment.
+===== 9.8.0.html =====
+Release Notes 9.8
+English
+Improved support for edentulous
+Automatic placement of correctly angulated screw-retained abutments based on the implants&rsquo; position and angulation adds further support for screw-retained bars and bridges via DWOS Synergy and enhances existing edentulous workflows.
+DWOS Connect interface
+Dentists who own a Dental Wings scanner can now seamlessly transfer their scans via DWOS Connect to create perfectly fitting drill guides in coDiagnostiX.
+Native DICOM data stored
+With coDiagnostiX 9.8, the full DICOM grayscale range is stored with the dataset abolishing the necessity to adjust presets during import. This further simplifies DICOM import and allows the user to adjust the grayscale range and modify the contrast any time during their planning activities to improve visibility.
+caseXchange improvements
+Comments function: Add supplementing information when transmitting data.
+Transmission Status information: Provides feedback to the sender when the dataset has been downloaded by the recipient.
+Time-saving Send Back function: Quickly and easily return a commented or approved case planning to the sender.
+Tidy-up function: Hides completed cases on the transfer list making it clearer and easier to handle.
+One-Click Download: Reduces the number of clicks to speed up work.
+Download Again function: Repeated download of a dataset with one click.
+===== 9.8.1.html =====
+Release Notes 9.8.1
+English
+caseXchange can now remove finished cases older than a date specified.
+Improved performance when using large patient datasets.
+Stability improvements for DICOM import, implant selection, digital drill guide export, and Synergy.
+===== 9.9.0.html =====
+Release Notes
+coDiagnostiX 9.9
+English
+Improved communication
+Synergy now updates the clinical model in coDiagnostiX if it is changed in DWOS/CARES Visual.
+In the surgical guide designer, the caseXchange order number is now available as a labeling preset. The
+patient case has to be opened from the Order Management to access this preset
+.
+caseXchange notification emails now contain more information about the sender of the patient case.
+Sleeve systems
+Support for Hahn&trade; Tapered Implant Guided Surgery system added.
+Support for Medentika Guided Surgery system added.
+Support for Straumann PURE implants added to the Straumann Guided Surgery system.
+Further improvements
+When editing abutments, the dialog box asking to which implant the abutment should be added does now show up when relevant
+only.
+DICOM Import now offers an image clipping preset to process images without scaling.
+Support
+ for patient datasets planned with coDiagnostiX version 9.0 or older was improved.
+Instabilities have been fixed in caseXchange, virtual planning export, abutment planning and PDF export.
+===== 9.9.1.html =====
+Release Notes
+coDiagnostiX 9.9.1
+English
+Stability improvements for caseXchange, implant selection, SQL network database and archive import.

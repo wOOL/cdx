@@ -1,0 +1,33 @@
+coDiagnostiX 10.9.1
+
+Improvements
+
+      Added support for the NUVO sleeve system.
+      Added support for the Neodent Zi 5.0 sleeve.
+      Added support for Straumann metal scan bodies to Treatment Evaluation.
+      The about box now shows three numbers of the version number instead of two (10.9.1 instead of
+       10.9).
+      The about box now displays the UDI PI (production identifier).
+      The about box now provides a list of country specific production labels.
+
+coDiagnostiX 10.9
+
+Improvements
+
+      The Straumann surgical protocols were all switched from 4 to 3 bone classes.
+      The Straumann TLX/BLX and TLC/BLC surgical protocols now both follow the from-pilot-to-final
+       approach.
+      Fixed an issue in the Neodent EasyGuide surgical protocol where columns were too narrow and
+       cropped the contained textual information.
+      Fixed an issue where the abutment angulation measurement dialog changed the selected implant
+       in the planning screen.
+      Fixed an issue where surgical protocol information was not correctly displayed when using
+       Medentika MedentiGuide.
+      Fixed a frequent crash that occurred when using the SQL Network Database feature.
+      Fixed a crash that occurred when closing the software without a dongle attached.
+
+
+
+
+                                                1
+

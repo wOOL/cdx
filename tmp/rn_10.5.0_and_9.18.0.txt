@@ -1,0 +1,41 @@
+10.5 & 9.18
+Release Notes
+Improvements delivered with this update
+Import of Xorder files
+
+With the new update, coDiagnostiX will be able
+to import Xorder files through the Scan Import
+dialog box directly from a storage location.
+This will be an alternative option to importing such
+files from DWOS Connect, which will further improve
+the software’s connectivity to scanner devices.
+
+Switch between implant and abutment interface
+
+The user will now be able to select between implant
+and abutment interface when exporting the patient
+case through the Virtual Planning Export.
+This improvement, which will be available
+for the Xorder export in a first step, will better tailor
+the export to the subsequent CAD workflow,
+making it possible to export the patient case
+without the abutment if the implant interface
+option is selected.
+
+Mouse thumb wheel function
+
+coDiagnostiX now offers the option to adjust the viewing perspective in the 3D, Panoramic and Tangential views
+with the help of the thumb wheel of the mouse. Scrolling the wheel will rotate the views and helps to further
+speed up work.
+
+
+
+
+Integration of additional sleeves
+
+This update adds an additional BioHorizon sleeve as well as Camlog pilot sleeves to the coDiagnostiX database.
+
+
+
+cDX10.5_9.18_ReleaseNotes_v1_EN_10-2021
+

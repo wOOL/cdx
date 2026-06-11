@@ -1,0 +1,105 @@
+CODIAGNOSTIX®
+RELEASE NOTES 10.8
+
+VIRTUAL TOOTH EXTRACTION NOW AUTOMATED
+Teeth can now be removed from surface scans automatically
+to prepare cases for immediate tooth extraction.
+
+There are three extraction options available:
+
+
+ 1   CUT OUT
+This extraction workflow removes the teeth to allow for a
+better visualization of the gap between the soft tissue and
+the bone. It is designed to aid the guide design process in
+your tooth extraction workflow.
+
+
+2    CUT OUT AND CLOSE
+This extraction workflow removes the teeth and closes
+the gap. It is designed to mimic the shape of a healed site
+after extraction.
+
+
+3    CUT OUT DENTAL ALVEOLUS
+This extraction workflow is designed to improve the
+CAD design workflow. You can now export the intraoral
+scan and use the alveolar socket contour in order to pre-
+cisely design the emergence profile in your CAD system.
+
+After the surface scan has been processed by the AI, the
+tooth extraction pops up in the context menu of the surface
+scan.
+
+                                                              Requires the graphic adapter to support OpenGL 3.3 or higher.
+
+
+
+
+MANUAL CORRECTION OF AI TOOTH LABELS
+The AI did not detect all tooth numbers correctly?
+Users can now manually edit them.
+
+Correcting tooth numbers comes in handy for a number
+of reasons: they are used to detect coordinate system
+and panoramic curve as well as needed for automatic
+surface matching and tooth extraction.
+To use the manual correction feature, click on a tooth in
+the first screen of the AI review dialog.
+  CODIAGNOSTIX®
+  RELEASE NOTES 10.8
+
+
+
+BETTER INITIAL COLORS WHEN IMPORTING SURFACE SCANS
+When adding surface scans, coDiagnostiX now assigns colors from a color palette.
+With this update, coDiagnostiX delivers a default palette. To change the predefined color palette,
+right click on an imported model scan --> Visualization… --> color picker dropdown menu --> Edit palettes.
+
+
+
+OTHER IMPROVEMENTS/CHANGES
+• Print direct to PDF, without print preview.
+
+• We increased the maximum font size in 2D and 3D views. Go to main menu --> Extras --> Settings --> Text size of measures
+  and annotations.
+
+• In the virtual planning export’s xOrder workflow, users are now made aware to check whether the implant kit offset
+  is correct before proceeding with the prosthetic design.
+
+• Virtual planning export can now export antagonist scans via xOrder.
+
+• Replace a 3D object with another mesh while maintaining its alignment. Right click on a 3D object --> Replace Mesh.
+
+• Fine alignment now always uses the entered distance or degrees when moving or rotating objects.
+
+• Following the mesh editor, the tooth extraction editor now also requires the graphic adapter to support OpenGL 3.3 or higher.
+
+
+
+
+USER INTERFACE TRANSLATIONS
+coDiagnostiX is now available in two additional languages:
+
+Dutch and Hungarian.
+
+Go to Startscreen --> Management --> Change Language.
+
+
+
+
+HARDWARE REQUIREMENTS
+coDiagnostiX now requires a GPU that supports at least OpenGL 3.3. Additionally, a 64-bit CPU is requisite to make sure
+coDiagnostiX can use as much memory as possible for a 32-bit application.
+
+
+
+
+GOOD TO KNOW
+Starting with version 10.8, coDiagnostiX is no longer able to read coDiagnostiX patient archives or patient databases created
+with versions 9.7.6 or older. Please contact our customer support if this affects you.
+
+When using a network dongle, no new instance of coDiagnostiX can be started after the user limit has been reached.
+The message that the user limit has been reached is currently not working correctly. It opens in the background and is not
+visible. The new instance of coDiagnostiX does not respond to user input.
+

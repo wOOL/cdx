@@ -1,0 +1,2979 @@
+  coDiagnostiX
+Dental Surgery Planning Software
+
+
+ Instructions for Use
+             Original
+Important! Keep this document for future reference.
+CONTENTS
+
+ 1. About this guide                                   5
+   1.1 Disclaimer                                      5
+   1.2 License, trademarks and other rights            8
+
+ 2. Introduction and overview                         10
+   2.1 Intended use                                   10
+   2.2 Device description and features                10
+   2.3 Accessories and products used in combination   14
+   2.4 Indications                                    18
+   2.5 Residual risks and side effects                19
+   2.6 Contraindications                              19
+   2.7 Precautions                                    19
+   2.8 Compatibility information                      22
+   2.9 Data protection                                23
+   2.10 Further information                           25
+   2.11 Installation                                  26
+   2.12 Disposal                                      28
+
+ 3. Basic principles                                  29
+   3.1 Getting acquainted                             29
+   3.2 coDiagnostiX start screen                      30
+   3.3 DICOM Import                                   32
+
+ 4. EASY mode                                         34
+   4.1 User interface                                 34
+   4.2 Case planning                                  38
+
+ 5. EXPERT mode: User interface                       46
+   5.1 Toolbar                                        47
+   5.2 Views                                          48
+   5.3 Object tree                                    50
+   5.4 Plans                                          52
+
+ 6. EXPERT mode: Step by step case planning           53
+   6.1 Align patient coordinate system                53
+  6.2 Panoramic curve                                54
+  6.3 Detect nerve canal                             55
+  6.4 Import and match model scan data               57
+  6.5 Plan surgical treatment                        60
+  6.6 Design the surgical guide                      67
+  6.7 Print protocols                                71
+
+7. Optional and supporting functionalities           72
+  7.1 DWOS Synergy                                   72
+  7.2 Measurement functions                          73
+  7.3 AI Assistant                                   74
+
+8. Safety checks                                     79
+
+9. Maintenance                                       82
+
+10. Distributors and service                         83
+
+11. Technical data and label                         84
+  11.1 Ambient conditions                            84
+  11.2 Hardware and software requirements            84
+  11.3 Label                                         88
+  11.4 Supporting information for CBCT or CT scans   89
+  11.5 Licensing Matrix                              91
+
+12. Explanation of symbols                           94
+1. About this guide
+
+
+     Caution
+
+  The provided instructions contain important information on the safe and appropriate use of the
+  software. Make sure to have read and understood this document prior to installing and
+  operating the software.
+
+
+
+
+These Instructions for Use are valid for the Product life cycle (p. 7) of coDiagnostiX, version 10.0
+and higher, unless new instructions are published within this period. In case of questions, contact
+your distributor (see Distributors and service (p. 83)).
+
+
+
+Electronic Instructions for Use
+
+coDiagnostiX Instructions for Use are provided in electronic form. If a paper version is required,
+the user may print these instructions himself/herself or request a paper version from the
+manufacturer. For further information, delivery time and contact details see:
+http://ifu.dentalwings.com
+
+
+
+
+1.1 Disclaimer
+coDiagnostiX software is intended for use by dental professionals who have appropriate
+knowledge in the field of application. To run the software, users must also have basic skills in
+operating a computer.
+
+The user of coDiagnostiX software is solely responsible for determining whether or not any
+product or treatment is suitable for a particular patient and circumstances. The user of
+coDiagnostiX software is solely responsible for the correctness, completeness and adequacy of
+all data entered into coDiagnostiX software. The user has to check the correctness and accuracy
+of planning with coDiagnostiX software and to assess each individual case.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                   5
+Correct dimensioning of the surgical guide and the usage of validated workflows lie within the sole
+responsibility of the user.
+
+The user is responsible to provide necessary hard- and software to run coDiagnostiX software.
+Refer to chapter Data protection (p. 23) and Hardware and software requirements (p. 84) for
+further details. coDiagnostiX software is not intended to be used in direct contact with the patient
+or with life-sustaining devices.
+
+coDiagnostiX software must be used in accordance with its accompanying instructions for use.
+Improper use or handling of coDiagnostiX software will void the warranty, if any, given for
+coDiagnostiX software. If you require additional information on the proper use of coDiagnostiX
+software, contact your local distributor or local Straumann entity, whichever applies. The user is
+not allowed to modify coDiagnostiX software.
+
+DENTAL WINGS GMBH AS AFFILIATE OF INSTITUT STRAUMANN AG DISCLAIMS
+REPRESENTATIONS AND WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED,
+WRITTEN OR ORAL, WITH RESPECT TO CODIAGNOSTIX SOFTWARE, INCLUDING ANY
+WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ERROR-
+FREE OPERATION OR NON-INFRINGEMENT, AND THE PRODUCT IS SOLD “AS IS”.
+
+Our maximum liability arising out of the products or their use, whether based upon warranty,
+contract, tort or otherwise, shall not exceed the actual payments received by us in respect of the
+purchase price thereof. In no event shall we be liable for special, incidental or consequential
+damages, including, but not limited to, loss of profits, loss of data or loss of use damages, arising
+hereunder or from the sale of the product.
+
+Updates to hardware and software components are made regularly. Therefore, some of the
+instructions, specifications and pictures contained in these Instructions for Use may differ slightly
+from your particular situation. We reserve the right to revise or make changes or improvements to
+this product or documentation at any time without obligation to notify any person of such revisions
+or improvements. The user is obliged to study the latest developments of coDiagnostiX software
+regularly.
+
+
+
+
+6                                                                  coDiagnostiX 10 Instructions for Use
+Product life cycle
+
+The product life cycle of coDiagnostiX software is 3 years. After expiration of this time, the
+software may continue to function properly as long as configuration or hardware are not modified
+and a valid license maintained. However, as cybersecurity vulnerabilities, legal and regulatory
+requirements change at regular intervals, the legal manufacturer does not ensure cybersecurity
+and compliance with the regulatory framework beyond the product life cycle period of 3 years. To
+maintain regulatory compliance, update your software regularly. Please note, that the actual use
+of coDiagnostiX is subject to your compliance with our license framework.
+
+
+
+Input data
+
+The software supports a wide range of image sources, including Cone-Beam Computed
+Tomography (CBCT) and, optionally, surface scanners, as well as model scans from different
+sources. It is also possible to work with other sliced image data or volume data.
+
+The performance of coDiagnostiX depends on the quality and accuracy of the CBCT or CT and
+model scans that have been imported in the software. The user is solely responsible to ensure
+that the quality of and the security controls for the data imported in the software is sufficient for
+proper performance of coDiagnostiX. The DICOM data from CBCT or CT devices should have a
+resolution of at least 512x512 and a slice width of ≦ 1 mm. There shall be no artifacts and
+distortions in the regions of interest, so that relevant anatomical structures are visible in the scans.
+
+CBCT or CT devices must comply with the recommendations of ICRP97 (International
+Commission on Radiological Protection). Such devices are required to be calibrated at regular
+intervals to assure the data reflects the patient situation most accurately. In case the CBCT or CT
+device is not calibrated, the intensity of the radiological absorption (visualized in Hounsfield Units
+(HU) does not accordingly correspond to the bone density. Supporting information to assist in the
+provision of suitable input data for coDiagnostiX can be found in chapter Supporting information
+for CBCT or CT scans (p. 89).
+
+
+
+Third party products and product data
+
+When planning patient cases with coDiagnostiX and during the practical implementation of such
+planning the user may work with third party products and/or product data. Dental Wings GmbH, its
+subsidiaries, or distribution partners disclaim any liability for damages in connection with or arising
+from such third party product data or products being used within this scope.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                     7
+1.2 License, trademarks and other rights
+
+
+coDiagnostiX license
+
+coDiagnostiX software is protected by a License Agreement and may be used or copied only in
+accordance with the terms of this agreement. It is illegal to copy or use coDiagnostiX software on
+any medium except those permitted in the License Agreement.
+
+Some of the features offered by coDiagnostiX may require an additional license. Contact your
+distributor for more information.
+
+
+
+Availability
+
+Some of the products mentioned in this guide may not be available in all countries.
+
+
+
+Third-party software
+
+coDiagnostiX software contains code from third-parties which is provided under specific licenses:
+    – Open Source Computer Vision Library (3-Clause BSD License)
+    – Omni Thread Library (3-Clause BSD License)
+    – Eigen (Mozilla Public License 2.0)
+    – Polygon Mesh Processing Library (MIT license)
+    – TeamViewer
+
+License conditions are available within coDiagnostiX. Open the Help (?) menu and select About >
+Trademarks and 3rd party licenses to display them.
+
+A machine-readable Software Bill of Materials (SBOM) can be provided upon request. Please
+contact your distributor (see Distributors and service (p. 83)).
+
+
+
+
+8                                                                coDiagnostiX 10 Instructions for Use
+Trade names and trademarks
+
+DENTAL WINGS and/or other trademarks and registered trademarks from Dental Wings
+mentioned herein are the trademarks or registered trademarks of Dental Wings. All other
+trademarks are the property of their respective owners.
+
+
+
+Copyright
+
+Dental Wings documents may not be reprinted or published, in whole or in part, without the written
+authorization of Dental Wings.
+
+.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                             9
+2. Introduction and overview
+
+2.1 Intended use
+coDiagnostiX is intended to be used as dental surgery planning software.
+
+
+
+
+2.2 Device description and features
+coDiagnostiX is a planning software for virtual dental surgery taking into account the patient's
+anatomical structures and future prosthetic needs. coDiagnostiX can import and process 3D
+CBCT or CT scan data (DICOM standard) and model scan data and export planning and design
+data for the production of surgical guides.
+
+
+
+
+Device variants and configuration
+
+The product does not have any variants or configurations. Access to features of the software is
+restricted by the licensing system. (Licensing Matrix (p. 91)
+
+coDiagnostiX is an open software system. coDiagnostiX contains a library including 3rd party
+design information necessary for dental surgery planning and surgical guide design. The design
+information is related to implants (including abutments), surgical instruments (such as endodontic
+drills) and surgical guide accessories (such as sleeves, fixation pins).
+
+
+
+
+10                                                               coDiagnostiX 10 Instructions for Use
+      Caution
+
+  Please be aware that the user of the coDiagnostiX software is solely responsible for the
+  correctness, accuracy and completeness of all data entered into the coDiagnostiX software.
+
+  To be able to use the library (master database), the user has to accept the following terms and
+  conditions.
+
+  1. The master database may contain implants, surgical instruments and surgical guide
+  accessories that are not registered in the country of the user. The user has to make sure to
+  use only those items which have been properly registered.
+
+  2. The user is obligated to always check that the data from the master database are similar
+  equivalent with both the catalog values provided by the manufacturer and the information on
+  the items received.
+
+
+
+
+Principles of operation
+
+Planning with coDiagnostiX is part of a guided surgery workflow. The planning is based on a
+patient’s medical image data such as CBCT or CT that are processed by coDiagnostiX after being
+transferred via CD/DVD, network or various other storage media. Planning is performed by the
+calculation of several views (such as virtual Panoramic Radiograph (OPG) or a three-dimensional
+reconstruction of the image dataset), by the analysis of the image data and the placement of
+implants and surgical instruments. Planning data are used for designing surgical guides which
+can be exported as manufacturing information in a 3D geometry (open format)1. The surgical
+guide transfers the virtual surgical plan from the computer to the patient's anatomy.
+
+
+
+
+1For the legacy manufacturing system gonyX and its accessories, a plan for the creation of the drill guide is provided as printout. gonyX
+
+and its accessories must only be used for implant planning in combination with coDiagnostiX (for further details refer to Instructions for
+Use coDiagnostiX version 11.1).
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                                                   11
+The following chart outlines the positioning of coDiagnostiX within a guided surgery workflow.
+
+
+
+
+12                                                               coDiagnostiX 10 Instructions for Use
+This chart outlines the standard work steps within coDiagnostiX. For further details see chapter
+EXPERT mode: Step by step case planning (p. 53)
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                               13
+2.3 Accessories and products used in combination
+
+
+     Caution
+
+ It is the sole responsibility of the user to make sure that accessories and products used in
+ combination with coDiagnostiX are intended to be used for such purpose. Follow their
+ instructions for use.
+
+
+
+
+3D manufacturing system and guide materials
+
+There are many ways to produce surgical guides with 3D manufacturing systems (e.g. 3D printing
+system), provided the manufacturing system can read open STL format files and process
+biocompatible material. Each 3D manufacturing system and resulting guide which fulfills the
+requirements may, in principle, be suitable. The user needs to ensure that the surgical guide can
+be produced with sufficient accuracy and that the material used for fabrication is suitable for the
+use as a surgical guide in patients.
+
+The coDiagnostiX workflow has been validated with the following materials and 3D manufacturing
+systems (examples):
+
+ – SHERAprint-sg (SHERA Werkstoff-Technologie GmbH & Co. KG) and compatible 3D printers
+   (Rapid Shape GmbH)
+ – MED610 (Stratasys Ltd.) and compatible 3D printers (Stratasys Ltd.)
+ – Titanium and compatible milling machines
+
+For a complete list of validated materials and systems, contact your distributor (see Distributors
+and service (p. 83)).
+
+
+
+
+14                                                                coDiagnostiX 10 Instructions for Use
+     Caution
+
+  Patients dental anatomy is subject to change. It is the user's responsibility to adhere to good
+  dental practice in respect of time delays between data collection, treatment planning and
+  surgery. In addition, the shelf life of fabricated guides shall be considered.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                15
+Surgical guides
+
+coDiagnostiX software allows the design of surgical guides in oral-maxillofacial region in a volume
+of x = 200 mm, y = 200 mm and z = 100 mm.
+
+Since guide designs are treatment and patient specific, it is the user’s responsibility to assure the
+guide fits to the patient specific anatomy and withstands the forces applied during surgery. In case
+of doubt, use a model to check the fit and simulate the forces. It must be possible to place the
+guide without force. The guide must not wobble and must not break.
+
+n    Surgical guides shall be designed as such, that the area of interest for the surgery is sustained
+     by 3 supporting points. Supporting points can be teeth, fixation pins, gum or equivalent. The
+     three supporting points shall form a triangle.
+
+n    If a surgical instrument is guided along a
+     profile (cutting guide) and in case of
+     maximum distance between supporting
+     points (l=40mm), the cut bar dimensions
+     shall at least be 4 mm in width (w) and 3 mm
+     in height (h).
+
+
+
+
+n    If a surgical instrument is guided along a trajectory (drill guide), a hole in a guide is designed in
+     coDiagnostiX according to the height of the outer dimensions of the appropriate metal
+     guidance.
+
+n    In case guides are stacked, available design features (e.g., fixation pin holes or anatomical
+     structures) shall be used.
+
+
+
+
+16                                                                     coDiagnostiX 10 Instructions for Use
+     Caution
+
+  Correct dimensioning of the surgical guide and the selection of an appropriately validated
+  guide material lies within the sole responsibility of the user.
+
+  Make sure that the inspection windows placed in the digitally designed surgical guide do not
+  affect the stability of the final surgical guide. Otherwise there is the risk of inaccurate results
+  which may compromise patient safety.
+
+  Never drill directly through the guide. Always use appropriate metal guidance to avoid
+  chipping.
+
+  Check fit of the surgical guide into the patient’s mouth before conducting treatment.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                    17
+Software products
+
+Software products that may be used in combination with coDiagnostiX are:
+
+ – Dental Wings DWOS®
+   Dental CAD/CAM software
+ – Straumann® CARES® Visual
+   Dental CAD/CAM software
+ – Dental Wings Intraoral Scanner Software Application
+   Software running on the Dental Wings Intraoral Scanner
+ – DWOS Connect
+   Service used to share scan files from Dental Wings/Straumann scanner devices
+
+Related product information material is listed in chapter Further information (p. 25). For details on
+compatibility see Compatibility information (p. 22).
+
+Other open dental CAD software systems which can read and output open STL format files may
+be suitable as well for use in combination with coDiagnostiX. However, the suitability of such
+products has to be validated by the user.
+
+
+
+3D navigation systems
+
+coDiagnostiX users may transfer treatment plans to 3D navigation systems in proprietary format.
+coDiagnostiX users can exchange treatment plans with Straumann DNS Falcon.
+
+
+
+
+2.4 Indications
+coDiagnostiX is an implant planning and surgery planning software tool intended for use by dental
+professional who have appropriate knowledge in the field of application. The software reads
+imaging information output from medical scanners such as CBCT or CT scanners.
+
+
+
+
+18                                                                 coDiagnostiX 10 Instructions for Use
+It is indicated for pre-operative simulation and evaluation of patient anatomy, dental implant
+placement, surgical instrument positioning, and surgical treatment options, in edentulous, partial
+edentulous or dentition situations, which may require a surgical guide. It is further indicated for the
+user to design such guides for, alone or in combination, the guiding of a surgical path along a
+trajectory or a profile, or to help evaluate a surgical preparation or step.
+
+For automated manufacturing of surgical guides in the dental laboratory environment, the
+coDiagnostiX software allows for export of data to 3D manufacturing systems.
+
+
+
+
+2.5 Residual risks and side effects
+There are no residual risks related to the application of coDiagnostiX other than it may contain
+errors in its outputs.
+
+There are no side effects when coDiagnostiX is applied.
+
+
+
+
+2.6 Contraindications
+There are no contraindications for dental surgical planning with coDiagnostiX besides the ones
+that are applicable for the treatment to be planned.
+
+
+
+
+2.7 Precautions
+The provided instructions contain important information on the safe and appropriate use of the
+software. Make sure to have read and understood this document prior to installing and operating
+the software.
+
+Please be aware that the user of coDiagnostiX software is solely responsible for the correctness,
+accuracy and completeness of all data entered into the coDiagnostiX software.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                 19
+Do not use datasets which can be created in spite of warning messages unless you fully
+understand the consequences of those warnings and are sure that there will be no unacceptable
+risk for the correctness and accuracy of your planning.
+
+Automatic nerve detection does not guarantee exact and accurate nerve canal display. Make sure
+to always verify the correct position of the nerve canal manually.
+
+Always verify the correctness and accuracy of nerve canal display.
+
+If nerve definition is not clear due to poor image quality, the dataset must not be used.
+
+Always maintain an appropriate safety distance to the nerve canal.
+
+Always maintain an appropriate distance around the implant.
+
+Printouts containing images of the dataset are not intended for diagnostic purposes.
+
+Patient data presented on the iPad are intended for presentation purposes only. Do not use such
+data for diagnostic purposes.
+
+Correct dimensioning of the surgical guide and the selection of an appropriately validated guide
+material lies within the sole responsibility of the user.
+
+Make sure that the inspection windows placed in the digitally designed surgical guide do not affect
+the stability of the final surgical guide. Otherwise there is the risk of inaccurate results which may
+compromise patient safety.
+
+Never drill directly through the guide. Always use appropriate metal guidance to avoid chipping.
+
+Inadequate surgical guides may result in damage to vital anatomy at the time of surgical
+procedure.
+
+Thoroughly check the congruency of the contours of the merged 3D objects in all views to ensure
+correct and accurate alignment of both objects upon import. Matching of model scan data is a
+prerequisite for surgical guide design. Matching accuracy directly influences the accuracy of the
+designed surgical guide.
+
+Make sure to comply with all applicable standards and technical regulations for any computer
+hardware used. Computer hardware is not intended to be used in close proximity (within a
+distance of 1.5 meters) to the patient. Do not use multiple-socket extension cords to plug the
+hardware.
+
+
+
+
+20                                                                 coDiagnostiX 10 Instructions for Use
+Before placing the scan template or surgical guide into the patient's mouth, make sure to prepare
+such template or guide according to standard operating procedures in dentistry and the
+instructions for use provided for your material.
+Patients dental anatomy is subject to change. It is the user's responsibility to adhere to good
+dental practice in respect of time delays between data collection, treatment planning and surgery.
+In addition, the shelf life of fabricated guides shall be considered.
+
+
+
+It is the sole responsibility of the user to make sure that accessories and products used in
+combination with coDiagnostiX are intended to be used for such purpose. Follow their instructions
+for use.
+
+Protect your data against loss, unauthorized access and unauthorized use.
+ – Secure your computer system by installing a malware scanner or firewall.
+ – Use a strong password to protect your computer system, storage media and presentation
+   devices.
+ – Use data encryption to secure data on your computer system and storage media.
+ – Backup your data regularly.
+ – Use the anonymization function to protect patient personal data if required.
+
+Archiving and restoring datasets in different versions of coDiagnostiX can cause compatibility
+problems.
+
+Do not dispose of this device as unsorted municipal waste. Collect separately.
+Users are responsible to assure health data de-idification, data backup and disaster recovery, and
+health data authenticity.
+
+Online updates are also used to solve safety and/or information security issues. Such updates
+are mandatory. Such will be clarified by the information provided with the online update.
+
+
+
+Users are responsible to install and configure - as required by their IT Policy - the operational
+system and SQL server when using network database. This includes the installation and setup of
+automatic logoff, audit controls, authorizations, configuration of security features, emergency
+access, malware detection/protection, node authentication, personal authentication, physical
+locks, integration of coDiagnostiX in the product lifecycle roadmap, system and application
+hardening, health data storage confidentiality.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                             21
+Certain coDiagnostiX functionalities and services require data transfer. Access to data, storage
+and transfer shall comply to national regulations on information security and privacy. Data is
+encrypted applying industry standards during transit and at rest. For further details refer to
+coDiagnostiX Terms of Use and the data processing and associate agreements included.
+
+The Straumann AXS platform is built with security and privacy by design and by default and is ISO
+27001 certified. Users, however, remain responsible for managing their own networks and
+connection points, including any applications running on their devices or infrastructure.
+Authorizations must be granted according to the users IT policies.
+
+During onboarding, the website offers various roles, and users a highly encouraged to apply multi-
+factor authentication for login. Users are responsible for restricting access to health data within the
+website through self-defined passwords.
+
+Audit information is available upon request. For further details, please refer to the Straumann AXS
+website Terms of Use or the support function on the Straumann AXS website.
+
+
+
+
+2.8 Compatibility information
+
+
+
+     Caution
+
+ Archiving and restoring datasets in different versions of coDiagnostiX can cause compatibility
+ problems.
+
+
+
+
+Avoid using different versions of coDiagnostiX. If you have any problems, contact your distributor.
+In general, patient datasets from older versions of coDiagnostiX can be opened with coDiagnostiX
+(backward compatibility). Check your dataset carefully to avoid minor incompatibilities which
+might lead to failures in the planning and/or the production of surgical guides. Older versions of
+coDiagnostiX, however, cannot work with datasets from current coDiagnostiX versions.
+
+The current released version of the master database may not be compatible with previous
+versions of coDiagnostiX.
+
+
+
+
+22                                                                 coDiagnostiX 10 Instructions for Use
+caseXchange
+
+caseXchange is a platform for coDiagnostiX users to exchange coDiagnostiX datasets. For the
+compatibility of the users' coDiagnostiX software versions see the information above.
+
+
+
+DWOS Connect
+
+coDiagnostiX offers an interface to DWOS Connect to import files provided by compatible Dental
+Wings/Straumann scanner devices. coDiagnostiX is compatible with the latest version of DWOS
+Connect. Make sure to always work with the latest software versions on such scanner devices.
+For the compatibility of the software version contact your distributor (see Distributors and service
+(p. 83)).
+
+
+
+DWOS Synergy
+
+DWOS Synergy allows for online case sharing between coDiagnostiX and Dental Wings
+DWOS/Straumann CARES Visual. For the compatibility of the software version contact your
+distributor (see Distributors and service (p. 83)).
+
+
+
+
+2.9 Data protection
+Access to the software is restricted by the licensing system.
+
+To protect data against loss or unauthorized use, several security mechanisms have been
+implemented in coDiagnostiX:
+ – Data encryption during storage and transfer through the internet
+ – An archiving system to backup patient and planning data
+ – An on-demand anonymization function for privacy protection
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                               23
+       Caution
+
+ Users are responsible to install and configure - as required by their IT Policy - the operational
+ system and SQL server when using network database. This includes the installation and setup
+ of automatic logoff, audit controls, authorizations, configuration of security features,
+ emergency access, malware detection/protection, node authentication, personal
+ authentication, physical locks, integration of coDiagnostiX in the product lifecycle roadmap,
+ system and application hardening, health data storage confidentiality.
+
+ Users are responsible to assure health data de-idification, data backup and disaster recovery,
+ and health data authenticity.
+ Protect your data against loss, unauthorized access and unauthorized use.
+     – Secure your computer system by installing a malware scanner or firewall.
+     – Use a strong password to protect your computer system, storage media and presentation
+       devices.
+     – Use data encryption to secure data on your computer system and storage media.
+     – Backup your data regularly.
+     – Use the anonymization function to protect patient personal data if required.
+ The Straumann AXS platform is built with security and privacy by design and by default and is
+ ISO 27001 certified. Users, however, remain responsible for managing their own networks
+ and connection points, including any applications running on their devices or infrastructure.
+ Authorizations must be granted according to the users IT policies.
+
+ During onboarding, the website offers various roles, and users a highly encouraged to apply
+ multi-factor authentication for login. Users are responsible for restricting access to health data
+ within the website through self-defined passwords.
+
+ Audit information is available upon request. For further details, please refer to the Straumann
+ AXS website Terms of Use or the support function on the Straumann AXS website.
+
+
+
+
+Bear in mind that the user is responsible for data protection on user side. Make sure to adequately
+protect such data.
+
+
+
+
+24                                                                 coDiagnostiX 10 Instructions for Use
+     Caution
+
+  Certain coDiagnostiX functionalities and services require data transfer. Access to data,
+  storage and transfer shall comply to national regulations on information security and privacy.
+  Data is encrypted applying industry standards during transit and at rest. For further details
+  refer to coDiagnostiX Terms of Use and the data processing and associate agreements
+  included.
+
+
+
+
+2.10 Further information
+There is no physical, chemical, electrical, mechanical, biological, electromagnetic or radiation
+hazard related to the software. Nevertheless, the software has several integrated warning
+functions designed to alert and remind the user of his/her legal responsibility to plan precisely and
+verify all planning results.
+
+Please be aware that any serious incident that has occurred in relation to coDiagnostiX should be
+reported to your distributor and the competent authority responsible for medical devices or data
+protection in your country. If you have any questions, please contact your distributor (see
+Distributors and service (p. 83)).
+
+Dental Wings and its products are registered in the main markets. Please make sure that the
+version you are using is registered in your country. In case of doubt, please contact your
+distributor (see Distributors and service (p. 83)). The Declaration of Conformity for coDiagnostiX is
+available through our eIFU website at: https://ifu.dentalwings.com/.
+
+For further information on products used in combination, please refer to the following documents
+or sources of information:
+
+ – Straumann® CARES® Visual Instructions for Use / User Help
+ – Straumann® CARES® Nova Help
+ – Straumann® Falcon Instructions for Use
+ – Intraoral Scanner (SIRIOS, VIVO) Instructions for Use
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                               25
+2.11 Installation
+
+
+
+      Caution
+
+ Make sure to comply with all applicable standards and technical regulations for any computer
+ hardware used. Computer hardware is not intended to be used in close proximity (within a
+ distance of 1.5 meters) to the patient. Do not use multiple-socket extension cords to plug the
+ hardware.
+
+
+
+
+Steps to install coDiagnostiX
+
+1. Check that your hardware and software meet the specifications (see Hardware and software
+   requirements (p. 84)).
+2. Check whether your installation is the dongle version or dongle-free (AXS license):
+     a. If you have received a dongle, insert the installation medium into the computer. If the
+        installation process does not start automatically, start the program manually by executing
+        the setup.exe file on your installation medium.
+     b. If you have the dongle-free installation, download the coDiagnostiX installer as described
+        in your order notification. Then locate and double-click coDiagnostiX_Installer_xxxx.exe on
+        your computer to start the installation process.
+3. Follow the instructions on the screen.
+4. The installation is successful as soon as the coDiagnostiX start screen appears.
+5. If you have the dongle-free installation, activate your license as follows: once the software
+   runs, click Help (?) -> License Management -> Straumann® AXS License and follow the
+   instructions on the screen. The dongle version requires no further activation.
+
+In case of any questions or if you need further assistance during installation, contact your
+distributor (see chapter Distributors and service (p. 83)).
+
+
+
+
+26                                                                 coDiagnostiX 10 Instructions for Use
+     Note
+
+  If you have a dongle, do not plug the dongle into the computer until you are prompted to do so
+  by the installation program.
+
+
+
+
+Installing optional software and configuring the network
+
+Document reader: Choose an application that can read PDF files and is compatible with your
+operating system. Install in line with the routines of your operating system and as instructed by the
+document reader manufacturer.
+
+Printer: Install in line with the instructions given by the printer manufacturer.
+
+3D mouse: Follow the instructions given in the coDiagnostiX User Help (coDiagnostiX EXPERT
+Mode > General tools > 3D mouse).
+
+Microsoft® SQL Server®: Follow the instructions given in the coDiagnostiX User Help (Advanced
+functionalities > Network Database SQL).
+
+DWOS Synergy: For installation and configuration see DWOS Synergy (p. 87).
+
+Network configuration: Configure your system as described in chapter Hardware and software
+requirements (p. 84)
+
+
+
+Languages
+
+coDiagnostiX user interface is available in several languages. The language can be set in the
+coDiagnostiX Management (see section Management (p. 30) in chapter coDiagnostiX start
+screen (p. 30)).
+
+
+
+Getting acquainted with the software
+
+To learn how to work with coDiagnostiX and get acquainted with its functions, see Getting
+acquainted (p. 29).
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                               27
+Uninstallation
+
+If you need to uninstall your coDiagnostiX software for any reason, use the tools and procedures
+provided by your operating system (refer to chapter Hardware and software requirements (p. 84)).
+
+
+
+
+2.12 Disposal
+Electrical and electronic devices must be disposed of separately from normal household waste in
+order to promote reuse, recycling and other forms of recovery, to avoid adverse effects on the
+environment and human health as a result of the presence of hazardous substances in some of
+their components and to reduce the quantity of waste to be eliminated with a view to reducing
+landfill. This includes accessories such as remote controls, power cords, etc.
+
+
+                                 Caution
+
+                              Do not dispose of this device as unsorted municipal waste. Collect
+                              separately.
+
+
+
+
+Manufactured surgical guides can be disposed as normal clinical waste. Contaminated devices
+shall be handled as hazardous waste and be disposed in appropriate containers which meet
+specific technical requirements.
+
+For details on how to dispose of your device and its packaging, please contact your distributor.
+
+
+
+
+28                                                                coDiagnostiX 10 Instructions for Use
+3. Basic principles
+The software user interface is based on the Microsoft® Windows® standard allowing you to control
+the system easily by mouse. To become familiar with the system and the control elements such as
+buttons, check boxes and edit controls, consult the user manual of your operating system.
+
+
+
+
+3.1 Getting acquainted
+To learn how to work with coDiagnostiX and get acquainted with its functions and related
+workflows, the following instructions, training sessions and media are offered:
+n   coDiagnostiX Instructions for Use (this document)
+n   Regular online training courses which are open for all users with a valid coDiagnostiX license.
+    Users can register for these webinars on our website at https://codiagnostix.com/training.
+n   Training videos which are available from within coDiagnostiX (see Support and help (p. 31) in
+    chapter coDiagnostiX start screen).
+n   Context-sensitive coDiagnostiX User Help providing detailed explanations and additional
+    information on advanced functions (see Support and help (p. 31) in chapter coDiagnostiX start
+    screen).
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                29
+3.2 coDiagnostiX start screen
+
+Basic functionalities of the coDiagnostiX start screen
+
+
+
+
+         Create New dataset
+          Opens a dialog box to import DICOM data (e.g. from a CD) and to create a patient
+          dataset.
+
+         Open dataset
+          Opens the Patient Database (DICOM already imported)
+
+         caseXchange
+          Provides direct access to the communication platform caseXchange. For users with
+          enabled Order Management feature, access is provided to the Order Management
+          instead.
+
+         Management
+          The coDiagnostiX Management section provides access to administrative functions
+          such as backup or language setting.
+          Archiving and restoring datasets in different versions of coDiagnostiX can cause
+          compatibility problems. (See Compatibility information (p. 22))
+
+
+
+
+30                                                             coDiagnostiX 10 Instructions for Use
+           Support and help
+            The Support and Help Center provides centralized access for help, support and
+            training. Here, you can start a remote support session, if necessary (active internet
+            connection required). For information on how to get acquainted with the software, see
+            chapters Distributors and service (p. 83) and Getting acquainted (p. 29).
+
+           Work Mode
+
+            Select EXPERT or EASY to launch coDiagnostiX in your preferred work mode.
+            EXPERT offers the full set of planning tools to support standard as well as advanced
+            treatment workflows. EASY mode is a streamlined user interface with step-by-step
+            guidance for users, who plan standard treatment cases, or outsource to a laboratory or
+            planning center.
+
+           Main menu
+            Provides access to database-related functions, other modules and the License
+            Management.
+
+           License and version numbers
+            Your license number and the coDiagnostiX version number are shown both in the
+            status bar on the start screen and in the About box (access from the main menu > Help
+            (?) > About).
+
+Updates
+If updates are available, an information bar pops up to inform the user about pending updates
+(see Maintenance (p. 82)).
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                            31
+3.3 DICOM Import
+
+
+Starting coDiagnostiX and loading a DICOM case
+n    Start the coDiagnostiX software.
+n    Transfer the DICOM data that you received from the CBCT or CT scanner to your computer
+     (e.g. insert CD/DVD into your computer's disc drive).
+
+
+
+
+       Caution
+
+    Please be aware that the user of coDiagnostiX software is solely responsible for the
+    correctness, accuracy and completeness of all data entered into the coDiagnostiX software.
+
+
+
+
+n    Click New on the start screen. This starts a
+     DICOM transfer.
+
+
+
+
+n    Select Import data from CD/DVD or other
+     source and click Import.
+n    In case of any problems (error messages,
+     warnings, etc.), contact your distributor (see
+     Distributors and service (p. 83)).
+n    Choose if you would like to plan a case for
+     maxilla or mandible. To plan both maxilla
+     and mandible you need to create two
+     separate plans.
+
+
+
+
+32                                                               coDiagnostiX 10 Instructions for Use
+n   coDiagnostiX switches to the EXPERT or EASY mode, as selected on the start screen.
+
+
+
+
+      Caution
+
+    Do not use datasets which can be created in spite of warning messages unless you fully
+    understand the consequences of those warnings and are sure that there will be no
+    unacceptable risk for the correctness and accuracy of your planning.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                         33
+4. EASY mode
+
+4.1 User interface
+
+
+coDiagnostiX EASY planning screen
+
+
+
+
+       Object tree: All planning steps in order of workflow; current step highlighted, object
+        overview.
+
+       Help: Collapsible inline help panel with instructions for current step.
+
+       Views: Tools and view manipulation for current step.
+
+       Navigation and help tools: Access to help and navigation between steps.
+
+
+
+
+34                                                              coDiagnostiX 10 Instructions for Use
+The object tree in coDiagnostiX EASY mode:
+
+n   Clear step-by-step overview of current case
+    planning with collapsible sub-steps
+n   Call up any step at any time with one mouse click
+n   At-a-glance object data
+n   Quick access to plan management and help
+
+
+
+
+coDiagnostiX 10 Instructions for Use                    35
+Navigation and help tools in coDiagnostiX EASY mode:
+
+
+ Description                                                            Symbol
+
+
+
+ Returns to start screen. The current case planning will be
+ saved automatically.
+
+
+
+
+ The Navigation buttons allow you to move back and forth
+ between individual steps of the case planning.
+
+
+
+
+ Opens help dialog. A pop-up column with user instructions
+ describing the current step appears.
+
+
+
+
+ Launches the plan management dialog box.
+
+
+
+
+36                                                            coDiagnostiX 10 Instructions for Use
+Managing plans in coDiagnostiX EASY mode
+
+Planning data are managed in plans. You may create several plans for one patient, delete plans or
+copy plans.
+
+n   Access planning functions via the Plan
+    Management Button ( ) in the object tree.
+n   Protect plans against changes, by selecting
+    the Plan Management Button ( ) ð
+    Properties and ticking Protect this plan
+    against changes.
+n   Finalize plans by selecting the Plan
+    Management Button ( ) ðProperties and
+    ticking Mark this plan as final.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                          37
+4.2 Case planning
+The coDiagnostiX EASY mode is fully guided by the software in the order of workflow steps. The
+four main steps are Prepare data, Place implants, design Surgical guide and Finish the guide.
+
+
+Step 1: Prepare data
+
+
+Align patient coordinate system:
+
+n    Click Prepare data ð sub-step Jaw
+     Selection & Alignment in the object tree.
+
+
+
+
+n    Align as described on the screen. To move
+     the patient coordinate system, click, hold,
+     and drag with the left mouse button.
+n    To rotate the coordinate system, click, hold
+     and, drag with the right mouse button.
+
+
+
+
+38                                                             coDiagnostiX 10 Instructions for Use
+Define the panoramic curve:
+
+n   Click Prepare data ð sub-step Panoramic
+    curve in the object tree.
+
+
+
+
+n   Move points to create panoramic curve.
+n   A pop-up window in the upper right corner
+    indicates the current axial position in the 3D
+    view for better orientation.
+
+
+
+
+Import and match a model scan:
+
+n   Navigate to Surgical guide ð sub step
+    Model scan in the object tree.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                 39
+n    Click Add model scan at the bottom of the
+                                                                  Add model scan
+     planning screen.
+n    Follow instructions as described in the
+     wizard.
+
+
+
+
+       Note
+
+    To import a DWOS Connect order, you need to log in to DWOS Connect first. Log-in
+    credentials are provided to you with the scanner device.
+
+
+
+
+       Caution
+
+    Thoroughly check the congruency of the contours of the merged 3D objects in all views to
+    ensure correct and accurate alignment of both objects upon import. Matching of model scan
+    data is a prerequisite for surgical guide design. Matching accuracy directly influences the
+    accuracy of the designed surgical guide.
+
+    Inadequate surgical guides may result in damage to vital anatomy at the time of surgical
+    procedure.
+
+
+
+
+Define the nerve canal:
+
+n    In the object tree, navigate to Prepare data
+     ð sub-step Nerve canals.
+
+
+
+
+40                                                                 coDiagnostiX 10 Instructions for Use
+n    Select the nerve canal position using the                  View            Right           Left
+     buttons at the top. Set the entry point at the
+     mental foramen and the exit point at the
+     mandibular foramen by clicking directly in
+     the views.
+
+
+Automatic detection
+                                                                     Auto detect
+n    Click Auto detect at the bottom of the
+     screen. coDiagnostiX will automatically
+     detect the nerve canal.
+
+
+
+
+Manual definition
+
+n   Define additional nerve canal points by clicking directly in the views.
+
+For further information on safety distance to the nerve canal, see chapter Safety checks (p. 79).
+
+
+
+
+       Caution
+
+    Always verify the correctness and accuracy of nerve canal display.
+
+    Automatic nerve detection does not guarantee exact and accurate nerve canal display. Make
+    sure to always verify the correct position of the nerve canal manually.
+
+    If nerve definition is not clear due to poor image quality, the dataset must not be used.
+
+    Always maintain an appropriate safety distance to the nerve canal.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                   41
+Step 2: Place implants
+
+
+Plan implant:
+
+n    Navigate to step Place Implants in the
+     object tree.
+
+
+n    Click Add implant at the bottom of the
+                                                                    Add implant
+     screen. The Master Database opens.
+n    Select manufacturer, series and tooth
+     position.
+n    Move implant position via left mouse button;
+                                                                        Change selected implant
+     rotate implant via right mouse button.
+n    Change or remove implants via buttons at
+                                                                        Remove selected implant
+     the screen bottom.
+
+
+
+
+n    Adjust implant length and diameter via
+                                                       Implant length                  12 mm
+     buttons in the next sub-step.
+
+                                                       Implant
+                                                                                       4.1 mm
+                                                       diameter
+
+
+
+Always verify the correct position of the implants.
+
+
+
+       Note
+
+    For other surgical items such as endodontic drills and fixation pins follow the same planning
+    steps.
+
+
+
+For further information on the safety distance between implants, see chapter Safety checks (p.
+79).
+
+
+
+
+42                                                                      coDiagnostiX 10 Instructions for Use
+       Caution
+
+    Always maintain an appropriate distance around the implant.
+
+    Keep in mind that coDiagnostiX endodontic planning is intended only for planning a straight
+    path to the starting point of the root canal. The treatment of the root canal is not supported by
+    the guide.
+
+
+
+
+Add sleeves:
+
+n    Navigate to step Place implants.
+n    Select an implant in the object tree to add a
+     sleeve or abutment for this implant.
+
+or
+
+n    select Overview in the object tree to add
+     sleeves or abutments to all implants at
+     once.
+
+n    Click on Select sleeve at the bottom of the
+                                                                     Select sleeve
+     screen to open the dialog box.
+n    Follow instructions in the dialog box.
+
+
+
+
+       Caution
+
+    Please be aware that the user of coDiagnostiX software is solely responsible for the
+    correctness, accuracy and completeness of all data entered into the coDiagnostiX software.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                    43
+Step 3: Surgical guide
+
+
+Design a surgical guide:
+
+n    Click Surgical guide ð sub-step Edit
+     design.
+
+
+
+n    Select Create surgical guide at the bottom
+                                                                     Create surgical guide
+     of the screen. The design wizard opens.
+n    Follow instructions as described in the
+     wizard.
+
+
+For further information on accuracy of surgical guides, see chapter Safety checks (p. 79).
+
+
+
+
+       Caution
+
+    Correct dimensioning of the surgical guide and the selection of an appropriately validated
+    guide material lies within the sole responsibility of the user.
+
+    Make sure that the inspection windows placed in the digitally designed surgical guide do not
+    affect the stability of the final surgical guide. Otherwise there is the risk of inaccurate results
+    which may compromise patient safety.
+
+    Never drill directly through the guide. Always use appropriate metal guidance to avoid
+    chipping.
+
+
+
+
+44                                                                     coDiagnostiX 10 Instructions for Use
+Step 4: Finish
+
+
+Print protocols:
+
+n    Click Finish ð sub-step Print
+     protocol in the object tree.
+
+
+
+
+ n   Select the desired protocols
+     from the planning screen            Selected protocols   Material list   Details   Surgical protocol
+
+     menu.
+
+
+
+
+       Caution
+
+    Printouts containing images of the dataset are not intended for diagnostic purposes.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                        45
+5. EXPERT mode: User interface
+
+coDiagnostiX EXPERT planning screen
+
+
+
+
+       Toolbar (for customizing, see Toolbar (p. 47))
+
+       Views (for basic information and view manipulation, see Views (p. 48))
+
+       Object tree (for tree functions and moving/manipulating objects, see Object tree (p.
+        50))
+
+       Plan panel (for working with plans, see Plans (p. 52))
+
+
+
+
+46                                                               coDiagnostiX 10 Instructions for Use
+5.1 Toolbar
+
+
+
+
+ Tools of the interactive planning workflow.
+ Basic tools for view manipulation.
+ Menu with complete set of functions.
+
+Customizing the toolbar
+Right-click on the toolbar and select Adjust to
+open the dialog box.
+
+ – To add further icons, drag and drop the icon
+   from the box onto the toolbar.
+ – To remove icons from the toolbar, simply
+   drag them off the toolbar (with the dialog
+   box opened).
+
+
+
+
+As the toolbar is customizable, any toolbar references made within these Instructions for Use
+relate to the standard toolbar configuration comprising the standard planning workflow preset.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                             47
+5.2 Views
+
+ Views are color-coded and can be displayed in other
+     views as reference line with the respective color.
+
+ Enlarge a view by clicking the Full Screen button or
+     double-click the title bar.
+
+ Move the Panoramic view inside and outside with the
+     right scroll bar.
+
+
+
+
+Moving views
+
+– Enable the Move and Turn tool from the
+  toolbar.
+– Move the view with the left mouse button.
+– Rotate the view with the right mouse button
+  (3D view only).
+
+
+
+
+48                                                        coDiagnostiX 10 Instructions for Use
+Manipulating the views: most important tools
+
+
+  Description                                                      Symbol
+
+
+
+
+  Enables/disables the Move and Turn tool.
+
+
+
+
+  Enables/disables the Localizer tool.
+
+
+
+
+  Enables/disables the Zoom tool.
+  Alternatively, press SHIFT and scroll the mouse wheel to
+  zoom in and out.
+
+
+  Use this functionality to enhance visibility of details and
+  accuracy of measurements, see chapter Measurement
+  functions (p. 73)
+
+
+
+  Resets all views and fits contents to the view box in all
+  views.
+
+
+
+
+  Toggles the visibility of the Reference lines in all 2D views.
+
+
+
+
+  Aligns the cross-sectional, tangential and axial views to the
+  axis of the currently selected implant or other surgical
+  instrument (at least one item must have been planned).
+
+
+
+
+  Toggles full screen mode (maximizes view).
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                        49
+5.3 Object tree
+
+
+The Object tree contains:
+
+
+ n   Tree functions (e.g. add, delete)
+ n   All the objects (e.g. implants, other surgical
+     instruments, nerve canals, measurements, model
+     scans, cut bone profiles, surgical guides)
+ n   Tooth position panel (currently selected tooth
+     position)
+ n   Provides all the information about the implant or other
+     surgical instruments and allows to edit them.
+ n   Density statistics
+
+
+
+
+ Moving/rotating objects
+
+ – Select the object in the object tree.
+ – In the object tree, activate the positioning mode.
+ – Move the object with the left mouse.
+ – Rotate the object with the right mouse button (some
+   objects only)
+
+
+
+
+50                                                             coDiagnostiX 10 Instructions for Use
+Objects: most important tree functions
+
+
+  Description                                                     Symbol
+
+
+
+
+  Adds a new object (e.g. implant, measurement…).
+
+
+
+
+  Enables/disables the positioning mode.
+
+
+  As long as the positioning mode is not activated, the objects
+  cannot be “touched” with the mouse.
+
+
+
+
+  Deletes the selected object.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                       51
+5.4 Plans
+
+
+Working with different plans
+Planning data are managed in plans. You may
+create several plans for one patient. Use the
+combo box to browse your plans.
+
+
+Plans can be:
+
+n    Newly created, deleted and copied (select
+     from the Plan menu)
+n    Protected against changes (select Plan >
+     Properties from the main menu and tick
+     Protect this plan against changes). Such
+     protection is reversible.
+n    Finalized (select Plan > Finalize from the
+     main menu). No further modifications will be
+     allowed. Create a copy of the plan if you
+     have to change something subsequently.
+
+
+
+
+52                                                  coDiagnostiX 10 Instructions for Use
+6. EXPERT mode: Step by step case
+planning
+
+6.1 Align patient coordinate system
+
+n   Click Align patient coordinate system in the
+    toolbar.
+
+
+
+
+n   Make the green plane coincide with the
+    patient's occlusal plane and the red plane
+    with the patient’s sagittal plane.
+    – Move the patient coordinate system
+      (PCS) with the left mouse button.
+    – Rotate the PCS with the right mouse
+      button.
+n   Click OK to save the alignment.
+
+
+
+
+coDiagnostiX 10 Instructions for Use               53
+6.2 Panoramic curve
+
+n    Click Panoramic Curve icon in the
+     toolbar.
+
+
+
+
+n    Grab the points with the left mouse
+     button and move the curve
+     according to the patient’s anatomy.
+n    To create additional points, click
+     outside the existing five basic points.
+n    To delete additional points, right-
+     click on the point and select Delete
+     Point from the context menu. The
+     five basic points cannot be deleted.
+
+
+
+
+54                                             coDiagnostiX 10 Instructions for Use
+6.3 Detect nerve canal
+
+n   Click the Nerve Canal icon from the
+    toolbar to add the nerve canal objects.
+    The positioning mode is activated
+    automatically.
+
+n   In the object tree, select the nerve canal
+    which shall be detected. Set the entry point
+    at the mental foramen and the exit point at
+    the mandibular foramen by clicking directly
+    in the views.
+
+
+
+Automatic detection
+n   Click Detect in the object tree. coDiagnostiX
+    will automatically detect the nerve canal.
+
+
+
+
+Manual definition
+n   Set additional nerve canal points by clicking
+    directly in the views and/or move existing
+    points as required. Sequence and diameter
+    of the nerve canal points may be adjusted
+    through the context menu.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                55
+For further information on safety distance to the nerve canal, see chapter Safety checks (p. 79).
+
+
+
+
+     Caution
+
+ Always verify the correctness and accuracy of nerve canal display.
+
+ Automatic nerve detection does not guarantee exact and accurate nerve canal display. Make
+ sure to always verify the correct position of the nerve canal manually.
+
+ If nerve definition is not clear due to poor image quality, the dataset must not be used.
+
+ Always maintain an appropriate safety distance to the nerve canal.
+
+
+
+
+56                                                                coDiagnostiX 10 Instructions for Use
+6.4 Import and match model scan data
+
+n    Click Add model scan in the toolbar.
+
+
+
+
+n    Select the model scan source (CAD file,
+     segmentation, DWOS Connect order).
+n    Select the file and load it.
+
+
+
+
+       Note
+
+    To import a DWOS Connect order, you need to log in to DWOS Connect first. Log-in
+    credentials are provided to you with the scanner device.
+
+
+
+n    Select the method to align the model scan.
+     The standard method is alignment to
+     another object. For other possible
+     alignment options see the coDiagnostiX
+     User Help.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                   57
+n    Select the registration object (segmentation of volume data or previously imported model scan)
+     that you want to use for matching. Model scan and registration object must cover analogous
+     anatomical regions.
+
+n    Define pairs of corresponding regions by
+     clicking the affected region both on the
+     model scan and on the registration object.
+     – For partially edentulous cases use the
+       remaining teeth.
+     – For edentulous cases use temporary
+       implants.
+
+
+
+
+     Pairs of corresponding regions should not lie on an (approximately) straight line and must be
+     set at anatomically significant positions and as far away from each other as possible.
+
+
+
+
+n    Click Next to perform automatic registration.
+
+
+
+
+58                                                                 coDiagnostiX 10 Instructions for Use
+       Caution
+
+    Thoroughly check the congruency of the contours of the merged 3D objects in all views to
+    ensure correct and accurate alignment of both objects upon import. Matching of model scan
+    data is a prerequisite for surgical guide design. Matching accuracy directly influences the
+    accuracy of the designed surgical guide.
+
+    Inadequate surgical guides may result in damage to vital anatomy at the time of surgical
+    procedure.
+
+
+
+
+n    If the result is not satisfying, align the model
+     scan manually in all 4 views. To do so,
+     move the scan contours with the mouse or
+     use the Fine Alignment function by clicking
+     the Fine Alignment icon in the toolbar of the
+     wizard.
+n    Click the Finish button to apply the scan
+     import to your case.
+
+
+For more detailed information, consult the coDiagnostiX User Help.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                              59
+6.5 Plan surgical treatment
+coDiagnostiX allows for various treatment plannings in dental surgery. The planning depends on
+the requirements of the treatment and the patient situation.
+
+The planning follows - alone or in combination - basic principles:
+
+n    Plan a surgical path along a trajectory
+n    Plan a surgical path along a profile
+n    Plan a form suitable to evaluate surgical preparation or other surgical steps
+
+The basic principle influences the planning as well.
+
+
+Plan implant
+
+Planning an implant follows the basic principle of planning a surgical path along a trajectory. The
+planning defines the orientation of a surgical item (including surgical instruments).
+
+n    Click the Add Implant icon from the toolbar.
+     The Master Database opens.
+
+
+
+n    Select the implant and the tooth position(s)
+     where the implant(s) shall be placed. Click
+     OK and the database closes.
+
+
+
+
+60                                                                   coDiagnostiX 10 Instructions for Use
+Adjust the implant position. The positioning
+mode is already activated.
+
+
+
+Adjusting the implant
+ – Move the implant with the left mouse button.
+ – Rotate the implant with the right mouse
+   button.
+
+
+
+
+To support correct implant positioning, align
+the views to the implant axis. This allows you
+to rotate 360° around the implant in the
+tangential view.
+
+Always verify the correct position of the implants.
+
+
+
+     Note
+
+  The planning of endodontic drills and fixation pins follows the same principle.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                61
+For further information on safety distance between implants, see chapter Safety checks (p. 79).
+
+
+
+
+       Caution
+
+    Always maintain an appropriate distance around the implant.
+
+    Keep in mind that coDiagnostiX endodontic planning is intended only for planning a straight
+    path to the starting point of the root canal. The treatment of the root canal is not supported by
+    the guide.
+
+
+
+
+Plan sleeves
+
+Planning a sleeve follows the basic principle of planning a surgical path along a trajectory.
+
+n    Select your implant or other surgical
+     instrument in the object tree and click the
+     Edit Sleeves icon in the toolbar.
+
+
+n    The dialog box opens.
+n    Select a sleeve system from the list.
+n    Adjust the parameters as desired.
+
+     Observe all instructions provided by the
+     sleeve system manufacturer.
+
+
+
+
+62                                                                    coDiagnostiX 10 Instructions for Use
+     Caution
+
+  Please be aware that the user of coDiagnostiX software is solely responsible for the
+  correctness, accuracy and completeness of all data entered into the coDiagnostiX software.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                           63
+Plan a bone reduction profile
+
+Planning a bone reduction profile follows the basic principle of planning a profile whereby the
+surface of the profile defines the orientation of the instrument used during surgery.
+
+Preparation:
+
+n    Align the patient coordinate system.
+n    Define the panoramic curve close to the bone reduction.
+n    Define all implants, fixation pins and sleeves.
+
+
+Creating the bone cut profile:
+
+n    Add a cut profile from the object
+     tree. A new panel will appear.
+
+
+
+
+Place reference points:
+
+n    Click Add implant base points in the object tree to automatically create reference points, or click
+     in the panoramic view to manually add, edit or delete reference points.
+
+
+
+
+64                                                                   coDiagnostiX 10 Instructions for Use
+n    Adjust parameters (offset, angulation) as needed and check the position of the cut profile in
+     reference to the implant position. Create a segmentation of the jaw bone without teeth and
+     convert to 3D model (for further instructions on segmentation, consult the coDiagnostiX User
+     Help).
+
+
+
+
+       Note
+
+    The planning of apicoectomy, external sinus lift and gingivectomy procedures follows the same
+    principle.
+
+
+
+
+Plan tooth auto transplantation
+
+Planning a tooth auto transplantation follows the basic principle of planning a form that is suitable
+for the evaluation of a surgical preparation or other surgical steps.
+
+n    Select a donor tooth in the segmentation
+     mode.
+n    Create a segmented STL file of the selected
+     donor tooth and convert it into a model.
+n    Plan virtual auto transplantation of the
+     donor tooth with the correct angulation,
+     rotation and accurate positioning.
+
+                                                          Figure 1: A finished tooth auto transplantation guide
+                                                          for two donor teeth
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                              65
+     Note
+
+ Bone augmentation and orthognatic planning follow the same principles.
+
+
+
+
+66                                                            coDiagnostiX 10 Instructions for Use
+6.6 Design the surgical guide
+The surgical guide - alone or in combination:
+
+n    assures that the path is followed during the surgical procedure
+n    assures that the profile is followed during the surgical procedure
+n    evaluates the results of a surgery during the procedure
+
+The following table presents the relationship of specific surgery planning principles to a surgical
+guide type:
+
+
+
+    Specific surgical planning principle                           Surgical guide type
+
+    Planning a path along a trajectory                            Drill guide
+
+    Planning a path along a profile                               Cutting guide
+
+    Planning to help evaluate a surgery preparation or step       Evaluation guide
+
+
+
+
+Preparation
+n    Complete your planning.
+n    Scan the master model and import this
+     scan. The model scan must not include any
+     wax-up or prosthetic setup.
+n    Match the model scan and the
+     corresponding segmentation.
+n    For a cutting guide, prepare a 3D bone
+     surface model (segmentation of jaw bone
+     without teeth).
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                  67
+       Caution
+
+    Inadequate surgical guides may result in damage to vital anatomy at the time of surgical
+    procedure.
+
+
+
+
+Design wizard
+n    Click the Add Surgical Guide icon in the
+     toolbar to open the wizard.
+n    Decide if you want to create a completely
+     new surgical guide or use an existing guide
+     as template.
+
+n    Define the insertion direction for the surgical
+     guide. If you are working with the dual scan
+     method, tick Use bottom side of dual scan.
+n    If required, define regions for bone support.
+n    Define contact surfaces and adjust sleeve
+     mount settings. If required, draw contact
+     area for palatal support.
+n    Set offset, wall thickness and connector
+     thickness.
+n    Specify the parameters for the cutting bars
+     (only available if With bone support regions
+     box was ticked in start screen of the wizard).
+n    Add inspection windows (optional).
+n    Add label text (optional).
+n    Finish your guide.
+
+
+
+
+68                                                                 coDiagnostiX 10 Instructions for Use
+For further information on accuracy of surgical guides, see chapter Safety checks (p. 79).
+
+
+
+Export
+n    Export your surgical guide (not applicable
+     for all license models of coDiagnostiX, see
+     Licensing Matrix (p. 91)).
+     Make sure that the surgical guide you are
+     going to export represents the final planning
+     state.
+
+
+For further information, see the coDiagnostiX User Help.
+
+
+
+
+       Caution
+
+    Correct dimensioning of the surgical guide and the selection of an appropriately validated
+    guide material lies within the sole responsibility of the user.
+
+    Make sure that the inspection windows placed in the digitally designed surgical guide do not
+    affect the stability of the final surgical guide. Otherwise there is the risk of inaccurate results
+    which may compromise patient safety.
+
+    Never drill directly through the guide. Always use appropriate metal guidance to avoid
+    chipping.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                      69
+Combination guides
+
+While designing, guides can be combined using different methods. They can either be integrated
+into each other or stacked onto each other.
+
+
+
+Example for integrated guides
+
+ Implantation guides can be designed as
+ such, that the guide design allows for the
+ evaluation of the surgical situation as well.
+ The yellow area shows the form planned to
+ evaluate bone augmentation. During the
+ surgery, a pin can be used to review
+ whether the bone augmentation is
+ sufficient.
+
+
+
+
+Example for stacked guides
+ In cases where implant planning requires a
+ prior bone reduction, the guides can be
+ stacked. Use available design features (e.g.
+ fixation pin holes or anatomical structures)
+ for stacking.
+
+ This requires three guides:
+
+     n   a fixation pin guide
+     n   a bone reduction guide
+     n   an implantation guide
+
+Design the bone reduction guide based on the location of the fixation pins. Fix the bone reduction
+guide with the fixation pins, then stack the implantation guide onto the bone reduction guide, as
+shown.
+
+In the stacked guides procedures as described here, the pin guide is not integrated. Remove the
+fixation pin guide directly after drilling the pin holes.
+
+
+
+
+70                                                               coDiagnostiX 10 Instructions for Use
+6.7 Print protocols
+Print protocols serve mainly as supporting information or means of documentation.
+
+In the toolbar, click on the arrow of the Print
+icon to open the menu.
+
+
+
+
+Most important print protocols                           n
+
+n                                                            Surgical protocol: Lists the sequence of
+     Details protocol: Available per implant or
+                                                             surgical instruments to be used as
+     other surgical instrument providing detailed
+                                                             specified by the selected guided
+     information together with images of the
+                                                             surgery system (selected
+     planning views.
+                                                             manufacturers only).
+
+
+
+
+       Caution
+
+    Printouts containing images of the dataset are not intended for diagnostic purposes.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                               71
+7. Optional and supporting functionalities
+
+7.1 DWOS Synergy
+DWOS Synergy is an interface for communication between coDiagnostiX and Dental Wings
+DWOS or coDiagnostiX and Straumann CARES Visual. It makes prosthetic design data from
+Dental Wings DWOS or Straumann CARES Visual available in coDiagnostiX and, in turn, sends
+planning information from coDiagnostiX to the DWOS or Straumann CARES Visual station.
+
+Collaboration is possible:
+ – in local networks
+ – through the internet (with a DWOS Synergy account)
+
+
+
+DWOS resp. Straumann CARES Visual side
+n    Create an order.
+     DWOS 4 & 5/CARES Visual 9 & 9.5:
+     Indication group: Others; Indication:
+     coDiagnostiX abutment
+     DWOS 6 & 7/CARES Visual 10 & 11:
+     Synergy order
+n    In the CAD application, initiate the Synergy
+     session by opening the DWOS Synergy
+     dialog and specifying the local server/online
+     recipient.
+n    Inform the recipient (DWOS Synergy
+     partner) about the pending case.
+
+
+
+
+72                                                          coDiagnostiX 10 Instructions for Use
+coDiagnostiX side
+n   Open the coDiagnostiX dataset for this
+    patient.
+n   In the planning view, click the Synergy icon
+    and connect with the shared dataset.
+n   Match the surface data with the patient's
+    DICOM data.
+
+
+
+
+7.2 Measurement functions
+coDiagnostiX offers the following measurement functions. They can be accessed by selecting
+Object > Add from the main menu.
+
+Distance measurement: Distance between two
+points in mm
+
+
+
+
+Continuous distance: Distance between
+several points in mm
+
+
+
+
+Angle measurement: Angle in degrees (°)
+spanned between two lines which are defined
+by three points
+
+
+
+
+Using the Zoom tool increases measurement accuracy (see Manipulating the views: most
+important tools (p. 49)).
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                         73
+7.3 AI Assistant
+The AI Assistant is an interface for communication to an AI service through the internet. A user
+may request support solving routine and time-consuming tasks required in the coDiagnostiX
+digital planning workflow e.g. segmentation, nerve canal detection and scan alignment. To use the
+AI service, it is required to provide CBCT and model scan data to the AI Assistant.
+
+
+
+Start:
+
+n    In EXPERT mode, the AI Assistant is
+     integrated with the DICOM Import.
+
+     It includes an option to decline and
+     can also be started by clicking the AI
+     button in the toolbar.
+
+
+
+
+n    If the AI Assistant has been used for
+     preparing the DICOM data, you can
+     also use it for preparing the model
+     scan.
+
+n    Select Align using AI Assistant from
+     the Model Scan dialogue. (see
+     chapter Import and match model
+     scan data (p. 57))
+
+
+
+
+74                                                              coDiagnostiX 10 Instructions for Use
+Status:
+
+While the AI data processing is done in
+the background, you can continue
+working with coDiagnostiX. Processing
+duration relies on the bandwidth of the                             vvvvvvvvvvv
+internet connection, workload of the AI
+server and the size of the datasets.         Work is progressing. vvvvvvvvvvvvvWork is done.
+
+n   Check the AI status anytime via the      Click for further information . vvvvClick to get results
+    AI Assistant symbol in the toolbar.      vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+
+n   The AI status information also
+    appears in the list of datasets on the
+    coDiagnostiX Start screen (see
+    chapter coDiagnostiX start screen (p.
+    30)) and chapter DICOM Import (p.
+    32)).
+
+
+
+Review the AI results:
+
+After the AI Assistant presents the
+results, review them:
+
+n   The panel on the left shows which
+    objects the AI has detected and
+    allows you to select and switch
+    between them.
+
+n   Review and correct selected objects
+    as necessary. Follow the instructions
+    in chapter EXPERT mode: Step by
+    step case planning (p. 53), the AI
+    assistant and use available options.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                    75
+n    Only selected objects (checkmarked) will be included in the planning. It is possible to
+     import only a subset of objects or reject all. In case of error, the object is presented with
+     a yellow warning symbol (see image) and cannot be selected.
+
+n    If you want to use the selected objects for treatment planning, click Import reviewed
+     data and continue planning with coDiagnostiX.
+
+
+
+
+       Notes
+The AI is trained on pseudonymized data representative for adult patients with partial dentition
+that have in the past been selected by coDiagnostiX users mainly in EU, USA and Japan as
+suitable for dental surgery treatments. AI results are optimal for representative data trained. If AI
+results are used for further planning, the user must diligently review and improve them as
+necessary.
+
+For optimal AI results, at least on tooth is required in each quadrant and a gap is needed between
+the teeth in upper and lower jaw.
+
+The AI service creates an error message for CBCT data with slice thickness > 0.8 mm.
+
+Slice thickness should be uniform within a tolerance of 0.01 mm.
+
+
+
+
+       Caution
+
+    Please be aware that the user of coDiagnostiX software is solely responsible for the
+    correctness, accuracy and completeness of all data entered into the coDiagnostiX software.
+
+
+
+
+76                                                                     coDiagnostiX 10 Instructions for Use
+Additional uses of AI results
+
+n   To prepare cases for immediate tooth
+    extractions, teeth can be virtually removed
+    from surface scans based on imported
+    segmentations from the AI Assistant.
+
+
+
+
+n   To use bone and teeth segmented by the AI
+    service for manual surface matching or for
+    exporting via the Virtual Planning Export, a
+    merged AI model can be created after
+    importing the reviewed data from the AI
+    Assistant.
+
+
+
+
+n   To use the AI surface matching, click Align
+    using AI in the surface matching dialog,
+
+    or
+
+    Provide to AI Assistant in the model scan
+    context menu after it has been imported
+    from the AI Assistant.
+
+
+
+
+coDiagnostiX 10 Instructions for Use               77
+78   coDiagnostiX 10 Instructions for Use
+8. Safety checks
+ü Always align all 2D views to the implant axis
+  and rotate around the implant to ensure
+  correct positioning and to avoid any
+  collisions. This also applies for other
+  surgical instruments.
+
+
+
+
+ü Always consult collision warning and critical nerve distance warning.
+
+
+
+Distance warning
+
+EXPERT mode
+
+
+
+EASY mode
+
+
+
+
+Distance/collision warnings will be displayed when an item is placed such that the distance to
+other items is less than a defined value. The user may still place the item where desired to
+facilitate the surgical planning process. Final item placement must be consistent with patient
+anatomy and the judgment of the clinician.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                             79
+                           Implant to implant     Implant to nerve canal         Sleeve to sleeve
+
+  Type                     Distance check         Distance check                 Collision check
+
+  Adjustable by user       Yes                    Yes                            No
+
+  Default value            3 mm                   2 mm                           0 mm
+
+  Range                    0 - 10 mm              0 – 10 mm                      n/a
+
+
+
+
+     Caution
+
+  Always maintain an appropriate safety distance to the nerve canal.
+
+  Always maintain an appropriate distance around the implant.
+
+
+
+
+ü Always verify automatic nerve canal
+  detection manually.
+ü Always check that surface data (e.g. model
+  scan) have been correctly and precisely
+  aligned to the volume data (DICOM data).
+
+
+
+
+Accuracy
+
+ü Always give the information concerning CBCT or CT scans (accessible via the Help menu in
+  the software) to the radiologist before the first scan.
+ü Control all automatic functions of the software.
+ü After planning is completed, always finalize the plan (Plan > Finalize). Make sure that only final
+  plans are sent to production and/or used to export data (e.g. surgical guides) for production.
+ü Check all printouts to ensure that they belong to the corresponding finalized plan.
+ü Backup your data at regular intervals to avoid loss of data due to system crash or hardware
+  failure.
+
+
+
+
+80                                                                 coDiagnostiX 10 Instructions for Use
+ü General prerequisite for accurate results is the compliance by the user with all instructions
+  given by the software manufacturer as well as an accurate planning with coDiagnostiX on the
+  part of the user.
+ü After prior planning with coDiagnostiX, the accuracy of the surgical guides and the location of
+  the surgical site depend on the following factors:
+
+ – The quality of the CBCT or CT/model scan data
+ – The precision of aligning model scan data with CBCT or CT data by the user
+ – Errors in design of the surgical guide software model such as using incorrect surgical
+   instruments or inaccurate surgical instrument placement
+ – Errors in surgical guide manufacturing
+ – Failure to check fit of the surgical guide on the model prior to use
+ – Failure to check fit of the surgical guide on the patient prior to surgery
+ – Surgical guide incorrectly placed in the patient’s mouth, resulting in inaccurate fit and inter-
+   operative movement
+ – Inaccurate fit of the guided surgical instruments with the surgical guide; instrument wear or
+   incorrect surgical instrument selection can result in a loose fit and positional inaccuracy
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                  81
+9. Maintenance
+coDiagnostiX does not require any maintenance by the manufacturer during its product life cycle
+(see Product life cycle (p. 7)).
+
+However, the user is responsible to:
+n    Ensure that data are regularly backed up to prevent loss of data (see chapter Data protection
+     (p. 23) and section Management (p. 30) of chapter coDiagnostiX start screen (p. 30)).
+n    Update the software as indicated under Product life cycle (p. 7) to maintain regulatory
+     compliance beyond the original product life cycle. With an active internet connection, the user
+     is automatically notified about pending updates. To check for updates manually, open the Help
+     (?) menu and select Dental Wings Online > Check for New Updates.
+
+
+
+
+       Caution
+
+    Online updates are also used to solve safety and/or information security issues. Such updates
+    are mandatory. Such will be clarified by the information provided with the online update.
+
+
+
+
+82                                                                 coDiagnostiX 10 Instructions for Use
+10. Distributors and service
+In case of questions, please contact your local distributor or local Straumann entity, whichever
+applies.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                               83
+11. Technical data and label
+
+11.1 Ambient conditions
+To ensure intactness and operational readiness of hardware elements, data carriers and other
+material provided for installation and use of coDiagnostiX, comply with the following conditions:
+
+
+
+ Ambient conditions
+
+ Operating temperature         10°C to 40°C
+
+ Transportation temperature    -29°C to 60°C
+
+ Storage conditions            -20°C to 40°C, controlled moisture (no condensation)
+
+ Relative humidity             15 % to 85 %
+
+ Atmospheric pressure          12 kPa to 106 kPa
+
+
+
+
+11.2 Hardware and software requirements
+The user is solely responsible to provide hardware and software suitable to run coDiagnostiX. It
+shall comply to national safety regulations and not impact the safety and performance of
+coDiagnostiX. For mandatory requirements see the following table.
+
+
+ Mandatory hardware/software
+
+ Memory                        Minimum: 8 GB RAM
+
+ Hard disk                     Minimum: 128 GB
+
+
+
+
+84                                                                coDiagnostiX 10 Instructions for Use
+  Mandatory hardware/software
+
+  Storage space                   n    Installation: 5 GB of hard disk space required
+                                  n    Free disk space for patient datasets and swap/cache files: Make sure
+                                       a minimum of 10 GB of free disk space is available prior to each start
+                                       of coDiagnostiX.
+                                       Note: If system and database are not located on the same drive,
+                                       10 GB of free disk space will be required on both the system and the
+                                       database drives.
+
+  CPU                             n    x64 compatible processor supported by the operating system
+
+  GPU                             n    GPU - OpenGL 3.3 or higher
+
+  Peripheral devices              n    Monitor
+                                  n    Keyboard
+                                  n    2-button mouse (mouse with scroll wheel recommended)
+                                  n    One free USB port (only required for dongle license version)
+
+  Operating system                n    Microsoft® Windows® 10, 64-bit; Microsoft® Windows® 11, 64-bit
+
+
+                                  Additional requirements for running coDiagnostiX on Apple Mac OS X:
+
+                                  n    Macintosh computer with Intel® processor
+                                  n    Mac OS X 10.9 or newer
+                                  n    ‘Parallels Desktop’ or 'VMWare Fusion' for Macintosh including valid
+                                       Windows® license (software to be purchased separately)
+
+  Internet connection             Stable internet connection for dongle-free license of coDiagnostiX.
+
+                                  n    Minimum: 1680 x 1050 pixels
+                                  n    Recommended: 1920 x 1080 pixels or higher
+  Screen resolution
+                                  n    Maximum resolution per view (3D reconstruction, virtual OPG, etc.):
+                                       4096 x 3072 pixels
+
+
+
+Minimum requirements have been specified to allow for smooth operation of coDiagnostiX. The
+software might also run on configurations with higher performance. The suitability of such
+configurations has to be validated by the user.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                          85
+ Optional hardware/software
+
+ Peripheral devices              n   DVD drive
+                                 n   DVD burner
+                                 n   Printer
+                                 n   3D mouse by 3Dconnexion
+
+ Internet connection             Stable internet connection, for online purposes only. Required, for
+                                 instance, for online updates, remote support, online transfer, DWOS
+                                 Synergy, AI Assistant, and 3Shape Communicate
+
+ Additional requirements for
+ the coDiagnostiX Network        n   Microsoft® SQL Server® required
+ Database SQL module
+
+ Additional requirements for a   n   Additional computer with a free USB slot running Microsoft®
+ coDiagnostiX Network                Windows® which acts as a dongle server (a server running 24/7 is
+ License                             recommended, but not necessary)
+                                 n   Permanent (W)LAN connection to the dongle server while running
+                                     coDiagnostiX on the client computer
+                                 n   Optional: Shared network drive to store the database
+
+ Additional requirements for     coDiagnostiX shall be compatible with all former and current DWOS
+ DWOS Synergy                    versions. If an older version of either product does not support a
+                                 particular feature, some information from either product will be missing.
+
+
+
+
+ Network configuration
+
+ caseXchange, AI Assistant,      n   Client: port 443, outgoing
+ 3Shape Communicate
+
+ Online Updater                  n   Client: port 80, outgoing
+
+ Network Database SQL            To configure your network for use with SQL Server®, see the
+                                 information provided by Microsoft or contact your Dental Wings support.
+
+ Network dongle                  n   Client: TCP port 54237, UDP port 21945, both outgoing
+                                 n   Server: TCP port 54237, UDP port 21945, both incoming
+
+
+
+
+86                                                                     coDiagnostiX 10 Instructions for Use
+DWOS Synergy
+
+Unless you collaborate via internet, it might be useful, for performance reasons, to install at least
+one Synergy server within your network. For information on where to download the latest local
+Synergy server release, contact your distributor (see Distributors and service (p. 83)).
+
+To be able to reach the Synergy server from other clients, the following ports need to be activated
+(in most cases, this is done automatically by the installation program):
+
+
+  DWOS Synergy server
+
+  Port 15672                 RabbitMQ server administration interface          Incoming
+
+  Port 61613                 STOMP protocol – communication with               Incoming
+                             coDiagnostiX
+
+  Port 5672                  AMQP protocol – communication with Dental         Incoming
+                             Wings DWOS or Straumann CARES Visual
+
+  Port 61615                 STOMP message queue dispatcher                    Incoming
+
+
+  Port 55555 (UDP)           Broadcast query                                   Outgoing
+
+
+  Port 55556 (UDP)           Broadcast listener                                Incoming
+
+
+
+
+  coDiagnostiX workstation
+
+  Port 80                    HTTP protocol – Synergy over the internet. Not    Outgoing
+                             required for communication with local Synergy
+                             server.
+
+  Port 443                   SSL protocol – Synergy over the internet. Not     Outgoing
+                             required for communication with local Synergy
+                             server.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                87
+ coDiagnostiX workstation
+
+ Port 61613                 STOMP protocol – communication with              Outgoing
+                            coDiagnostiX
+
+ Port 61615                 STOMP message queue dispatcher                   Outgoing
+
+
+ Port 55555 (UDP)           Broadcast query                                  Outgoing
+
+
+ Port 55556 (UDP)           Broadcast listener                               Incoming
+
+
+
+
+11.3 Label
+
+The product label is found in the software
+About box.
+
+On the start screen, select Help (?) > About
+from the main menu to open the About box.
+
+
+
+
+88                                                                coDiagnostiX 10 Instructions for Use
+11.4 Supporting information for CBCT or CT scans
+The production of CBCT or CT scans lies within the full responsibility of the radiologist or
+appropriately qualified personnel. However, the following requirements have to be observed to
+support image data processing and planning in dental surgical treatment with coDiagnostiX:
+
+
+
+Preparation
+n    All metal parts which are not fixed must be removed from the patient’s mouth.
+n    Block the opposite jaw, for instance, with a wooden applicator or silicone.
+n    Insert dental cotton rolls to keep lips and cheeks away from the gingiva.
+n    Make sure the tongue does not touch the palate.
+
+
+
+
+      Note
+
+    The coDiagnostiX DICOM import does not support the JPEG 2000 format. When
+    exporting/saving your CBCT scan, please choose a different file format.
+
+
+
+
+Positioning
+n    Align the occlusal plane to the scan plane as accurately as possible.
+
+
+
+Important CT scanning parameters
+n    A gantry angle of 0° is recommended to achieve the best quality for image reconstruction.
+n    Do NOT vary reconstruction parameters within a series (constant value for X and Y axis).
+n    Set a high-resolution bone algorithm (actual setting depends on the device).
+n    Parameters for a complete dataset when using dynamic mode:
+     Slices: 0.5 mm to 1.0 mm (0.5 mm recommended)
+n    When using spiral mode, reconstruction to 1.0 mm slices or less (0.5 mm is recommended).
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                             89
+n   KV: approx. 110 to 130
+n   mA: approx. 20 to 120
+
+
+
+    Storage of image data
+    n    Only axial slices are required.
+    n    DICOM III format, no raw data.
+
+
+
+
+    90                                     coDiagnostiX 10 Instructions for Use
+11.5 Licensing Matrix
+
+
+Dongle-free plans
+
+
+     coDiagnostiX
+                           BASIC       INDIVIDUAL   PROFESSIONAL   ENTERPRISE
+   license features
+
+ Basic functionalities
+ Planning                    l            l             l             l
+ Safety                      l            l              l            l
+ Data Import                 l            l              l            l
+ Data Output                 l            l              l            l
+ Basic guide design
+ (implantation guide,        l            l              l            l
+ endodontic guide)
+ Advanced guide
+ design (e.g. bone           l            l              l            l
+ reduction guide)
+ Guide export
+ Number of included
+                             0             1             5            10
+ guides)
+ Collaboration
+ Transfer cases via
+                             l            l             l             l
+ caseXchange
+ Import & export of
+                             l            l             l             l
+ plans
+ Seats included*             1             1             3            10
+ Other Functionalities
+ Advanced functions          l            l             l             l
+ AI Assistant                             l             l             l
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                            91
+Dongle plans
+
+
+       coDiagnostiX                                                     EASY              EASY
+                        PRODUCER           CLIENT        EASY
+     license features                                                 CHAIRSIDE          PRINT**
+
+ Basic
+ functionalities
+ Planning                   l                l             l               l                l
+ Safety                     l                l             l               l
+ Data Import                l                l             l               l
+ Data Output                l                l             l               l                l
+ Basic guide design
+ (implantation
+                            l                l             l               l
+ guide, endodontic
+ guide)
+ Advanced guide
+ design (e.g. bone          l                l
+ reduction guide)
+ Export
+ functionalities
+ Guide export               l                                             l                 l
+ Collaboration
+ Transfer cases via
+                            l                l             l
+ caseXchange
+ Import and export
+                            l                l
+ plans
+ Other
+ Functionalities
+ Advanced
+                            l                l
+ functions
+ AI Assistant               l                l
+
+
+For an exhaustive licensing matrix please contact your distributor (see Distributors and service (p.
+83)). coDiagnostiX license features may be promoted in marketing material.
+
+* Extra seats can be purchased for Individual, Professional and Enterprise plans.
+
+
+
+
+92                                                                coDiagnostiX 10 Instructions for Use
+**Limited availability. Ask your Straumann partner.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                  93
+12. Explanation of symbols
+
+              Caution, consult Instructions for Use for important cautionary
+              information
+
+
+              Device fulfills the requirements of the European directives given on
+              the EU Declaration of Conformity
+
+
+
+              Device fulfills the requirements of UK Medical Device Regulation
+              given on the Declaration of Conformity.
+
+
+
+              Consult Instructions for Use (On medical devices: Follow Instructions
+              for Use)
+
+
+              Follow the instructions for use. An electronic version can be
+              downloaded from: ifu.dentalwings.com
+
+
+
+              Indicates that the item is a medical device.
+
+
+
+
+              Indicates the device's legal manufacturer
+
+
+
+
+              Indicates the date when the device was manufactured
+
+
+
+              Indicates the manufacturer's catalog number
+
+
+
+              Do not dispose of this device as unsorted municipal waste. Collect
+              separately.
+
+
+
+
+94                                               coDiagnostiX 10 Instructions for Use
+                                       Humidity limitation
+
+
+
+
+                                       Atmospheric pressure limitation
+
+
+
+
+                                       Temperature limit for transport
+
+
+
+                                       Caution: US federal law restricts this device to sale by or on the order
+                                       of a licensed healthcare practitioner
+
+
+
+                                       Indicates the availability of technical support together with its contact
+                                       details.
+
+
+
+                                       Indicates the availability of training resources and how to access
+                                       them.
+
+
+
+                                       Indicates the availability of a printed IFU version together with the
+                                       delivery time in days.
+
+
+
+                                       Indicates the entity distributing the medical device into the locale.
+
+
+
+
+                                       Indicates the entity importing the medical device into the locale.
+
+
+
+
+coDiagnostiX 10 Instructions for Use                                                                           95
+                                www.dentalwings.com
+                                www.codiagnostix.com
+
+
+
+Dental Wings GmbH                                      Distributor stamp
+Düsseldorfer Platz 1
+09111 Chemnitz
+GERMANY
+
+T +49 371 273903-70
+F +49 371 273903-88
+
+coDiagnostiX Instructions for Use
+CDX-070-EN v. 14.9 2024-12-16
+

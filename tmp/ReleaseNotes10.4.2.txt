@@ -1,0 +1,42 @@
+coDiagnostiX
+
+            Release Notes 10.4.2
+We’re constantly working to improve your experience with coDiagnostiX. Below you will find a
+summary of the items fixed or improved upon in this update.
+
+
+
+
+                      REGIONAL DISABLING OF SLEEVE SYSTEMS
+Some sleeve systems, that are not yet available in all geographical regions are now disabled
+for users in these regions. This currently affects the following systems in North America:
+
+   •   Anthogyr Pin sleeve 2.0
+   •   bredent medical pro guide fixation pin sleeve
+   •   Medentika MedentiGuide
+   •   Straumann Korea Guided Surgery
+   •   YDM Clamp Guided
+
+
+
+                                         BUGFIXES
+
+
+The following issues have been fixed with the coDiagnostiX 10.4.2 release:
+
+
+Implant rotation: Fixed a bug
+that affected the implant
+rotation markers on surgical
+guides when using implants with
+an odd number of edges in the
+implant platform interface (see
+image).
+
+Surgical guide display: Fixed a
+display bug affecting surgical
+guides, which made them
+disappear when closing and
+reopening the wizard during
+guide editing.
+

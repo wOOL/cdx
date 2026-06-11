@@ -1,0 +1,29 @@
+coDiagnostiX
+
+  Release Notes 10.4 & 9.17
+We’re constantly working to improve your experience with coDiagnostiX. Below you will find a
+summary of the items fixed or improved upon in this update.
+
+
+                                      NEW SLEEVE SYSTEMS
+New sleeve systems for Anthogyr, Neodent, Bredent and Thommen are available.
+
+                           SURGICAL GUIDE DESIGN IMPROVEMENTS
+The following improvements for surgical guide designs sent to Straumann production
+centers were made to optimize speed and accuracy of the production process.
+
+Guide type: Users of coDiagnostiX 10.4 are now asked whether their guide is intended for cutting
+bone.
+
+Accessory selection: When placing their order, users can now choose between the three options “No
+Accessories”, “Sleeves only” or “Sleeves and pins” depending on their current needs.
+
+Customer number: users are now asked to enter their costumer number when placing their order to
+ensure the order is correctly assigned to its intended recipient.
+coDiagnostiX
+                                 CALIBRATION MATRIX PRINTING
+
+We have made enhancements to the process of printing a calibration matrix. Users can now select
+which printer they are using, to ensure that the calibration matrix is generated in a way which is
+optimized for that printer, for example when using a RapidShape printer, or other DLP printers.
+

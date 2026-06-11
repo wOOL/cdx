@@ -1,0 +1,182 @@
+coDiagnostiX 10.9.7
+Support for iGuide 3.9 Sleeve
+
+This release introduces support for the new iGuide 3.9 sleeve, including the corresponding surgical protocol. The
+enhancement allows users to plan implant cases accurately and in alignment with the latest surgical components.
+
+Key benefits for your daily workflow:
+
+    •   New iGuide 3.9 sleeve available for planning
+        The new sleeve can now be selected and used directly during implant planning.
+
+    •   Integrated surgical protocol
+        The associated surgical protocol is fully integrated, supporting a safe and structured workflow from
+        planning to surgery.
+
+    •   Automatic implant compatibility
+        The iGuide 3.9 sleeve is linked exclusively to approved, compatible implant systems. Only valid
+        combinations are available during planning.
+
+The iGuide 3.9 sleeve will be commercially available starting May 1st, 2026. Planning can already be prepared in
+the software; clinical use requires physical availability of the sleeve.
+
+
+coDiagnostiX 10.9.6
+
+Improvements for surgical protocols
+
+The surgical protocols will display guiding information in empty fields, automatically select drills based on sleeve
+diameter, and clearly mark manual steps where guided drilling is not possible. Terminology will be standardized and
+all clinically necessary steps up to implant placement will be included while removing irrelevant steps for specific
+sleeve sizes.
+
+Priority handling of Dongle configuration over AXS licensing
+
+The licensing system will be adjusted so that a connected Dongle automatically overrides any AXS license
+information. This prevents conflicts and ensures that users with a valid Dongle can seamlessly operate the software
+regardless of parallel license states.
+
+Renaming of Denacam to Falcon Simulation in the Handpiece workflow
+
+The term “Denacam” will be replaced with “Falcon Simulation” throughout the Handpiece workflow to ensure clear
+and intuitive naming. This increases transparency regarding the purpose of the workflow and improves user
+comprehension.
+
+French localization of the About Box
+All English text fragments in the french version of the About Box will be translated and localized into proper French.
+This ensures compliance with bilingual labeling requirements and delivers a consistent user experience.
+
+Share ID display fix in the caseXchange dialog
+
+The caseXchange dialog window will dynamically scale according to the text length so that the new 7-digit Share ID
+is always fully visible. This guarantees consistent UI behavior regardless of ID length.
+
+
+coDiagnostiX 10.9.5
+Compatibility of iGuide 5.2 in coDiagnostiX with additional Straumann Implant Lines: BLC, BLX,
+TLC, and TLX
+
+Users can now plan and execute workflows in iGuide 5.2 within coDiagnostiX using additional Straumann implant
+lines, including BLC, BLX, TLC, and TLX. The extended compatibility enables the use of newly supported implant
+diameters across these lines. To support this, the relevant iEXCEL surgical protocols and underlying mappings have
+been updated to make the new connections available.
+
+Feature Flag for Jaw Hole Filling Feature
+
+Implementation of a feature flag for the AI feature „Jaw Hole Filling“ to control the market availability of the Jaw
+Hole Filling feature via the licensing service.
+
+Annual Renewal of AXS Subscription Credentials
+
+To use coDiagnostiX after Apr 11, 2026, install this update (only pertains to users with a subscription license
+without a hardware dongle).
+
+TeamViewer QuickSupport update
+
+An upgrade to version 15.73.5 of the TeamViewer QuickSupport application is included to fix a security vulnerability
+reported by the manufacturer.
+
+
+
+coDiagnostiX 10.9.4
+Optimized Integration of Sleeve Systems
+
+To enable significantly faster deployment of new sleeve systems in the future, a new system has been implemented
+that greatly simplifies the addition and management of sleeve systems. This enhancement reduces complexity and
+accelerates the release of updates for new sleeves and sleeve systems.
+coDiagnostiX 10.9.3
+
+New Feature: Jaw Hole Filling
+
+With this release, we’re introducing the new Jaw Hole Filling feature.
+It improves the segmentation of jaw scans using AI algorithms by filling gaps caused either by scan artifacts or
+segmentation limitations. This enables:
+
+    •    Easier design of bone reduction guides
+    •    Improved printability by removing internal objects from the bone segmentation
+    •    Smoother bone surfaces for more visually appealing presentations to clinicians and patients
+    •    Filling of larger anatomical holes (e.g., alveoli) to support planning workflows
+
+Bug Fix: Out of Memory Error in AI Service
+
+We’ve resolved an Out of Memory issue in the AI Integration Service, which occurred during the processing of large
+datasets. This fix improves the performance and stability of the AI service, allowing for more robust handling of
+complex cases.
+
+New disclaimer in caseXchange
+
+As part of this release, a disclaimer has been integrated into caseXchange.
+It informs users that they:
+
+    •    have obtained the patient’s consent to share the data, and
+    •    confirm that the use of this service is legally permitted in their country.
+
+This measure supports compliance with legal requirements and increases transparency for our users.
+
+
+
+coDiagnostiX 10.9.2 Update 2
+
+AXS license update
+
+To use coDiagnostiX after the 5th of August, install this update if you are using a subscription license without a
+hardware dongle.
+
+
+
+coDiagnostiX 10.9.2 Update 1
+    •    Fixed an issue that can cause crashes when the implant library exceeds a certain size.
+    •    Added support for new scanbodies to Treatment Evaluation:
+             o Anthogyr Axiom BL 152-27-DT
+             o Neodent GM 108.183
+             o Straumann CARES PEEK 025.2915 (NC) and 025.4915 (RC)
+coDiagnostiX 10.9.2
+
+AXS license update
+
+To use coDiagnostiX after the 5th of August, install this update if you are using a subscription license without a
+hardware dongle.
+
+Straumann iGuide sleeve system
+
+This update adds support for the new iGuide system. Make sure also to install the accompanying MasterDB update.
+
+Support for new Straumann Falcon workflows
+
+coDiagnostiX now supports workflows using three fixed landmarks and three natural landmarks. See the Falcon
+user manual for more information.
+
+Other
+
+Small functionality and stability fixes.
+
+
+
+coDiagnostiX 10.9.1
+
+Improvements
+
+    •    Added support for the NUVO sleeve system.
+    •    Added support for the Neodent Zi 5.0 sleeve.
+    •    Added support for Straumann metal scan bodies to Treatment Evaluation.
+    •    The about box now shows three numbers of the version number instead of two (10.9.1 instead of 10.9).
+    •    The about box now displays the complete UDI, including UDI-DI (device identifier) and UDI-PI (production
+         identifier).
+    •    The about box now provides a list of country-specific labels.
+
+
+coDiagnostiX 10.9
+
+Improvements
+
+    •    The Straumann surgical protocols were all switched from 4 to 3 bone classes.
+    •    The Straumann TLX/BLX and TLC/BLC surgical protocols now both follow the from-pilot-to-final approach.
+    •    Fixed an issue in the Neodent EasyGuide surgical protocol where columns were too narrow and cropped
+         the contained textual information.
+    •    Fixed an issue where the abutment angulation measurement dialog changed the selected implant in the
+         planning screen.
+    •    Fixed an issue where surgical protocol information was not correctly displayed when using Medentika
+         MedentiGuide.
+•   Fixed a frequent crash that occurred when using the SQL Network Database feature.
+•   Fixed a crash that occurred when closing the software without a dongle attached.
+

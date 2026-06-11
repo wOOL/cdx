@@ -1,0 +1,64 @@
+10.5 & 9.185 & 9.18
+
+
+
+10.6 & 9.19
+Release Notes
+We are constantly working to improve your experience with coDiagnostiX and have added the following exciting new
+features for this update:
+
+
+New AI Assistant automates data preparation – available as beta feature
+       Until now, data preparation for patient cases needed to be done manually and could be time consuming.
+       Starting with versions 10.6 and 9.19, coDiagnostiX offers a new and exciting AI feature to users, that automates
+       some of these steps. The new AI Assistant automatically:
+
+              segments CBCT scans
+              detects patient coordinate system and panoramic curve
+              detects nerves
+              matches DICOM and surface scans (e.g. IO and model scans)
+
+
+       As a result, you can streamline your workflows to save time during the data preparation process.
+
+       The AI Assistant is made available as a beta feature. Users who are interested to become early adopters and
+       provide feedback are invited to apply through the software.
+STL export of scanbodies and analogues
+        When exporting your patient case as an xOrder file through the Virtual Planning Export you can already choose
+        whether you would like to use implants or abutments as your export basis. This feature is now being expanded
+        to include STL exports of scanbodies and implant analogues as well.
+
+        This feature is especially useful in cases that require a temporary restoration to be placed on an abutment,
+        such as for edentulous cases. In addition to already being available within the DWOS/CARES workflow, the
+        feature can now be used for 3rd party Dental CAD software as well.
+
+
+
+
+New sleeves available
+                Anthogyr X3 implants and surgical protocols for Anthogyr Integral are now supported
+                Metal sleeves available for the TLX BLX implant lines:
+
+Mesh editor
+
+        A new version of the mesh editor has been implemented, that provides the following new functionalities:
+
+                Local smoothing
+                Wax knife to add or remove material
+                Local remeshing
+                Partial hole filling, create surface
+                 bridges between two meshes
+
+
+        Furthermore, the mesh editor now comes in
+        a new 3D data visualization, that is faster
+        and looks more sleek.
+
+        The editor can be switched back to the old
+        rendering for those who prefer it.
+
+
+
+
+cDX10.6_Release_Notes_EN_3-2022
+

@@ -1,0 +1,406 @@
+          coDiagnostiX™
+         Dental Surgery Planning Software
+
+
+Supporting information for (CB)CT Scans
+CONTENTS
+
+ 1. Supporting information for (CB)CT scans    4
+
+ 2. CT scans                                   5
+   2.1 Preparation                             5
+   2.2 Patient positioning                     6
+   2.3 Scanning process                        6
+   2.4 Storage of CT scans                     8
+   2.5 Visualization of motion artifacts       8
+   2.6 Checklist for CT scans                  9
+
+ 3. CBCT scans                                12
+   3.1 Preparation                            12
+   3.2 Patient positioning                    12
+   3.3 Scanning process                       13
+   3.4 Storage of CBCT scans                  13
+   3.5 Checklist for CBCT scans               14
+1. Supporting information for (CB)CT scans
+This appendix provides additional information for radiologists and MTAs to help them produce
+appropriate (CB)CT scans for subsequent dental implant planning with coDiagnostiX. It outlines
+the specific requirements imposed on such scans by coDiagnostiX.
+
+To download a print version, click here
+2. CT scans
+
+2.1 Preparation
+n   All metal parts (such as those contained in removable partial dentures) which are not fixed
+    must be removed from the patient's mouth.
+n   When using the analog workflow with the gonyX:
+    – Have the patient wear a scan template with reference pins during radiology. The reference
+      pins must be completely visible in the CT scan. The correct fabrication of the scan
+      template lies within the responsibility of the user.
+    – Make sure that all components attached to the scan template are firmly fixed to avoid the
+      risk of aspiration.
+
+
+
+
+         Caution
+
+      Before placing the scan template or surgical guide into the patient's mouth, make sure
+      to prepare such template or guide according to standard operating procedures in
+      dentistry and the instructions for use provided for your material.
+
+
+
+
+n   Block the opposite jaw with a wooden applicator or silicone.
+n   Insert dental cotton rolls to keep lips and cheeks away from gingiva.
+n   Make sure the tongue does not touch the palate.
+
+
+
+
+coDiagnostiX™ 10 Supporting information for (CB)CT Scans                                          5
+2.2 Patient positioning
+
+The positioning instructions given below are
+applicable for scanning maxilla or mandible
+as well as for scanning both jaws
+simultaneously. In the latter case, the patient
+must wear both scan templates (analog
+workflow only).
+
+n   Position the patient as shown in the figure
+    and ensure that the patient does not move
+    during the scanning procedure.
+n   A gantry angle of 0° is recommended.
+    However, the software is able to process
+    image data produced with a gantry angle
+    ≠ 0°, if necessary.
+n   Align the occlusal plane to the scan plane
+    as accurately as possible.
+
+
+
+2.3 Scanning process
+
+
+Maxilla
+
+When scanning the maxilla, choose the image section so that the upper jaw bone is completely
+visible. The scan should comprise the area from the occlusal plane to the middle of the
+maxillary sinus.
+
+The ideal field of view (FOV) is 8 to 12 cm.
+
+
+
+
+6                                              coDiagnostiX™ 10 Supporting information for (CB)CT Scans
+Exception
+
+If a sinus lift is planned or planning will occur
+with Zygoma implants, the scan should
+comprise the area from the occlusal plane to
+the orbital floor to meet the modified planning
+situation. Additionally, it is recommended to
+choose a field of view which also includes the
+zygomatic arches.
+
+
+
+Mandible
+
+When scanning the mandible, choose the
+image section so that the lower jaw bone is
+completely visible. The scan should comprise
+the area from the occlusal plane to the basis
+of the mandible. It is recommended to scan
+an additional slice below the bone in the soft
+tissue to make sure that the corpus
+mandibulae is completely captured.
+
+The ideal field of view (FOV) is 9 to 14 cm.
+
+
+
+Important scanning parameters
+
+n   A gantry angle of 0° is recommended to achieve the best quality for image reconstruction.
+n   Block the opposite jaw with dental cotton rolls or adequate non-radiopaque material.
+n   Do NOT vary reconstruction parameters within a series (constant value for X and Y axis).
+n   Set a high-resolution bone algorithm (actual setting depends on the device).
+n   Parameters for a complete dataset when using dynamic mode:
+    – Slices: 0.5 mm to 1.0 mm (0.5 mm recommended)
+n   When using spiral mode, reconstruction to 1.0 mm slices or less (0.5 mm is recommended).
+n   KV: approx. 110 to 130
+n   mA: approx. 20 to 120
+
+
+
+
+coDiagnostiX™ 10 Supporting information for (CB)CT Scans                                        7
+2.4 Storage of CT scans
+For dental implant planning with coDiagnostiX, only axial slices are required.
+
+n   Store the image data set in DICOM III format on CD-ROM or on any other portable storage
+    device. Do not save raw data. Only axial image data are required for planning with
+    coDiagnostiX.
+
+
+2.5 Visualization of motion artifacts
+Motion artifacts in CT scans may affect 3D planning with coDiagnostiX. When working with a
+scan template, you may attach a scan control bar to the template prior to scanning.
+
+The scan control bar is available as accessory. It has a length of 6 cm and a diameter of 2 mm
+and should be visible in all slices of the CT scan.
+
+
+
+How to use the scan control bar
+
+n   There is a hole on the left and right side in
+    the front area of the reference plate to fix
+    the scan control bar. One scan control bar
+    will be sufficient. During the CT scan, the
+    scan control bar remains outside the
+    mouth.
+
+
+
+
+n   Position the scan control bar in a way that
+    it will be visible in the axial planes at upper
+    or lower jaw level.
+n   Make sure the scan control bar is not bent.
+
+
+
+
+8                                              coDiagnostiX™ 10 Supporting information for (CB)CT Scans
+n    After CT scanning, scroll through the axial
+     slices to evaluate the appearance of the
+     scan control bar in these slices and identify
+     possible motion during the scan. 3D
+     reconstruction will facilitate evaluation.
+
+
+
+n    If you detect significant offset between the
+     single slices, it may be necessary to repeat
+     the CT scan.
+
+
+
+
+         Note
+
+    It is not mandatory to use the scan control bar when working with coDiagnostiX. However, it
+    is recommended to visualize motion artifacts better. The scan control bar is not needed for
+    devices which do not scan by slices (e.g. CBCTs).
+
+
+
+
+2.6 Checklist for CT scans
+
+    Work step                                                                           Done
+
+                                n   All components attached to the scan
+                                    template are firmly fixed.
+                  With          n   Before placing the scan template in the
+    1.            scan              patient's mouth make sure such template is          c
+                template            prepared according to dental standard
+                                    operating procedures and the material's
+                                    instructions for use.
+
+                  With          Patient interview/indication by referring        Yes    c
+    2.            scan          clinician:
+                template        n   Patient wears a template                     No     c
+
+
+
+
+coDiagnostiX™ 10 Supporting information for (CB)CT Scans                                          9
+     Work step                                                                         Done
+
+                            n   All metal parts which are not fixed have
+                                been removed from the patient's mouth
+                            n   Opposite jaw blocked with a wooden
+     3.                         applicator or silicone                                 c
+                            n   Dental cotton rolls inserted to keep lips and
+                                cheeks away from gingiva
+                            n   Tongue does not touch palate
+
+                            Scan template check:
+                   With     n   Template correctly fitted
+     4.            scan                                                                c
+                 template
+                            n   Scan control bar fitted to the scan template
+                                to visualize motion artifacts
+
+                            Gantry angle adjustment:
+                            n   Gantry angle: 0°
+
+     5.
+                            n   ATTENTION: Set a gantry angle of 0° even if            c
+                                the patient cannot move the occlusal plane
+                                to the scan plane. This will be calculated by
+                                coDiagnostiX afterwards.
+
+                            Slice distance setting:
+     6.                                                                                c
+                            n   1 mm or less (0.5 mm recommended)
+
+                            Standard instructions for patients:
+     8.                     n   Do not move, do not swallow, do not                    c
+                                breathe
+
+                            Adjustment of the image section according to
+     9.                     the advices given in the preceding sections of             c
+                            this chapter
+
+                            Data export to CD or other storage medium:
+     10.                    n   DICOM III Format, no raw data                          c
+                            n   No separate viewer required
+
+
+
+
+10                                        coDiagnostiX™ 10 Supporting information for (CB)CT Scans
+coDiagnostiX™ 10 Supporting information for (CB)CT Scans   11
+3. CBCT scans
+3.1 Preparation
+For the production of CBCT scans follow the instructions of your device manufacturer.
+
+n    All metal parts (such as those contained in removable partial dentures) which are not fixed
+     must be removed from the patient's mouth.
+n    When using the analog workflow with the gonyX:
+      – Have the patient wear a scan template with reference pins during radiology. The reference
+        pins must be completely visible in the CBCT scan. The correct fabrication of the scan
+        template lies within the responsibility of the user.
+      – Make sure that all components attached to the scan template are firmly fixed to avoid the
+        risk of aspiration.
+
+
+
+
+       Caution
+
+     Before placing the scan template or surgical guide into the patient's mouth, make sure to
+     prepare such template or guide according to standard operating procedures in dentistry and
+     the instructions for use provided for your material.
+
+
+
+
+n    Block the opposite jaw with a wooden applicator or silicone.
+n    Insert dental cotton rolls to keep lips and cheeks away from gingiva.
+n    Make sure the tongue does not touch the palate.
+
+
+3.2 Patient positioning
+The positioning instructions given below are applicable for scanning maxilla or mandible as well
+as for scanning both jaws simultaneously. In the latter case, the patient must wear both scan
+templates (analog workflow only).
+
+
+
+
+12                                           coDiagnostiX™ 10 Supporting information for (CB)CT Scans
+n   Position the patient as shown in the figure
+    and ensure that the patient does not move
+    during the scanning procedure.
+n   Align the occlusal plane to the scan plane
+    as accurately as possible.
+
+
+
+
+3.3 Scanning process
+Follow the instructions and recommendations given by the manufacturer of your CBCT device.
+
+
+3.4 Storage of CBCT scans
+For dental implant planning with coDiagnostiX, only axial slices are required.
+
+Store the image data set in DICOM III format on CD-ROM or on any other portable storage
+device. Do not save raw data. Only axial image data are required for planning with coDiagnostiX.
+
+
+
+
+coDiagnostiX™ 10 Supporting information for (CB)CT Scans                                      13
+3.5 Checklist for CBCT scans
+
+     Work step                                                                       Done
+
+
+                        n   All components attached to the scan
+                            template are firmly fixed.
+             With       n   Before placing the scan template in the
+     1.      scan           patient's mouth make sure such template                  c
+             template       is prepared according to dental standard
+                            operating procedures and the material's
+                            instructions for use.
+
+
+             With       Patient interview/indication by referring           Yes      c
+     2.      scan       clinician:
+             template   n   Patient wears a template                        No       c
+                        n   All metal parts which are not fixed have
+                            been removed from the patient's mouth
+                        n   Opposite jaw blocked with a wooden
+     3.                     applicator or silicone                                   c
+                        n   Dental cotton rolls inserted to keep lips
+                            and cheeks away from gingiva
+                        n   Tongue does not touch palate
+
+
+             With       Scan template check:
+     4.      scan                                                                    c
+                        n   Template correctly fitted
+             template
+
+                        Slice distance setting:
+     5.                                                                              c
+                        n   0.2 – 0.8 mm
+
+
+
+
+14                                      coDiagnostiX™ 10 Supporting information for (CB)CT Scans
+  Work step                                                               Done
+
+
+                             Standard instructions for patients:
+  7.                         n   Do not move, do not swallow, do not      c
+                                 breathe
+
+
+                             Adjustment of the image section according
+  8.                         to the recommendations given for your        c
+                             CBCT device
+
+                             Data export to CD or other storage medium:
+  9.                         n   DICOM III Format, no raw data            c
+                             n   No separate viewer required
+
+
+
+
+coDiagnostiX™ 10 Supporting information for (CB)CT Scans                         15
+                              www.dentalwings.com
+                              www.codiagnostix.com
+
+
+
+Dental Wings GmbH                                       Distributor stamp
+Düsseldorfer Platz 1
+09111 Chemnitz
+GERMANY
+
+T +49 371 273903-70
+F +49 371 273903-88
+
+coDiagnostiX™ Supporting information for (CB)CT Scans
+CDX-070-EN v7 2022-04-25
+

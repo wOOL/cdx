@@ -1,0 +1,50 @@
+coDiagnostiX 10.7 Hotfix 2
+The Anthogyr TL X3 implant series is now compatible with the Anthogyr INTEGRAL sleeve system.
+
+
+
+coDiagnostiX 10.7 Hotfix 1
+Fixed a rarely occurring issue with the AI review dialog. Under certain circumstances it became
+unresponsive when used with datasets containing only one jaw.
+
+
+
+coDiagnostiX 10.7
+After the introduction of our new AI Assistant for a limited number of users with the previous update of
+coDiagnostiX our AI adventure now continues with more exciting new AI features and for everyone!
+
+The AI Assistant, our artificial intelligence algorithm, allows users to automate time-consuming manual
+tasks such as tooth segmentation and nerve detection. Version 10.7 introduces a further set of AI tools
+that provide simplified workflows for bone models, surface matching and tooth extraction.
+
+Grouping AI objects
+
+coDiagnostiX 10.7 now enables users to group objects, such as teeth and jaw, that were detected by the
+AI.
+
+Go to Add Object  Merged AI model.
+
+Newly grouped objects can then be used as needed, for example to:
+
+     a.    export bone models with VPE. This enables to easily and efficient export bone model with or
+           without teeth Instead of selecting every tooth separately, they can now be grouped and merged.
+
+     b.    manually match surface scans (wizard) in cases where the fully automated surface matching isn’t
+           sufficient.
+
+     c.    add segmentations as attachments in the guide designer
+
+Visibility of AI objects
+
+Users can now decide if AI segmentations are visible in 2D and 3D views, or in 3D views only. Go to Main
+Menu  View  AI Models to set-up your preferences.
+
+Note
+It is recommended to install the update via Online Update. If the separately available installer is used to update an existing
+installation, it may be necessary to run the installer a second time if an error message appears during the first run.
+
+
+
+
+                                                                   1
+
