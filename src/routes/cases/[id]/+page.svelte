@@ -8,6 +8,7 @@
 	import { PlanningState, WINDOW_PRESETS } from '$lib/client/planning.svelte';
 	import AdjustGrayscale from '$lib/components/AdjustGrayscale.svelte';
 	import PlanCompare from '$lib/components/PlanCompare.svelte';
+	import MakeParallel from '$lib/components/MakeParallel.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
 	import {
@@ -487,16 +488,7 @@
 		ps.saveImplant(selectedImplant.id);
 	}
 
-	function parallelizeImplant() {
-		if (!ps || !selectedImplant || ps.locked) return;
-		ps.markEdit();
-		const other = ps.implants.find((i) => i.id !== selectedImplant?.id);
-		if (!other) return;
-		selectedImplant.ax = other.ax;
-		selectedImplant.ay = other.ay;
-		selectedImplant.az = other.az;
-		ps.saveImplant(selectedImplant.id);
-	}
+	let makeParallelOpen = $state(false);
 
 	// bone density around the selected implant
 	let densityInfo = $state<{
@@ -1263,7 +1255,25 @@
 				{/each}
 			</div>
 			<div class="tree-group">
-				<div class="tree-group-label">Models</div>
+				<div class="tree-group-label">
+					Models
+					{#if ps?.models.length}
+						<button
+							class="tree-eye group-eye"
+							title="Toggle all models"
+							onclick={() => {
+								if (!ps) return;
+								const show = !ps.models.every((m) => m.visible);
+								for (const m of ps.models) {
+									m.visible = show;
+									ps.saveModel(m.id);
+								}
+							}}
+						>
+							<Icon name={ps.models.every((m) => m.visible) ? 'eye' : 'eye-off'} size={12} />
+						</button>
+					{/if}
+				</div>
 				{#each ps?.models ?? [] as m (m.id)}
 					<div class="tree-item">
 						<span class="dot" style="background:{m.color}"></span>
@@ -1361,7 +1371,25 @@
 				{/each}
 			</div>
 			<div class="tree-group">
-				<div class="tree-group-label">Implants</div>
+				<div class="tree-group-label">
+					Implants
+					{#if ps?.implants.length}
+						<button
+							class="tree-eye group-eye"
+							title="Toggle all implants"
+							onclick={() => {
+								if (!ps) return;
+								const show = !ps.implants.every((i) => i.visible);
+								for (const i of ps.implants) {
+									i.visible = show;
+									ps.saveImplant(i.id);
+								}
+							}}
+						>
+							<Icon name={ps.implants.every((i) => i.visible) ? 'eye' : 'eye-off'} size={12} />
+						</button>
+					{/if}
+				</div>
 				{#each ps?.implants ?? [] as im (im.id)}
 					<div
 						class="tree-item tree-clickable"
@@ -1392,7 +1420,25 @@
 				{/each}
 			</div>
 			<div class="tree-group">
-				<div class="tree-group-label">Nerves</div>
+				<div class="tree-group-label">
+					Nerves
+					{#if ps?.nerves.length}
+						<button
+							class="tree-eye group-eye"
+							title="Toggle all nerves"
+							onclick={() => {
+								if (!ps) return;
+								const show = !ps.nerves.every((n) => n.visible);
+								for (const n of ps.nerves) {
+									n.visible = show;
+									ps.saveNerve(n.id);
+								}
+							}}
+						>
+							<Icon name={ps.nerves.every((n) => n.visible) ? 'eye' : 'eye-off'} size={12} />
+						</button>
+					{/if}
+				</div>
 				{#each ps?.nerves ?? [] as n (n.id)}
 					<div class="tree-item">
 						<span class="dot" style="background:{n.color}"></span>
@@ -1828,8 +1874,12 @@
 							{/each}
 						</select>
 						{#if ps.implants.length > 1}
-							<button class="btn" title="Align axis with the other implant" onclick={parallelizeImplant}>
-								∥ Parallelize
+							<button
+								class="btn"
+								title="Make implants parallel (master or mean direction)"
+								onclick={() => (makeParallelOpen = true)}
+							>
+								∥ Parallelize…
 							</button>
 						{/if}
 						{#if densityInfo}
@@ -2184,6 +2234,10 @@
 			</div>
 		</div>
 	</div>
+{/if}
+
+{#if makeParallelOpen && ps}
+	<MakeParallel state={ps} {notation} onclose={() => (makeParallelOpen = false)} />
 {/if}
 
 {#if compareOpen}
@@ -2562,6 +2616,15 @@
 		letter-spacing: 0.08em;
 		color: var(--text-faint);
 		padding: 4px 6px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.group-eye {
+		opacity: 0.5;
+	}
+	.group-eye:hover {
+		opacity: 1;
 	}
 	.tree-item {
 		display: flex;

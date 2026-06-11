@@ -205,11 +205,11 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P2] Thumbnail view with badges (abutment, sleeve, region globe, tech-info cogwheel hover, favorite, user icon)
 - [ ] [P2] Fixation pins as implants: XX default position, lateral auto-angled placement, pin sleeves
 - [ ] [P2] Endodontic drills as implants (straight-path note) 
-- [~] [P2] Make Parallel dialog (implant checkbox list, master vs mean direction, Preview/Reset/confirm) — partial: pairwise align button; no dialog
+- [x] [P2] Make Parallel dialog (implant checkbox list, master vs mean direction, Preview/Reset/confirm)
 - [ ] [P2] Implant Appearance toggles (axes, crestal planes, 3D models in 2D) + 2D implant color + selection box setting
 - [ ] [P2] Tooth-position relabel via header Properties (label-only change)
 - [x] [P2] Localizer double-click to add implant at point
-- [ ] [P2] Object groups: create dialog (two-list picker + hotkeys), group move modes (none / implants only / all objects), batch visibility/abutments/sleeves
+- [~] [P2] Object groups: create dialog (two-list picker + hotkeys), group move modes (none / implants only / all objects), batch visibility/abutments/sleeves — partial: group visibility toggles per object type; no custom groups
 - [~] [P3] Abutments: catalog tab on implant add; Edit Abutments dialog (database/user-defined/none; all-vs-selected prompt) — partial: preset abutments per implant (straight/angled), 2D/3D render, report column
 - [ ] [P3] Group abutment assignment with automatic angulated-abutment selection (axis parallelization, All-on-4/6)
 - [ ] [P3] Abutment rotational alignment tab (drag around implant axis)
