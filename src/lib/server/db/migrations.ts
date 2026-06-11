@@ -137,6 +137,11 @@ const MIGRATIONS: string[] = [
 		key TEXT PRIMARY KEY,
 		value TEXT NOT NULL DEFAULT ''
 	);
+	`,
+	// 3 — plan jaw + guide→plan linkage
+	`
+	ALTER TABLE plans ADD COLUMN jaw TEXT NOT NULL DEFAULT 'mandible';
+	ALTER TABLE models ADD COLUMN plan_id INTEGER;
 	`
 ];
 

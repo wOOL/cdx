@@ -58,6 +58,7 @@ export interface Model {
 	opacity: number;
 	visible: number;
 	transform: string;
+	plan_id: number | null;
 	created_at: string;
 }
 
@@ -70,6 +71,7 @@ export interface Plan {
 	approved: number;
 	pan_curve: string;
 	settings: string;
+	jaw: 'mandible' | 'maxilla';
 	created_at: string;
 	updated_at: string;
 }

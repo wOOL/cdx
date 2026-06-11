@@ -237,6 +237,7 @@
 
 	// ---------- implant tools ----------
 	let implantDialog: HTMLDialogElement | undefined = $state();
+	let implantDialogMode = $state<'add' | 'change'>('add');
 	let newImplant = $state({
 		tooth: '36',
 		lineIndex: 0,
@@ -246,12 +247,45 @@
 
 	function openImplantDialog() {
 		if (!ps) return;
+		implantDialogMode = 'add';
+		newImplant.tooth = data.plan.jaw === 'maxilla' ? '26' : '36';
+		implantDialog?.showModal();
+	}
+
+	function openChangeImplantDialog() {
+		if (!ps || !selectedImplant) return;
+		implantDialogMode = 'change';
+		const idx = IMPLANT_LIBRARY.findIndex(
+			(l) => l.manufacturer === selectedImplant?.manufacturer && l.line === selectedImplant?.line
+		);
+		newImplant = {
+			tooth: selectedImplant.tooth || '36',
+			lineIndex: idx >= 0 ? idx : 0,
+			diameter: selectedImplant.diameter,
+			length: selectedImplant.length
+		};
 		implantDialog?.showModal();
 	}
 
 	async function confirmAddImplant() {
 		if (!ps) return;
 		const line = IMPLANT_LIBRARY[newImplant.lineIndex];
+
+		if (implantDialogMode === 'change' && selectedImplant) {
+			selectedImplant.tooth = newImplant.tooth;
+			selectedImplant.manufacturer = line.manufacturer;
+			selectedImplant.line = line.line;
+			selectedImplant.diameter = newImplant.diameter;
+			selectedImplant.length = newImplant.length;
+			selectedImplant.article = articleName(line, newImplant.diameter, newImplant.length);
+			ps.saveImplant(selectedImplant.id);
+			implantDialog?.close();
+			if (selectedImplant.sleeve) {
+				alert('Implant changed — re-check the sleeve selection and offset in the Sleeves stage.');
+			}
+			return;
+		}
+
 		const c = ps.curve;
 		let head = {
 			x: (ps.ds.cols * ps.ds.spacing_x) / 2,
@@ -762,6 +796,20 @@
 					</a>
 				{/each}
 				<div class="plan-menu-sep"></div>
+				<button
+					class="plan-menu-item"
+					onclick={async () => {
+						planMenuOpen = false;
+						await fetch(`/api/plans/${data.plan.id}`, {
+							method: 'PATCH',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ jaw: data.plan.jaw === 'maxilla' ? 'mandible' : 'maxilla' })
+						});
+						await invalidateAll();
+					}}
+				>
+					Jaw: {data.plan.jaw} → switch to {data.plan.jaw === 'maxilla' ? 'mandible' : 'maxilla'}
+				</button>
 				<button class="plan-menu-item" onclick={duplicatePlanAction}>Duplicate this plan</button>
 				<button class="plan-menu-item" onclick={renamePlanAction}>Rename…</button>
 				<button class="plan-menu-item" onclick={() => togglePlanFlag('locked')}>
@@ -1204,6 +1252,9 @@
 						<button class="btn" title="Move 0.5 mm deeper (along axis)" onclick={() => nudgeImplantDepth(0.5)}>
 							▼ 0.5
 						</button>
+						<button class="btn" title="Change implant system or size" onclick={openChangeImplantDialog}>
+							Change…
+						</button>
 						{#if ps.implants.length > 1}
 							<button class="btn" title="Align axis with the other implant" onclick={parallelizeImplant}>
 								∥ Parallelize
@@ -1376,9 +1427,15 @@
 						</button>
 						{#if guideError}<span class="warn-text">{guideError}</span>{/if}
 						{#each guideModels as g (g.id)}
-							<a class="btn" href="/api/models/{g.id}/file?download=1" title="Download STL">
-								<Icon name="export" size={14} /> {g.name}.stl
-							</a>
+							{#if data.plan.approved}
+								<a class="btn" href="/api/models/{g.id}/file?download=1" title="Download STL">
+									<Icon name="export" size={14} /> {g.name}.stl
+								</a>
+							{:else}
+								<button class="btn" disabled title="Approve the plan (plan menu) before exporting for production">
+									<Icon name="export" size={14} /> {g.name}.stl — approval required
+								</button>
+							{/if}
 						{/each}
 					{/if}
 				{:else}
@@ -1473,15 +1530,15 @@
 	<AdjustGrayscale state={ps} onclose={() => (grayscaleOpen = false)} />
 {/if}
 
-<!-- add implant dialog -->
+<!-- add/change implant dialog -->
 <dialog bind:this={implantDialog}>
-	<div class="dialog-title">Add implant</div>
+	<div class="dialog-title">{implantDialogMode === 'change' ? 'Change implant' : 'Add implant'}</div>
 	<div class="dialog-body">
 		<div>
-			<label for="im-tooth">Tooth position (FDI)</label>
+			<label for="im-tooth">Tooth position (FDI) — {data.plan.jaw}</label>
 			<div class="fdi-grid">
 				{#each [FDI_UPPER, FDI_LOWER] as row, ri (ri)}
-					<div class="fdi-row">
+					<div class="fdi-row" class:fdi-other-jaw={(ri === 0) !== (data.plan.jaw === 'maxilla')}>
 						{#each row as tooth (tooth)}
 							<button
 								type="button"
@@ -1537,12 +1594,16 @@
 			</div>
 		</div>
 		<p class="faint">
-			The implant is placed at the current cross-section position; drag it in the views to refine.
+			{implantDialogMode === 'change'
+				? 'Position and axis are kept; only the system and dimensions change.'
+				: 'The implant is placed at the current cross-section position; drag it in the views to refine.'}
 		</p>
 	</div>
 	<div class="dialog-actions">
 		<button type="button" class="btn" onclick={() => implantDialog?.close()}>Cancel</button>
-		<button type="button" class="btn primary" onclick={confirmAddImplant}>Place implant</button>
+		<button type="button" class="btn primary" onclick={confirmAddImplant}>
+			{implantDialogMode === 'change' ? 'Apply change' : 'Place implant'}
+		</button>
 	</div>
 </dialog>
 
@@ -1794,6 +1855,9 @@
 	}
 	.fdi-placed {
 		color: var(--accent-2);
+	}
+	.fdi-other-jaw {
+		opacity: 0.4;
 	}
 	.warn-text {
 		display: inline-flex;

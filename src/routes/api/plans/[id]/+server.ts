@@ -21,6 +21,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	if ('settings' in body) fields.settings = JSON.stringify(body.settings ?? {});
 	if ('locked' in body) fields.locked = body.locked ? 1 : 0;
 	if ('approved' in body) fields.approved = body.approved ? 1 : 0;
+	if ('jaw' in body) fields.jaw = body.jaw === 'maxilla' ? 'maxilla' : 'mandible';
 
 	updatePlan(id, fields);
 	return json({ plan: getPlan(id) });

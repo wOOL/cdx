@@ -178,14 +178,15 @@ export function updatePlan(id: number, fields: Partial<Plan>): void {
 	if (!current) return;
 	db.query(
 		`UPDATE plans SET name = ?2, locked = ?3, approved = ?4, pan_curve = ?5, settings = ?6,
-		 updated_at = datetime('now') WHERE id = ?1`
+		 jaw = ?7, updated_at = datetime('now') WHERE id = ?1`
 	).run(
 		id,
 		fields.name ?? current.name,
 		fields.locked ?? current.locked,
 		fields.approved ?? current.approved,
 		fields.pan_curve ?? current.pan_curve,
-		fields.settings ?? current.settings
+		fields.settings ?? current.settings,
+		fields.jaw ?? current.jaw
 	);
 }
 

@@ -115,10 +115,10 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
 	const guideModel = db
 		.query(
-			`INSERT INTO models (case_id, name, kind, file_path, color, opacity)
-			 VALUES (?1, ?2, 'guide', ?3, '#4d9fd6', 0.85) RETURNING *`
+			`INSERT INTO models (case_id, name, kind, file_path, color, opacity, plan_id)
+			 VALUES (?1, ?2, 'guide', ?3, '#4d9fd6', 0.85, ?4) RETURNING *`
 		)
-		.get(caseId, `Guide — ${plan.name}`, path) as Model;
+		.get(caseId, `Guide — ${plan.name}`, path, plan.id) as Model;
 
 	return json({ model: guideModel, triangles: guide.triangles });
 };

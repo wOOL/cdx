@@ -1,7 +1,7 @@
 import dicomParser from 'dicom-parser';
 import { join } from 'node:path';
 import { caseDir } from '$lib/server/db';
-import { createDataset, getCase, updateCase } from '$lib/server/db/repo';
+import { createDataset, getCase, getPatient, updateCase, updatePatient } from '$lib/server/db/repo';
 import type { Dataset } from '$lib/types';
 
 export interface ParsedSlice {
@@ -22,6 +22,8 @@ export interface ParsedSlice {
 	bitsAllocated: number;
 	pixelRepresentation: number;
 	patientName: string;
+	patientBirthDate: string;
+	patientSex: string;
 	studyDate: string;
 	modality: string;
 	seriesDescription: string;
@@ -37,6 +39,8 @@ export interface VolumeResult {
 	windowCenter: number;
 	windowWidth: number;
 	patientName: string;
+	patientBirthDate: string;
+	patientSex: string;
 	studyDate: string;
 	modality: string;
 	seriesDescription: string;
@@ -123,6 +127,8 @@ export function parseDicomFile(bytes: Uint8Array): ParsedSlice | null {
 		bitsAllocated,
 		pixelRepresentation,
 		patientName: ds.string('x00100010') ?? '',
+		patientBirthDate: ds.string('x00100030') ?? '',
+		patientSex: ds.string('x00100040') ?? '',
 		studyDate: ds.string('x00080020') ?? '',
 		modality: ds.string('x00080060') ?? '',
 		seriesDescription: ds.string('x0008103e') ?? '',
@@ -223,6 +229,8 @@ export function buildVolume(files: Uint8Array[]): VolumeResult {
 		windowCenter: first.windowCenter,
 		windowWidth: first.windowWidth,
 		patientName: first.patientName,
+		patientBirthDate: first.patientBirthDate,
+		patientSex: first.patientSex,
 		studyDate: first.studyDate,
 		modality: first.modality,
 		seriesDescription: first.seriesDescription
@@ -266,6 +274,24 @@ export async function importDicomToCase(caseId: number, buffers: Uint8Array[]): 
 
 	const c = getCase(caseId);
 	if (c && c.status === 'new') updateCase(caseId, { status: 'planning' });
+
+	// prefill empty patient identity from DICOM tags ("Last^First", YYYYMMDD)
+	if (c) {
+		const patient = getPatient(c.patient_id);
+		if (patient && !patient.first_name && !patient.last_name && vol.patientName) {
+			const [last = '', firstName = ''] = vol.patientName.split('^');
+			const dob = /^\d{8}$/.test(vol.patientBirthDate)
+				? `${vol.patientBirthDate.slice(0, 4)}-${vol.patientBirthDate.slice(4, 6)}-${vol.patientBirthDate.slice(6, 8)}`
+				: patient.date_of_birth;
+			updatePatient(patient.id, {
+				...patient,
+				last_name: last.trim(),
+				first_name: firstName.trim(),
+				date_of_birth: dob,
+				sex: patient.sex || vol.patientSex.trim().charAt(0)
+			});
+		}
+	}
 	return dataset;
 }
 
