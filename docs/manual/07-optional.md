@@ -70,8 +70,8 @@ corresponding source) runs at **`/cad`**:
 
 ## 7.3 Measurement functions
 
-The measurement rail sits in the left panel (*Measure (axial view)*); right-click it to
-choose which tools are shown:
+The measurement rail sits in the left panel (*Measure (axial & cross views)*); right-click
+it to choose which tools are shown:
 
 ![Measurement rail and view panel](img/measure-rail.png)
 
@@ -89,6 +89,15 @@ points — accuracy follows the screen resolution of the slice):
 
 ![Distance and angle measurements](img/measure-examples.png)
 
+The tools take their points in the **axial** view and — except the HU density probe, which
+samples the axial slice — in the **cross-section/tangential** view as well. Every point is
+stored as a true 3D position on its section, so endpoints picked on **different sections**
+(scroll or move the curve position between the clicks, or combine an axial and a cross
+point) measure genuine **3D distances and angles** — the way a ridge height is taken
+across the arch. Measurements near a section are drawn projected onto it.
+
+- While a measurement tool is armed, the mouse pointer changes to a **copy cursor** over
+  the slice views, so it is always visible that the next click places a point.
 - Measured values use the decimal precision configured in Settings → Common.
 - Drag any measurement point afterwards to edit it; the value recomputes and persists.
 - Measurements appear in the object tree, where they can be deleted individually.

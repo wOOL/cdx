@@ -5124,8 +5124,15 @@
 			<div class="dialog-title">Copy plan</div>
 			<label class="mp-row">
 				<span>Name</span>
-				<input type="text" bind:value={dupName} />
+				<input
+					type="text"
+					bind:value={dupName}
+					class:input-error={data.plans.some((p) => p.name === dupName.trim())}
+				/>
 			</label>
+			{#if data.plans.some((p) => p.name === dupName.trim())}
+				<div class="warn-text">A plan with this name already exists — choose another name.</div>
+			{/if}
 			<div class="dialog-hint">Choose what to copy into the new plan:</div>
 			<label class="checkbox-row">
 				<input type="checkbox" bind:checked={dupParts.implants} /> Implants (incl. sleeves & abutments)
@@ -5138,7 +5145,11 @@
 			</label>
 			<div class="dialog-actions">
 				<button class="btn" onclick={() => (dupDialogOpen = false)}>Cancel</button>
-				<button class="btn primary" disabled={!dupName.trim()} onclick={duplicatePlanConfirm}>Create copy</button>
+				<button
+					class="btn primary"
+					disabled={!dupName.trim() || data.plans.some((p) => p.name === dupName.trim())}
+					onclick={duplicatePlanConfirm}>Create copy</button
+				>
 			</div>
 		</div>
 	</div>

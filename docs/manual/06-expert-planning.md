@@ -386,14 +386,19 @@ in the axial view):
 - **🔓 Lock** freezes the implant's position once it is confirmed (e.g. with the
   surgeon): a locked implant ignores dragging and all geometry changes — enforced on the
   server as well — while its **sleeve and the guide stay editable**. Click **🔒 Locked**
-  to unlock.
+  to unlock. Locked implants carry a 🔒 padlock after their entry in the object tree, and
+  the plan menu's **Lock implants** locks (or unlocks) all implants of the plan in one
+  step — the typical "positions confirmed, freeze everything" action (chapter 5.4).
 - **Fine…** opens the fine-positioning panel: numeric step nudges expressed in the
   implant's own frame — **Mesial/Distal**, **Buccal/Lingual** and **Depth (along axis)**
-  with an adjustable mm step, plus **Tilt M/D** / **Tilt B/L** in degree steps around a
-  selectable pivot (*Shoulder — head fixed* or *Tip — apex fixed*). Fine positioning is
-  also available as a pinnable toolbar quick action (chapter 5.1).
+  with an adjustable mm step, plus **Tilt M/D** / **Tilt B/L** in degree steps (the step
+  is adjustable down to **0.1°** for the final corrections) around a selectable pivot
+  (*Shoulder — head fixed* or *Tip — apex fixed*). Fine positioning is also available as
+  a pinnable toolbar quick action (chapter 5.1).
 - The **color** swatch sets the implant's display color in all views — e.g. to
-  distinguish planning alternatives at a glance.
+  distinguish planning alternatives at a glance. New implants start with the **default
+  implant color** from *Settings → Views*; with no default set, an automatic palette
+  gives each implant its own color (chapter 5.2).
 - Abutments are assigned per implant (preset straight/angled or a custom abutment built in
   the segment editor); the rotation dial aligns an angled abutment around the implant axis.
 - Red warnings appear when a safety distance is violated; the affected pair and distance are
@@ -433,6 +438,11 @@ Open the **Guide stage**:
    rotate the 3D view until you look along the intended path of insertion (the occlusal
    "look for the path" check) and click the button to take exactly that viewing direction
    as the seating axis. A direction too far from vertical is rejected with a hint.
+   The **Undercuts** toggle next to the insertion controls previews the seating: the base
+   model is colored against the chosen axis, and areas that face **away** from the removal
+   direction turn **red** — undercuts that would block the insertion or trap the guide.
+   Adjust the insertion direction until the seating surfaces stay clear, or expect those
+   areas to be blocked out.
 3. **Design options…** holds the advanced features: recipe presets (standard, endodontic,
    apicoectomy, sinus lift, stacked, transplant evaluation), the **label**, **bone
    support regions**, free-hand **contact polygons**, **bone reduction bars**, large
@@ -448,7 +458,8 @@ Open the **Guide stage**:
      of a dual-scan case — into the generated guide body. Drill corridors and inspection
      windows are cut **through the merged geometry** as well, so the tool paths stay open.
    - The **label** identifies the guide on the printed part: type free text or click one of
-     the **presets** built from the case (patient name, patient ID, date), position it with
+     the **presets** built from the case (patient name, patient ID, date, date of birth,
+     tooth positions — the planned implant positions), position it with
      the X/Y fields — or drag its yellow handle directly in the 3D view (mouse wheel over
      the handle changes the text height) — and set **text height** and **relief depth**.
      The *Embossed* checkbox switches between raised lettering and **impressed** (engraved)
@@ -528,9 +539,10 @@ bars/windows along the planned cut.
 
 To evaluate a donor tooth at the recipient site:
 
-1. Segment the donor tooth from the matched model scan: select the scan, then
-   *extract-tooth* at the donor position (the *(extracted)* model appears in the object
-   tree).
+1. Extract the donor tooth from the matched model scan: select the scan in the object
+   tree, open **Tooth extraction…** with the donor tooth chosen and check **Add extracted
+   tooth to planning** (chapter 6.4, *Tooth extraction*) — the *Extracted tooth nn* model
+   appears in the object tree.
 2. Position the extracted tooth model at the recipient site with **Fine align…**
    (translation and rotation in patient or object frame) and judge the fit in all views:
 
@@ -657,8 +669,10 @@ Export…**; a four-step wizard collects the options:
    **exclude** it, export on **implant level** (scanbody on the implant platform) or on
    **abutment level** (scanbody on the abutment). *Add scanbody* opens the scanbody catalog
    **filtered to the implant's platform**, so only geometrically compatible scanbodies are
-   offered; positions without compatible entries — fixation pins, for example — show *"No
-   scanbodies available"*. The footer counts the included positions:
+   offered; every entry carries a small **profile thumbnail drawn to scale** (body and
+   collar proportions), so similar scanbodies are told apart at a glance. Positions
+   without compatible entries — fixation pins, for example — show *"No scanbodies
+   available"*. The footer counts the included positions:
 
 ![Virtual Planning Export — tooth positions and scanbodies](img/vpe-scanbodies.png)
 
