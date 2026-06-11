@@ -36,10 +36,15 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
 	const model = db
 		.query(
-			`INSERT INTO models (case_id, name, kind, file_path, color)
-			 VALUES (?1, ?2, 'segmentation', ?3, '#d8cfc0') RETURNING *`
+			`INSERT INTO models (case_id, name, kind, file_path, color, params)
+			 VALUES (?1, ?2, 'segmentation', ?3, '#d8cfc0', ?4) RETURNING *`
 		)
-		.get(ds.case_id, `Bone (${threshold} HU)`, path) as Model;
+		.get(
+			ds.case_id,
+			`Bone (${threshold} HU)`,
+			path,
+			JSON.stringify({ threshold, dataset_id: ds.id })
+		) as Model;
 
 	return json({ model, triangles: mesh.positions.length / 9 });
 };

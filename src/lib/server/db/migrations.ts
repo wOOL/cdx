@@ -172,6 +172,10 @@ const MIGRATIONS: string[] = [
 		created_at TEXT NOT NULL DEFAULT (datetime('now'))
 	);
 	CREATE INDEX idx_images_patient ON images(patient_id);
+	`,
+	// 6 — model generation parameters (e.g. segmentation threshold)
+	`
+	ALTER TABLE models ADD COLUMN params TEXT NOT NULL DEFAULT '';
 	`
 ];
 

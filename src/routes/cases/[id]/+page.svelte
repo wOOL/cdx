@@ -444,6 +444,11 @@
 	let crossGroupMode = $state(false);
 	let crossSpacing = $state(2);
 
+	// model appearance editor in the object tree
+	let expandedModelId = $state<number | null>(null);
+	let resegThreshold = $state<number | null>(null);
+	let resegBusy = $state(false);
+
 	// view maximize/restore (one cell fills the whole grid)
 	let maximized = $state<string | null>(null);
 	$effect(() => {
@@ -853,7 +858,8 @@
 				color: bodyJson.model.color,
 				opacity: bodyJson.model.opacity,
 				visible: true,
-				transform: null
+				transform: null,
+				threshold: segThreshold
 			});
 		} catch (e) {
 			guideError = e instanceof Error ? e.message : 'Guide generation failed';
@@ -911,7 +917,8 @@
 					color: model.color,
 					opacity: model.opacity,
 					visible: true,
-					transform: null
+					transform: null,
+					threshold: null
 				});
 			}
 		} finally {
@@ -1188,7 +1195,13 @@
 				{#each ps?.models ?? [] as m (m.id)}
 					<div class="tree-item">
 						<span class="dot" style="background:{m.color}"></span>
-						<span class="tree-item-label" title={m.kind}>{m.name}</span>
+						<button
+							class="tree-item-label tree-label-btn"
+							title="{m.kind} — click for appearance options"
+							onclick={() => (expandedModelId = expandedModelId === m.id ? null : m.id)}
+						>
+							{m.name}
+						</button>
 						<button
 							class="tree-eye"
 							title="Toggle visibility"
@@ -1207,6 +1220,70 @@
 							<Icon name="trash" size={13} />
 						</button>
 					</div>
+					{#if expandedModelId === m.id}
+						<div class="model-props">
+							<label class="mp-row">
+								<span>Color</span>
+								<input
+									type="color"
+									value={m.color}
+									onchange={(e) => {
+										m.color = e.currentTarget.value;
+										ps?.saveModel(m.id);
+									}}
+								/>
+							</label>
+							<label class="mp-row">
+								<span>Opacity</span>
+								<input
+									type="range"
+									min="0.1"
+									max="1"
+									step="0.05"
+									value={m.opacity}
+									oninput={(e) => {
+										m.opacity = Number(e.currentTarget.value);
+										ps?.saveModel(m.id);
+									}}
+								/>
+							</label>
+							<div class="mp-row">
+								<button
+									class="btn"
+									onclick={() => {
+										const name = prompt('Model name:', m.name);
+										if (name) {
+											m.name = name;
+											ps?.saveModel(m.id);
+										}
+									}}>Rename</button
+								>
+								{#if m.kind === 'segmentation'}
+									<input
+										type="number"
+										step="50"
+										value={m.threshold ?? 300}
+										title="Threshold (HU)"
+										style="width:64px"
+										onchange={(e) => (resegThreshold = Number(e.currentTarget.value))}
+									/>
+									<button
+										class="btn"
+										disabled={resegBusy}
+										title="Regenerate the surface at this threshold"
+										onclick={async () => {
+											if (!ps) return;
+											resegBusy = true;
+											await ps.resegmentModel(m.id, resegThreshold ?? m.threshold ?? 300);
+											resegBusy = false;
+										}}
+									>
+										{resegBusy ? '…' : '↻ HU'}
+									</button>
+								{/if}
+							</div>
+						</div>
+					{/if}
 				{:else}
 					<div class="tree-empty">none</div>
 				{/each}
@@ -2389,6 +2466,45 @@
 	}
 	.tree-eye:hover {
 		color: var(--text);
+	}
+	.tree-label-btn {
+		text-align: left;
+		cursor: pointer;
+	}
+	.tree-label-btn:hover {
+		color: var(--accent-bright);
+	}
+	.model-props {
+		margin: 2px 6px 8px 22px;
+		padding: 8px;
+		background: var(--bg-1);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--radius);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.mp-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 11px;
+		color: var(--text-dim);
+		text-transform: none;
+		letter-spacing: 0;
+		margin: 0;
+	}
+	.mp-row input[type='color'] {
+		width: 36px;
+		height: 22px;
+		padding: 1px;
+	}
+	.mp-row input[type='range'] {
+		flex: 1;
+	}
+	.mp-row .btn {
+		padding: 2px 8px;
+		font-size: 11px;
 	}
 	.dot {
 		width: 9px;

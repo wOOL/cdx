@@ -71,6 +71,8 @@ export interface ModelData {
 	visible: boolean;
 	/** column-major Mat4 (scan-local mm → volume-local mm) or null = identity */
 	transform: number[] | null;
+	/** generation parameters (segmentation threshold etc.) */
+	threshold: number | null;
 }
 
 export type MeasureTool = 'none' | 'distance' | 'angle' | 'density' | 'polyline' | 'annotation';
@@ -272,6 +274,13 @@ export class PlanningState {
 			} catch {
 				// identity
 			}
+			let threshold: number | null = null;
+			try {
+				const p = m.params ? JSON.parse(m.params) : null;
+				if (p && Number.isFinite(Number(p.threshold))) threshold = Number(p.threshold);
+			} catch {
+				threshold = null;
+			}
 			return {
 				id: m.id,
 				name: m.name,
@@ -279,7 +288,8 @@ export class PlanningState {
 				color: m.color,
 				opacity: m.opacity,
 				visible: !!m.visible,
-				transform
+				transform,
+				threshold
 			};
 		});
 		this.implants = implants.map((im) => {
@@ -600,10 +610,31 @@ export class PlanningState {
 			color: model.color,
 			opacity: model.opacity,
 			visible: true,
-			transform: null
+			transform: null,
+			threshold: null
 		};
 		this.models.push(data);
 		return data;
+	}
+
+	/** regenerate a segmentation mesh at a new threshold (replaces the file in place) */
+	async resegmentModel(id: number, threshold: number): Promise<boolean> {
+		const res = await fetch(`/api/models/${id}/resegment`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ threshold })
+		}).catch(() => null);
+		const ok = !!res?.ok;
+		if (!ok) return false;
+		const { model } = await res!.json();
+		const idx = this.models.findIndex((m) => m.id === id);
+		if (idx >= 0) {
+			const updated: ModelData = { ...this.models[idx], name: model.name, threshold };
+			// remove + re-add so 3D views drop the stale mesh and refetch the new file
+			this.models.splice(idx, 1);
+			setTimeout(() => this.models.splice(idx, 0, updated), 60);
+		}
+		return true;
 	}
 
 	saveModel(id: number) {

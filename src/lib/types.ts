@@ -59,6 +59,7 @@ export interface Model {
 	visible: number;
 	transform: string;
 	plan_id: number | null;
+	params: string;
 	created_at: string;
 }
 
