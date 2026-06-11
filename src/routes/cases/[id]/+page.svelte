@@ -453,15 +453,22 @@
 
 	<nav class="stage-bar">
 		{#each stages as s (s.key)}
-			<button
-				class="tool-btn"
-				class:active={stage === s.key}
-				disabled={s.key !== 'data' && !hasVolume}
-				onclick={() => (stage = s.key)}
-			>
-				<Icon name={s.icon} size={20} />
-				<span>{s.label}</span>
-			</button>
+			{#if s.key === 'report'}
+				<a class="tool-btn" class:disabled={!hasVolume} href="/cases/{data.caseData.id}/report">
+					<Icon name={s.icon} size={20} />
+					<span>{s.label}</span>
+				</a>
+			{:else}
+				<button
+					class="tool-btn"
+					class:active={stage === s.key}
+					disabled={s.key !== 'data' && !hasVolume}
+					onclick={() => (stage = s.key)}
+				>
+					<Icon name={s.icon} size={20} />
+					<span>{s.label}</span>
+				</button>
+			{/if}
 		{/each}
 	</nav>
 
