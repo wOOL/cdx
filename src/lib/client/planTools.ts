@@ -3,10 +3,10 @@
  * planning views (axial / panoramic / cross-section).
  * All domain math in volume-local mm.
  */
-import type { ViewTransform, ReconInfo } from './render2d';
+import type { ViewTransform, ReconInfo, ToolPointerEvent } from './render2d';
 import type { PlanningState, ImplantData } from './planning.svelte';
 import { indexAtLength } from '$lib/curve';
-import { norm, sub, type Vec3 } from '$lib/geometry';
+import { dot, len, norm, sub, type Vec3 } from '$lib/geometry';
 
 // ---------------- shared drawing ----------------
 
@@ -627,6 +627,96 @@ export function drawAxialObjects(
 		ctx.fillStyle = c + '44';
 		ctx.fill();
 	}
+}
+
+// ---------------- measurements (axial view) ----------------
+
+export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolean {
+	if (ps.measureTool === 'none') return false;
+	if (e.type !== 'down') return true;
+	const p: Vec3 = {
+		x: e.px * ps.ds.spacing_x,
+		y: e.py * ps.ds.spacing_y,
+		z: ps.cursor.z * ps.ds.spacing_z
+	};
+
+	if (ps.measureTool === 'density') {
+		const slice = ps.slices.peek('axial', ps.cursor.z);
+		const px = Math.round(e.px);
+		const py = Math.round(e.py);
+		const hu =
+			slice && px >= 0 && py >= 0 && px < slice.width && py < slice.height
+				? slice.data[py * slice.width + px]
+				: 0;
+		ps.addMeasurement('density', [p], hu, `${hu} HU`);
+		ps.measureTool = 'none';
+		return true;
+	}
+
+	ps.pendingMeasure.push(p);
+	if (ps.measureTool === 'distance' && ps.pendingMeasure.length === 2) {
+		const [a, b] = ps.pendingMeasure;
+		const d = len(sub(b, a));
+		ps.addMeasurement('distance', [{ ...a }, { ...b }], d, `${d.toFixed(1)} mm`);
+		ps.pendingMeasure.length = 0;
+		ps.measureTool = 'none';
+	} else if (ps.measureTool === 'angle' && ps.pendingMeasure.length === 3) {
+		const [a, b, c] = ps.pendingMeasure;
+		const v1 = norm(sub(a, b));
+		const v2 = norm(sub(c, b));
+		const ang = (Math.acos(Math.max(-1, Math.min(1, dot(v1, v2)))) * 180) / Math.PI;
+		ps.addMeasurement('angle', [{ ...a }, { ...b }, { ...c }], ang, `${ang.toFixed(1)}°`);
+		ps.pendingMeasure.length = 0;
+		ps.measureTool = 'none';
+	}
+	return true;
+}
+
+export function drawMeasurements(
+	ps: PlanningState,
+	ctx: CanvasRenderingContext2D,
+	t: ViewTransform
+) {
+	const sx = ps.ds.spacing_x;
+	const sy = ps.ds.spacing_y;
+	const zmm = ps.cursor.z * ps.ds.spacing_z;
+	const toCanvas = (p: Vec3) => ({
+		x: t.ox + (p.x / sx + 0.5) * t.scaleX,
+		y: t.oy + (p.y / sy + 0.5) * t.scaleY
+	});
+
+	const drawSet = (points: Vec3[], label: string, faded: boolean) => {
+		if (!points.length) return;
+		ctx.strokeStyle = faded ? 'rgba(122, 140, 240, 0.5)' : 'rgba(122, 140, 240, 0.95)';
+		ctx.fillStyle = ctx.strokeStyle;
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		points.forEach((p, i) => {
+			const q = toCanvas(p);
+			if (i === 0) ctx.moveTo(q.x, q.y);
+			else ctx.lineTo(q.x, q.y);
+		});
+		ctx.stroke();
+		for (const p of points) {
+			const q = toCanvas(p);
+			ctx.beginPath();
+			ctx.arc(q.x, q.y, 3, 0, Math.PI * 2);
+			ctx.fill();
+		}
+		if (label) {
+			const q = toCanvas(points[points.length - 1]);
+			ctx.font = '11px Inter, sans-serif';
+			ctx.fillStyle = '#dfe4ff';
+			ctx.fillText(label, q.x + 8, q.y - 6);
+		}
+	};
+
+	for (const m of ps.measurements) {
+		// show on slices near where the measurement was taken
+		if (!m.points.every((p) => Math.abs(p.z - zmm) < 1.01)) continue;
+		drawSet(m.points, m.label, false);
+	}
+	if (ps.pendingMeasure.length) drawSet(ps.pendingMeasure, '…', true);
 }
 
 // ---------------- util ----------------

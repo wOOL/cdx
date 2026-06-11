@@ -12,7 +12,9 @@
 		crossTool,
 		drawAxialObjects,
 		drawCrossOverlay,
+		drawMeasurements,
 		drawPanoOverlay,
+		measureAxialTool,
 		panoTool
 	} from '$lib/client/planTools';
 	import {
@@ -48,7 +50,14 @@
 	let stage = $state<StageKey>('data');
 	let ps = $derived(
 		data.datasets[0]
-			? new PlanningState(data.datasets[0], data.plan, data.nerves, data.implants, data.models)
+			? new PlanningState(
+					data.datasets[0],
+					data.plan,
+					data.nerves,
+					data.implants,
+					data.models,
+					data.measurements
+				)
 			: null
 	);
 
@@ -61,7 +70,10 @@
 					ps.selectedImplantId,
 					ps.activeNerveId,
 					ps.nerveEditMode,
-					ps.warnings.length
+					ps.warnings.length,
+					ps.measurements,
+					ps.pendingMeasure,
+					ps.measureTool
 				])
 			: ''
 	);
@@ -176,7 +188,16 @@
 	// ---------- combined overlays ----------
 	function axialOverlay(ctx: CanvasRenderingContext2D, t: ViewTransform) {
 		curveOverlay(ctx, t);
-		if (ps) drawAxialObjects(ps, ctx, t);
+		if (ps) {
+			drawAxialObjects(ps, ctx, t);
+			drawMeasurements(ps, ctx, t);
+		}
+	}
+
+	function axialTool(e: ToolPointerEvent): boolean {
+		if (!ps) return false;
+		if (measureAxialTool(ps, e)) return true;
+		return curveTool(e);
 	}
 
 	// ---------- nerve tools ----------
@@ -573,8 +594,14 @@
 			</div>
 			<div class="tree-group">
 				<div class="tree-group-label">Measurements</div>
-				{#each data.measurements as m (m.id)}
-					<div class="tree-item"><Icon name="ruler" size={14} /><span>{m.label || m.type}</span></div>
+				{#each ps?.measurements ?? [] as m (m.id)}
+					<div class="tree-item">
+						<Icon name={m.type === 'angle' ? 'angle' : 'ruler'} size={14} />
+						<span class="tree-item-label">{m.label || m.type}</span>
+						<button class="tree-eye" title="Delete" onclick={() => ps?.deleteMeasurement(m.id)}>
+							<Icon name="trash" size={13} />
+						</button>
+					</div>
 				{:else}
 					<div class="tree-empty">none</div>
 				{/each}
@@ -604,6 +631,45 @@
 						<input type="checkbox" bind:checked={ps.crosshairVisible} />
 						<span>Crosshair</span>
 					</label>
+					<label for="measure-tools">Measure (axial view)</label>
+					<div class="measure-row" id="measure-tools">
+						<button
+							class="btn"
+							class:primary={ps.measureTool === 'distance'}
+							title="Distance: click two points"
+							onclick={() => {
+								if (!ps) return;
+								ps.pendingMeasure.length = 0;
+								ps.measureTool = ps.measureTool === 'distance' ? 'none' : 'distance';
+							}}
+						>
+							<Icon name="ruler" size={14} />
+						</button>
+						<button
+							class="btn"
+							class:primary={ps.measureTool === 'angle'}
+							title="Angle: click three points"
+							onclick={() => {
+								if (!ps) return;
+								ps.pendingMeasure.length = 0;
+								ps.measureTool = ps.measureTool === 'angle' ? 'none' : 'angle';
+							}}
+						>
+							<Icon name="angle" size={14} />
+						</button>
+						<button
+							class="btn"
+							class:primary={ps.measureTool === 'density'}
+							title="Density: click one point (HU)"
+							onclick={() => {
+								if (!ps) return;
+								ps.pendingMeasure.length = 0;
+								ps.measureTool = ps.measureTool === 'density' ? 'none' : 'density';
+							}}
+						>
+							HU
+						</button>
+					</div>
 				</div>
 			</div>
 		{/if}
@@ -930,9 +996,9 @@
 						<SliceView
 							state={ps}
 							plane="axial"
-							overlayDraw={curveOverlay}
-							onToolPointer={curveTool}
-							overlayDeps={[ps.curveControl, ps.curveEditMode, ps.crossU]}
+							overlayDraw={axialOverlay}
+							onToolPointer={axialTool}
+							overlayDeps={[ps.curveControl, ps.curveEditMode, ps.crossU, objectsVersion]}
 						/>
 					</div>
 					<div class="view panel area-3d"><VolumeView state={ps} /></div>
@@ -946,6 +1012,7 @@
 							state={ps}
 							plane="axial"
 							overlayDraw={axialOverlay}
+							onToolPointer={axialTool}
 							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion]}
 						/>
 					</div>
@@ -1255,6 +1322,13 @@
 		font-size: 12px;
 		color: var(--text);
 		cursor: pointer;
+	}
+	.measure-row {
+		display: flex;
+		gap: 4px;
+	}
+	.measure-row .btn {
+		padding: 4px 8px;
 	}
 
 	.view-area {

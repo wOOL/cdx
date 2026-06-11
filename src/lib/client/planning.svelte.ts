@@ -1,4 +1,4 @@
-import type { Dataset, Implant, Model, Nerve, Plan } from '$lib/types';
+import type { Dataset, Implant, Measurement, Model, Nerve, Plan } from '$lib/types';
 import { SliceCache } from './sliceCache';
 import { sampleCurve, type Vec2 } from '$lib/curve';
 import { add, scale, segPolylineDistance, type Vec3 } from '$lib/geometry';
@@ -59,6 +59,16 @@ export interface ModelData {
 	transform: number[] | null;
 }
 
+export type MeasureTool = 'none' | 'distance' | 'angle' | 'density';
+
+export interface MeasurementData {
+	id: number;
+	type: 'distance' | 'angle' | 'density';
+	points: Vec3[];
+	value: number;
+	label: string;
+}
+
 export interface SafetyWarning {
 	implantId: number;
 	kind: 'nerve' | 'implant';
@@ -102,9 +112,13 @@ export class PlanningState {
 	nerves = $state<NerveData[]>([]);
 	implants = $state<ImplantData[]>([]);
 	models = $state<ModelData[]>([]);
+	measurements = $state<MeasurementData[]>([]);
 	activeNerveId = $state<number | null>(null);
 	nerveEditMode = $state(false);
 	selectedImplantId = $state<number | null>(null);
+	measureTool = $state<MeasureTool>('none');
+	/** in-progress measurement points (mm) */
+	pendingMeasure = $state<Vec3[]>([]);
 
 	warnings = $derived.by(() => {
 		const out: SafetyWarning[] = [];
@@ -137,7 +151,8 @@ export class PlanningState {
 		plan: Plan,
 		nerves: Nerve[] = [],
 		implants: Implant[] = [],
-		models: Model[] = []
+		models: Model[] = [],
+		measurements: Measurement[] = []
 	) {
 		this.ds = ds;
 		this.planId = plan.id;
@@ -173,6 +188,13 @@ export class PlanningState {
 			diameter: n.diameter,
 			points: JSON.parse(n.points || '[]'),
 			visible: !!n.visible
+		}));
+		this.measurements = measurements.map((m) => ({
+			id: m.id,
+			type: m.type,
+			points: JSON.parse(m.points || '[]'),
+			value: m.value,
+			label: m.label
 		}));
 		this.models = models.map((m) => {
 			let transform: number[] | null = null;
@@ -383,6 +405,28 @@ export class PlanningState {
 		this.implants = this.implants.filter((i) => i.id !== id);
 		if (this.selectedImplantId === id) this.selectedImplantId = null;
 		await fetch(`/api/implants/${id}`, { method: 'DELETE' }).catch(() => {});
+	}
+
+	// ---------- measurements ----------
+	async addMeasurement(
+		type: 'distance' | 'angle' | 'density',
+		points: Vec3[],
+		value: number,
+		label: string
+	): Promise<void> {
+		const res = await fetch(`/api/plans/${this.planId}/measurements`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ type, points, value, label })
+		});
+		if (!res.ok) return;
+		const { measurement } = await res.json();
+		this.measurements.push({ id: measurement.id, type, points, value, label });
+	}
+
+	async deleteMeasurement(id: number) {
+		this.measurements = this.measurements.filter((m) => m.id !== id);
+		await fetch(`/api/measurements/${id}`, { method: 'DELETE' }).catch(() => {});
 	}
 
 	// ---------- models ----------
