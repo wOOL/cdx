@@ -208,6 +208,9 @@
 			{:else}
 				<p class="empty">No implants planned.</p>
 			{/if}
+			{#if data.settings.plan_comment_on_material === '1' && data.caseData.notes}
+				<p class="plan-comment"><strong>Plan comment:</strong> {data.caseData.notes}</p>
+			{/if}
 		</section>
 
 		{#if data.implants.some((im) => parseSleeve(im.sleeve))}
@@ -394,6 +397,12 @@
 {/if}
 
 <style>
+	.plan-comment {
+		font-size: 12px;
+		border-left: 3px solid var(--accent-dim);
+		padding-left: 8px;
+	}
+
 	.sec-off {
 		display: none;
 	}

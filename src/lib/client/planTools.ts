@@ -203,7 +203,7 @@ export function drawPanoOverlay(
 		pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
 		ctx.stroke();
 		ctx.globalAlpha = 1;
-		for (const p of pts) {
+		pts.forEach((p, pi) => {
 			ctx.beginPath();
 			ctx.arc(p.x, p.y, active ? 4 : 2.5, 0, Math.PI * 2);
 			ctx.fillStyle = n.color;
@@ -213,7 +213,13 @@ export function drawPanoOverlay(
 				ctx.lineWidth = 1;
 				ctx.stroke();
 			}
-		}
+			if (ps.showNervePointNumbers) {
+				ctx.fillStyle = '#fff';
+				ctx.font = '9px sans-serif';
+				ctx.fillText(String(pi + 1), p.x + 5, p.y - 4);
+			}
+		});
+
 	}
 
 	// implants

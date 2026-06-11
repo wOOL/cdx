@@ -9,9 +9,12 @@
 
 	let {
 		state: ps,
-		onMeshClick
+		onMeshClick,
+		forceClipAxial = false
 	}: {
 		state: PlanningState;
+		/** externally force the axial clip plane (PCS dialog horizontal 3D cut) */
+		forceClipAxial?: boolean;
 		/** click (not drag) on a surface model: scan-local + volume-local mm coords */
 		onMeshClick?: (e: {
 			modelId: number;
@@ -332,7 +335,7 @@
 
 	// update clip plane uniforms from viewer state
 	$effect(() => {
-		const wantAxial = clipAxial;
+		const wantAxial = clipAxial || forceClipAxial;
 		const wantCross = clipCross;
 		const cursorZ = ps.cursor.z;
 		const c = ps.curve;

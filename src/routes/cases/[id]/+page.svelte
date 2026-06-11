@@ -78,6 +78,24 @@
 	let notation = $derived((data.settings.notation === 'universal' ? 'universal' : 'fdi') as Notation);
 	let easyMode = $derived(data.user?.work_mode === 'easy');
 
+	// EASY: transient axial-position aid (upper-right) while scrolling slices
+	let axialPopup = $state(false);
+	let axialPopupTimer: ReturnType<typeof setTimeout> | null = null;
+	let lastPopupZ = -1;
+	$effect(() => {
+		const z = ps?.cursor.z ?? -1;
+		if (!easyMode || z < 0) return;
+		if (lastPopupZ === -1) {
+			lastPopupZ = z;
+			return;
+		}
+		if (z === lastPopupZ) return;
+		lastPopupZ = z;
+		axialPopup = true;
+		if (axialPopupTimer) clearTimeout(axialPopupTimer);
+		axialPopupTimer = setTimeout(() => (axialPopup = false), 1200);
+	});
+
 	// EASY mode step tree (maps onto the same stages)
 	const easySteps = [
 		{
@@ -337,7 +355,35 @@
 			drawScanContours(ctx, t);
 			drawAxialObjects(ps, ctx, t);
 			drawMeasurements(ps, ctx, t);
+			if (connectorPreview && stage === 'guide') drawConnectorPreview(ctx, t);
 		}
+	}
+
+	/** dashed connector strips + contact-surface order between consecutive implants (guide stage) */
+	function drawConnectorPreview(ctx: CanvasRenderingContext2D, t: ViewTransform) {
+		if (!ps || ps.implants.length < 2) return;
+		const pts = ps.implants
+			.map((im) => ({ x: im.x / ps!.ds.spacing_x, y: im.y / ps!.ds.spacing_y }))
+			.sort((a, b) => a.x - b.x);
+		ctx.save();
+		ctx.setLineDash([6, 4]);
+		ctx.strokeStyle = '#f08a24';
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		pts.forEach((p, i) => {
+			const c = toCanvas(t, p.x, p.y);
+			if (i === 0) ctx.moveTo(c.x, c.y);
+			else ctx.lineTo(c.x, c.y);
+		});
+		ctx.stroke();
+		ctx.setLineDash([]);
+		ctx.fillStyle = '#f08a24';
+		ctx.font = 'bold 11px sans-serif';
+		pts.forEach((p, i) => {
+			const c = toCanvas(t, p.x, p.y);
+			ctx.fillText(String(i + 1), c.x + 8, c.y - 8);
+		});
+		ctx.restore();
 	}
 
 	function axialTool(e: ToolPointerEvent): boolean {
@@ -958,6 +1004,80 @@
 	let guideWarnings = $state<string[]>([]);
 	let guideRecipes = $state<{ key: string; name: string; description: string; params: Record<string, unknown> }[]>([]);
 	let showGuideOptions = $state(false);
+	let connectorPreview = $state(false);
+	// toolbar customization: hidden measure-tool keys, persisted
+	let hiddenTools = $state<string[]>([]);
+	let showToolbarAdjust = $state(false);
+	const MEASURE_TOOLS = [
+		{ key: 'distance', label: 'Distance' },
+		{ key: 'angle', label: 'Angle' },
+		{ key: 'density', label: 'Bone density (HU)' },
+		{ key: 'polyline', label: 'Polyline length' },
+		{ key: 'annotation', label: 'Text annotation' },
+		{ key: 'auxline', label: 'Auxiliary line' }
+	];
+	$effect(() => {
+		try {
+			const saved = JSON.parse(localStorage.getItem('cdx_toolbar_measure') ?? '[]');
+			if (Array.isArray(saved)) hiddenTools = saved.filter((k) => typeof k === 'string');
+		} catch {
+			hiddenTools = [];
+		}
+	});
+	function saveHiddenTools() {
+		localStorage.setItem('cdx_toolbar_measure', JSON.stringify(hiddenTools));
+	}
+	let showProducerExport = $state(false);
+	let producer = $state({ offsetAdj: 0, thicknessAdj: 0, printer: '' });
+	let printerScales = $state<Record<string, number>>({});
+	let producerBusy = $state(false);
+
+	async function openProducerExport() {
+		try {
+			const r = await fetch('/api/sleeves?printers=1');
+			printerScales = (await r.json()).printers ?? {};
+		} catch {
+			printerScales = {};
+		}
+		showProducerExport = true;
+	}
+
+	async function producerExport() {
+		if (!ps) return;
+		producerBusy = true;
+		try {
+			const baseId = guideBaseId ?? guideBases[0]?.id;
+			const res = await fetch(`/api/cases/${data.caseData.id}/guide`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					modelId: baseId,
+					planId: ps.planId,
+					params: {
+						...guideParams,
+						...guideAdvanced,
+						offset: guideParams.offset + producer.offsetAdj,
+						thickness: guideParams.thickness + producer.thicknessAdj
+					},
+					insertion: guideInsertion,
+					windows: guideWindows
+				})
+			});
+			const b = await res.json().catch(() => null);
+			if (!res.ok) {
+				alert(b?.message ?? 'Export generation failed');
+				return;
+			}
+			guideWarnings = b.warnings ?? [];
+			await invalidateAll();
+			showProducerExport = false;
+			alert(
+				`Production guide regenerated${producer.printer ? ` for printer "${producer.printer}" (calibration ×${printerScales[producer.printer] ?? 1})` : ''}. Approve the plan to enable the STL download.`
+			);
+		} finally {
+			producerBusy = false;
+		}
+	}
 
 	async function openGuideOptions() {
 		if (!guideRecipes.length) {
@@ -1048,6 +1168,7 @@
 	let pcsDialog: HTMLDialogElement | undefined = $state();
 	let pcsAngles = $state({ yaw: 0, pitch: 0, roll: 0 });
 	let pcsBusy = $state(false);
+	let pcsCut = $state(false);
 
 	async function applyPcs(reset = false) {
 		if (!ps) return;
@@ -2153,9 +2274,20 @@
 						</div>
 					{/if}
 					<label for="measure-tools">Measure (axial view)</label>
-					<div class="measure-row" id="measure-tools">
+					<div
+						class="measure-row"
+						id="measure-tools"
+						role="toolbar"
+						tabindex="-1"
+						title="Right-click to adjust which tools are shown"
+						oncontextmenu={(e) => {
+							e.preventDefault();
+							showToolbarAdjust = true;
+						}}
+					>
 						<button
 							class="btn"
+							class:tool-hidden={hiddenTools.includes('distance')}
 							class:primary={ps.measureTool === 'distance'}
 							title="Distance: click two points"
 							onclick={() => {
@@ -2168,6 +2300,7 @@
 						</button>
 						<button
 							class="btn"
+							class:tool-hidden={hiddenTools.includes('angle')}
 							class:primary={ps.measureTool === 'angle'}
 							title="Angle: click three points"
 							onclick={() => {
@@ -2180,6 +2313,7 @@
 						</button>
 						<button
 							class="btn"
+							class:tool-hidden={hiddenTools.includes('density')}
 							class:primary={ps.measureTool === 'density'}
 							title="Density: click one point (HU)"
 							onclick={() => {
@@ -2192,6 +2326,7 @@
 						</button>
 						<button
 							class="btn"
+							class:tool-hidden={hiddenTools.includes('polyline')}
 							class:primary={ps.measureTool === 'polyline'}
 							title="Continuous distance: click points, then Finish"
 							onclick={() => {
@@ -2208,6 +2343,7 @@
 						</button>
 						<button
 							class="btn"
+							class:tool-hidden={hiddenTools.includes('annotation')}
 							class:primary={ps.measureTool === 'annotation'}
 							title="Annotation: click a point, then enter text"
 							onclick={() => {
@@ -2220,6 +2356,7 @@
 						</button>
 						<button
 							class="btn"
+							class:tool-hidden={hiddenTools.includes('auxline')}
 							class:primary={ps.measureTool === 'auxline'}
 							title="Auxiliary line: two points, no value"
 							onclick={() => {
@@ -2578,6 +2715,54 @@
 							>
 								Apply to all
 							</button>
+							<button
+								class="btn"
+								title="Center all views on this nerve point"
+								onclick={() => {
+									if (!ps?.lastNervePoint) return;
+									const pt = pn.points[ps.lastNervePoint.index];
+									ps.cursor.z = Math.max(0, Math.min(ps.ds.slices - 1, Math.round(pt.z / ps.ds.spacing_z)));
+									ps.cursor.x = Math.round(pt.x / ps.ds.spacing_x);
+									ps.cursor.y = Math.round(pt.y / ps.ds.spacing_y);
+								}}
+							>
+								Center views
+							</button>
+							<button
+								class="btn"
+								title="Move this point onto the current axial slice"
+								onclick={() => {
+									if (!ps?.lastNervePoint) return;
+									ps.markEdit();
+									pn.points[ps.lastNervePoint.index].z = ps.cursor.z * ps.ds.spacing_z;
+									ps.saveNerve(pn.id);
+								}}
+							>
+								To slice
+							</button>
+							<button
+								class="btn"
+								title="Interchange this point with its successor (fix ordering)"
+								disabled={ps.lastNervePoint.index >= pn.points.length - 1}
+								onclick={() => {
+									if (!ps?.lastNervePoint) return;
+									const i = ps.lastNervePoint.index;
+									ps.markEdit();
+									[pn.points[i], pn.points[i + 1]] = [pn.points[i + 1], pn.points[i]];
+									ps.lastNervePoint = { nerveId: pn.id, index: i + 1 };
+									ps.saveNerve(pn.id);
+								}}
+							>
+								Swap ↔ next
+							</button>
+							<button
+								class="btn"
+								class:primary={ps.showNervePointNumbers}
+								title="Show point numbers along the nerve"
+								onclick={() => ps && (ps.showNervePointNumbers = !ps.showNervePointNumbers)}
+							>
+								#
+							</button>
 						{/if}
 					{/if}
 					{#if ps.activeNerveId != null}
@@ -2900,6 +3085,17 @@
 							<Icon name="settings" size={14} /> Design options…
 							{#if guideWarnings.length}<span class="warn-text">({guideWarnings.length}⚠)</span>{/if}
 						</button>
+						<button
+							class="btn"
+							class:primary={connectorPreview}
+							title="Preview connector order between implant positions in the axial view"
+							onclick={() => (connectorPreview = !connectorPreview)}
+						>
+							Connectors
+						</button>
+						<button class="btn" title="Adjust offset/wall thickness for your producer and apply printer calibration" onclick={openProducerExport}>
+							<Icon name="export" size={14} /> Producer export…
+						</button>
 						<button class="btn primary" disabled={guideBusy} onclick={generateGuideAction}>
 							<Icon name="guide" size={14} />
 							{guideBusy ? 'Generating…' : 'Generate guide'}
@@ -2937,7 +3133,7 @@
 			{#if stage === 'align'}
 				<div class="view-grid grid-2x2">
 					<div class="view panel" class:cell-max={maximized === 'a3d'} class:cell-hidden={maximized && maximized !== 'a3d'}>
-						<VolumeView state={ps} bind:this={alignVolView} onMeshClick={onScanMeshClick} />
+						<VolumeView state={ps} bind:this={alignVolView} onMeshClick={onScanMeshClick} forceClipAxial={pcsCut} />
 						{@render maxBtn('a3d')}
 					</div>
 					<div class="view panel" class:cell-max={maximized === 'aax'} class:cell-hidden={maximized && maximized !== 'aax'}>
@@ -3069,6 +3265,100 @@
 			</table>
 			<div class="dialog-actions">
 				<button class="btn primary" onclick={() => (hotkeysOpen = false)}>Close</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showToolbarAdjust}
+	<div class="backdrop2" role="presentation" onclick={() => (showToolbarAdjust = false)}>
+		<div class="panel pe-dialog" role="dialog" onclick={(e) => e.stopPropagation()}>
+			<div class="dialog-title">Adjust toolbar — measurement tools</div>
+			<div class="dialog-body">
+				{#each MEASURE_TOOLS as mt (mt.key)}
+					<label class="pa-row2">
+						<input
+							type="checkbox"
+							checked={!hiddenTools.includes(mt.key)}
+							onchange={(e) => {
+								hiddenTools = e.currentTarget.checked
+									? hiddenTools.filter((k) => k !== mt.key)
+									: [...hiddenTools, mt.key];
+								saveHiddenTools();
+							}}
+						/>
+						{mt.label}
+					</label>
+				{/each}
+			</div>
+			<div class="dialog-actions">
+				<button
+					class="btn"
+					onclick={() => {
+						hiddenTools = [];
+						saveHiddenTools();
+					}}
+				>
+					Reset to default
+				</button>
+				<button class="btn primary" onclick={() => (showToolbarAdjust = false)}>Done</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showProducerExport}
+	<div class="backdrop2" role="presentation" onclick={() => (showProducerExport = false)}>
+		<div class="panel pe-dialog" role="dialog" onclick={(e) => e.stopPropagation()}>
+			<div class="dialog-title">Producer export</div>
+			<div class="dialog-body">
+				<p class="muted">
+					Adjust the fit for your production setup. The adjustments are applied on top of the
+					design values for this export only.
+				</p>
+				<div class="field-row">
+					<div>
+						<label for="pe-off">Offset adjustment (mm)</label>
+						<input id="pe-off" type="number" step="0.05" min="-0.5" max="0.5" bind:value={producer.offsetAdj} style="width:100%" />
+					</div>
+					<div>
+						<label for="pe-th">Wall thickness adjustment (mm)</label>
+						<input id="pe-th" type="number" step="0.5" min="-1" max="2" bind:value={producer.thicknessAdj} style="width:100%" />
+					</div>
+				</div>
+				<div>
+					<label for="pe-printer">Printer (calibration matrix — manage under /sleeves)</label>
+					<select id="pe-printer" bind:value={producer.printer} style="width:100%">
+						<option value="">No calibration</option>
+						{#each Object.entries(printerScales) as [name, f] (name)}
+							<option value={name}>{name} (×{f})</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+			<div class="dialog-actions">
+				<button class="btn" onclick={() => (showProducerExport = false)}>Cancel</button>
+				<button class="btn primary" disabled={producerBusy} onclick={producerExport}>
+					{producerBusy ? 'Generating…' : 'Generate production guide'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if axialPopup && ps && easyMode}
+	<div class="axial-popup panel">
+		<div class="axial-popup-title">Axial position</div>
+		<div class="axial-gauge">
+			<div class="axial-gauge-bar">
+				<div
+					class="axial-gauge-fill"
+					style="height:{(100 * (ps.ds.slices - 1 - ps.cursor.z)) / Math.max(1, ps.ds.slices - 1)}%"
+				></div>
+			</div>
+			<div>
+				<div class="mono">{ps.cursor.z + 1} / {ps.ds.slices}</div>
+				<div class="faint">{(ps.cursor.z * ps.ds.spacing_z).toFixed(1)} mm</div>
 			</div>
 		</div>
 	</div>
@@ -3215,6 +3505,16 @@
 			<div>
 				<label for="pcs-roll">Roll (coronal, °)</label>
 				<input id="pcs-roll" type="number" min="-45" max="45" step="1" bind:value={pcsAngles.roll} style="width:100%" />
+			</div>
+		</div>
+		<div class="field-row">
+			<label class="checkbox-inline" style="margin-top:0">
+				<input type="checkbox" bind:checked={pcsCut} />
+				Horizontal 3D cut at the axial position (clips the 3D view while aligning)
+			</label>
+			<div>
+				<label for="pcs-th">Setup 3D views — bone threshold (HU)</label>
+				<input id="pcs-th" type="number" step="50" bind:value={segThreshold} style="width:100%" />
 			</div>
 		</div>
 		<p class="faint">
@@ -3370,6 +3670,73 @@
 </footer>
 
 <style>
+	:global(.tool-hidden) {
+		display: none !important;
+	}
+	.pa-row2 {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		text-transform: none;
+		letter-spacing: 0;
+		color: var(--text);
+	}
+
+	.backdrop2 {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.55);
+		display: grid;
+		place-items: center;
+		z-index: 110;
+	}
+	.pe-dialog {
+		width: 420px;
+	}
+
+	.axial-popup {
+		position: fixed;
+		top: 60px;
+		right: 18px;
+		z-index: 80;
+		padding: 8px 12px;
+		box-shadow: var(--shadow);
+		pointer-events: none;
+	}
+	.axial-popup-title {
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		color: var(--text-dim);
+		margin-bottom: 4px;
+	}
+	.axial-gauge {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+	}
+	.axial-gauge-bar {
+		width: 10px;
+		height: 64px;
+		background: var(--bg-0);
+		border: 1px solid var(--border);
+		border-radius: 3px;
+		position: relative;
+		overflow: hidden;
+	}
+	.axial-gauge-fill {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		background: linear-gradient(var(--bg-0), var(--accent));
+	}
+	.mono {
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
 	.guide-options-float {
 		position: fixed;
 		right: 16px;

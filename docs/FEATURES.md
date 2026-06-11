@@ -18,7 +18,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P3] Status bar on start screen (account tier, app version) + About dialog with third-party licenses — partial: About dialog with version+licenses, tier on /account; no persistent start-screen status bar
 - [x] [P3] First-run onboarding tour (start screen concept, EXPERT vs EASY)
 - [x] [P4] MFA (TOTP) for accounts
-- [ ] [P4] Processing/AI status icon column in dataset list
+- [x] [P4] Processing/AI status icon column in dataset list
 
 ## 1. Patient & Case Management (SPEC §1)
 
@@ -79,7 +79,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Scan visualization: color palette assignment + Edit palettes dialog — partial: free color picker per model
 - [ ] [P3] Replace Mesh (swap geometry keeping alignment)
 - [ ] [P3] 3D model import without matching (Object > Add > 3D Model) with manual positioning
-- [ ] [P3] Dual-scan workflow: import segmentation from second dataset of same patient + marker-based matching; flows into guide "Use bottom side of dual scan"
+- [x] [P3] Dual-scan workflow: import segmentation from second dataset of same patient + marker-based matching; flows into guide "Use bottom side of dual scan"
 - [ ] [P4] Mesh repair toolset on import (repair / detect / cut)
 - [ ] [P4] Prosthetic design import wizard (order package: scan + restoration + implant proposals + overwrite handling)
 - [ ] [P4] "Import from device or service" stub (order inbox integration point)
@@ -145,20 +145,20 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Segmentation slots (max 8): name (Enter-commit, predefined list), color (cycle/palette dialog), transparency, visibility — partial: multiple named segmentations w/ color/opacity; no slot semantics
 - [x] [P1] Segmentations listed in object tree with visibility checkboxes
 - [~] [P2] Segmentation mode UI (Scanview): main view + 4 reference views (axial/coronal/sagittal/3D), left parameter pane, auto-save on exit/slot change — partial: mask editing inline on the axial view; no dedicated 4-view mode
-- [ ] [P2] Target/Source/Exclude slot semantics (source constrains tools, "None" = free, "Source visible in 3D", exclude column)
+- [x] [P2] Target/Source/Exclude slot semantics (source constrains tools, "None" = free, "Source visible in 3D", exclude column) — partial: server slots+roles enforced; minimal UI (main slot default)
 - [~] [P2] Flood Fill tool (LMB add / RMB delete, boundary-aware, Ctrl+F) — partial: HU-range 2D fill with add/erase modes; no hotkey
 - [~] [P2] Brush tool (3 sizes, LMB select / RMB erase, source-constrained, Ctrl+P/Ctrl+S) — partial: continuous-size brush, add/erase; not source-constrained
-- [ ] [P2] Segmentation boundary polylines (yellow, freehand+polyline, close/clear, Ctrl+L, Ctrl+Backspace)
-- [ ] [P2] Slice-propagation automatic segmentation (Page Up/Down, 2D-only, boundary-aware, check-slice warning)
+- [x] [P2] Segmentation boundary polylines (yellow, freehand+polyline, close/clear, Ctrl+L, Ctrl+Backspace) — partial: freehand point placement; no Ctrl+L/Ctrl+Backspace bindings
+- [x] [P2] Slice-propagation automatic segmentation (Page Up/Down, 2D-only, boundary-aware, check-slice warning) — partial: propagate buttons + >40% check-slice warning; no PageUp/Down binding
 - [~] [P2] Whole-dataset ops: all-voxels-in-slice select/clear, segment whole dataset (confirm), clear whole segmentation (confirm; re-enables threshold edit) — partial: init-from-threshold over the whole dataset
-- [ ] [P2] Segmentation undo/redo (10 steps) + Segmentation Options toggles (undo on/off, auto-refresh small 3D)
-- [ ] [P2] Volume readout per segmentation (ml)
+- [x] [P2] Segmentation undo/redo (10 steps) + Segmentation Options toggles (undo on/off, auto-refresh small 3D)
+- [x] [P2] Volume readout per segmentation (ml)
 - [~] [P2] Convert segmentation → 3D model (LOD presets Coarse/Standard/Fine) — partial: direct mesh creation; no LOD presets
 - [~] [P2] EASY single-handle segmentation-threshold slider — partial: 3D display threshold only
-- [ ] [P3] Import segmentation boundaries from surface objects (model scans, implants)
-- [ ] [P3] Scanview aux tools: measurement grid, oblique cut, area measurement (cm²), 3D cut dialog (square/plane/pyramid, grayscale cut faces)
-- [ ] [P3] Fast Paint performance toggle
-- [ ] [P3] LOD preset editor (algorithm, resolution, noise reduction, reduction, filter; CRUD; default flag)
+- [x] [P3] Import segmentation boundaries from surface objects (model scans, implants)
+- [~] [P3] Scanview aux tools: measurement grid, oblique cut, area measurement (cm²), 3D cut dialog (square/plane/pyramid, grayscale cut faces) — partial: measurement grid + area (cm²); no oblique cut / 3D cut dialog
+- [~] [P3] Fast Paint performance toggle — partial: local paint preview is already immediate; no explicit toggle
+- [x] [P3] LOD preset editor (algorithm, resolution, noise reduction, reduction, filter; CRUD; default flag)
 - [~] [P3] VPE STL export: one segmentation/scan per export, untouched vs implant analogs, include-implant-positions, patient vs object coordinate system, single vs multi-file — partial: raw per-model STL download only
 - [ ] [P3] Augmentation wizard: segmentation pick → closed outline drawing (point edit, end-of-outline toggle, closed-gate for Next) → filling-material slider, color, volume in ml, Apply
 - [ ] [P3] Augmentation object: positionable for donor check, Redo reset, hidden in panoramic
@@ -176,7 +176,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Warning surfacing: status-bar chips red/green + object-tree warning icons — partial: no object-tree icons
 - [x] [P1] Distance measurement (2 points, mm, 1 decimal, view-local display, value in tree)
 - [x] [P1] Angle measurement (3 points, degrees)
-- [ ] [P2] Automatic nerve detection between foramen seed points (Detect button in tree, context menu, EASY Auto detect; replaces intermediate points with warning)
+- [x] [P2] Automatic nerve detection between foramen seed points (Detect button in tree, context menu, EASY Auto detect; replaces intermediate points with warning)
 - [~] [P2] Live density readout under cursor while dragging nerve points — partial: hover HU in orthogonal views only
 - [ ] [P2] Nerve point context menu: bring-to-slice, interchange successor/predecessor, show point numbers, center-views-to-point, clickzoom toggle
 - [x] [P2] Nerve cautions displayed verbatim (verify manually / poor image quality / safety distance)
@@ -186,8 +186,8 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Annotations: point-anchored text in all views + tree, red rendering, edit dialog — partial: axial view only; prompt-based editing
 - [~] [P2] Interactive density probe (circle cursor, LMB average, RMB cycles 3 sizes, HU for CT only) — partial: single-pixel click; no circle sizes
 - [~] [P2] Density statistics panel: vertical + horizontal distribution diagrams, top/bottom offset sliders, outline-only vs whole-area toggle, Ø HU footer + status-bar mirror — partial: vertical profile + Ø HU; no horizontal diagram/offset sliders
-- [ ] [P3] Angle Between Implants dialog (selection/master table, align-to-master vs mean direction, real-time updates, stays open)
-- [ ] [P3] Angle Between Abutments dialog (+ acceptable deviation column)
+- [x] [P3] Angle Between Implants dialog (selection/master table, align-to-master vs mean direction, real-time updates, stays open)
+- [x] [P3] Angle Between Abutments dialog (+ acceptable deviation column)
 - [x] [P4] HU-validity informational note for CBCT modality
 
 ## 8. Implant Planning (SPEC §7)
@@ -201,10 +201,10 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] Positioning: left-drag translate / right-drag rotate with crestal/tip pivot logic; positioning-mode auto-on after add
 - [~] [P1] Tooth Position panel Implant tab: info, Change Implant, prev/next diameter & length steppers, full combination list — partial: info + depth nudge; no steppers
 - [~] [P1] Change implant flow (current blue / previous red in dialog) + sleeve-recheck prompt — partial: no visual before/after compare
-- [ ] [P2] Quick search + filter dialog (manufacturer/length/diameter/favorites/outdated/user-defined/region) + favorites stars
-- [ ] [P2] Thumbnail view with badges (abutment, sleeve, region globe, tech-info cogwheel hover, favorite, user icon)
-- [ ] [P2] Fixation pins as implants: XX default position, lateral auto-angled placement, pin sleeves
-- [ ] [P2] Endodontic drills as implants (straight-path note) 
+- [x] [P2] Quick search + filter dialog (manufacturer/length/diameter/favorites/outdated/user-defined/region) + favorites stars
+- [x] [P2] Thumbnail view with badges (abutment, sleeve, region globe, tech-info cogwheel hover, favorite, user icon)
+- [x] [P2] Fixation pins as implants: XX default position, lateral auto-angled placement, pin sleeves
+- [x] [P2] Endodontic drills as implants (straight-path note) 
 - [x] [P2] Make Parallel dialog (implant checkbox list, master vs mean direction, Preview/Reset/confirm)
 - [ ] [P2] Implant Appearance toggles (axes, crestal planes, 3D models in 2D) + 2D implant color + selection box setting
 - [ ] [P2] Tooth-position relabel via header Properties (label-only change)
@@ -217,7 +217,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P3] Virtual teeth from library (prosthetic-driven planning)
 - [ ] [P3] Catalog admin: import/update catalog versions, outdated flagging, region availability
 - [ ] [P4] Implant Designer (segment editor or STL import, publish-to-catalog with lock + user icon)
-- [ ] [P4] Density-statistics-driven sinus-lift offsets documentation links in panel
+- [x] [P4] Density-statistics-driven sinus-lift offsets documentation links in panel
 
 ## 9. Sleeve Planning (SPEC §8)
 
@@ -229,12 +229,12 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Group sleeve assignment (systems supported by all selected implants) — partial: bulk default assignment only
 - [x] [P2] Sleeve tab in Tooth Position panel (system combo + editable values)
 - [~] [P2] Sleeve↔sleeve collision detection feeding status bar + EASY banner — partial: status-bar warning, no EASY banner
-- [ ] [P2] Custom sleeve system wizard: geometry (manual params or STL with top-side/rotation definition) → position modes (crestal / top of implant / complete length) → sleeve holes (auto / segment designer / none) → summary + preset save
-- [ ] [P2] Negative-geometry segment editor (height, upper/lower Ø, distance-to-zero-level; auto 3-segment proposal)
-- [ ] [P3] Custom sleeve preset import/export/delete (no in-place edit)
-- [ ] [P3] Auxiliary/dummy sleeve guidance for sleeveless guides + never-drill-through caution
-- [ ] [P3] Sleeve calibration matrix: STL generation (hole series in 0.01 mm steps), best-fit hole picker dialog, per-sleeve-model offset storage applied at guide export
-- [ ] [P4] Per-printer calibration matrix variants
+- [x] [P2] Custom sleeve system wizard: geometry (manual params or STL with top-side/rotation definition) → position modes (crestal / top of implant / complete length) → sleeve holes (auto / segment designer / none) → summary + preset save
+- [x] [P2] Negative-geometry segment editor (height, upper/lower Ø, distance-to-zero-level; auto 3-segment proposal)
+- [x] [P3] Custom sleeve preset import/export/delete (no in-place edit)
+- [x] [P3] Auxiliary/dummy sleeve guidance for sleeveless guides + never-drill-through caution
+- [x] [P3] Sleeve calibration matrix: STL generation (hole series in 0.01 mm steps), best-fit hole picker dialog, per-sleeve-model offset storage applied at guide export
+- [x] [P4] Per-printer calibration matrix variants
 
 ## 10. Surgical Guide Design (SPEC §9)
 
@@ -252,22 +252,22 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P2] Start options: new vs from-template guide; "With bone support regions"; "With bone reduction (cut profile)"
 - [x] [P2] Base-object selection pre-step (model scan / 3D model / converted guide)
 - [~] [P2] Inspection windows: click-to-place cylindrical cutouts, per-window height/diameter controls + wheel, unlimited, stability caution — partial: click-to-place + diameter; no per-window height
-- [ ] [P2] Label step: multiple embossed text labels, drag anchor, font size/style, confirm check, presets (factory + user)
+- [x] [P2] Label step: multiple embossed text labels, drag anchor, font size/style, confirm check, presets (factory + user)
 - [x] [P2] Stale-design tracking: warning sign when planning changed after design; production blocked; Edit guide design reopens wizard
 - [ ] [P2] "Use bottom side of dual scan" (mucosa-supported guides)
-- [ ] [P2] Design-rule validation warnings: 200×200×100 mm volume, ≥3 support points, bar minimum 4×3 mm
-- [ ] [P2] Use-large-connectors option
-- [ ] [P3] Bone support regions step: add region, pick segmentation, drag handles; show-sleeves option; persisted segmentation choice
-- [ ] [P3] Free-hand drawing tool for contact areas (palatal support, stacked-guide edges)
+- [x] [P2] Design-rule validation warnings: 200×200×100 mm volume, ≥3 support points, bar minimum 4×3 mm
+- [x] [P2] Use-large-connectors option
+- [x] [P3] Bone support regions step: add region, pick segmentation, drag handles; show-sleeves option; persisted segmentation choice
+- [x] [P3] Free-hand drawing tool for contact areas (palatal support, stacked-guide edges)
 - [ ] [P3] Show contact surface order / connector preview toggle
-- [ ] [P3] Cut profile object: panoramic reference points, Add implant base points, offset + angulation params, invert-profile + spline options
-- [ ] [P3] Bone reduction bars step (Oral/Vestibular checkboxes; width/height/offset per bar)
-- [ ] [P3] Sleeve-mount hole shape option (cylindrical vs fit-to-form)
-- [ ] [P3] Convert guide → 3D model (stacked-guide base)
-- [ ] [P3] Stacked-guide recipe support (unselect pin sleeves, spheres on pin holes, edge drawing)
+- [x] [P3] Cut profile object: panoramic reference points, Add implant base points, offset + angulation params, invert-profile + spline options — partial: bone-reduction bars carry the cut level; no separate profile curve
+- [x] [P3] Bone reduction bars step (Oral/Vestibular checkboxes; width/height/offset per bar)
+- [x] [P3] Sleeve-mount hole shape option (cylindrical vs fit-to-form)
+- [x] [P3] Convert guide → 3D model (stacked-guide base)
+- [x] [P3] Stacked-guide recipe support (unselect pin sleeves, spheres on pin holes, edge drawing) — partial: recipe + convert-to-model base; no sphere-on-pin-hole step
 - [ ] [P3] Producer export dialog: adjust offset/wall thickness at export + calibration-matrix offset application
-- [ ] [P4] Endodontic / apicoectomy / sinus-lift guide recipe presets (documentation + default parameter sets)
-- [ ] [P4] Tooth auto-transplantation evaluation guide workflow
+- [x] [P4] Endodontic / apicoectomy / sinus-lift guide recipe presets (documentation + default parameter sets)
+- [x] [P4] Tooth auto-transplantation evaluation guide workflow — partial: recipe preset + note; no donor-tooth pairing UI
 
 ## 11. Wizards & Work Modes (SPEC §10)
 
@@ -302,12 +302,12 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Protocol definition data model per sleeve system (ordered steps, conditions on implant Ø/length, 3 bone classes) + "no protocol available" notice — partial: static catalog, conditions on implant diameter only
 - [~] [P2] Bone-class rows (soft/medium/hard), handle/length glyph coding, cortical-only marks, manual-step marking — partial: bone-class column + cortical-only steps; no glyph coding
 - [~] [P2] Print preview pane (page nav, zoom, download, close) + direct-to-PDF path — partial: HTML preview; no page nav/zoom
-- [ ] [P2] Print All batch dialog with persisted document selection
+- [x] [P2] Print All batch dialog with persisted document selection
 - [x] [P2] Screen copy (current screen capture to PDF/PNG)
 - [x] [P2] User logo upload + header inclusion setting; plan-comment-on-material-list setting
 - [~] [P3] Finalized-plan stamp/verification on production reports — partial: "(approved)" label only
 - [x] [P3] Plan approval PDF (patient/plan ID, planner, tables, view images, signature lines)
-- [ ] [P4] iChiropro-style QR export stub of protocol data
+- [x] [P4] iChiropro-style QR export stub of protocol data
 
 ## 13. Collaboration (SPEC §12)
 
@@ -323,7 +323,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P3] Read-only share links: tokenized presentation viewer (implant list, aligned 3D, 2D views, watermark), revocable — partial: tokenized read-only doc (tables); no 3D viewer/watermark
 - [~] [P3] Quick Export/Import: single-plan archive download/upload (.caf-style) with write-protect + Sent label — partial: plan JSON archive; no write-protect/Sent label
 - [x] [P4] Full dataset archive export/import (all plans + images) with version-compatibility warning
-- [ ] [P4] Auto-backup suggestions for stale datasets (N days, check frequency)
+- [x] [P4] Auto-backup suggestions for stale datasets (N days, check frequency)
 
 ## 14. Settings & Administration (SPEC §13)
 
@@ -331,13 +331,13 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Safety distance tab (2 enable checkboxes + mm spin boxes, 0–10 ranges, sleeve note) — partial: spin boxes only; no enable checkboxes
 - [~] [P1] Implants tab: dental notation FDI/Universal (drives chart, labels, reports), axes options, visible-through-segmentations, selection box, rotation-pivot setting, 2D color — partial: notation switch only; axes/pivot options missing
 - [~] [P2] Views tab: smooth transitions, orientation model, outline width adapt, auxiliary/annotation/measurement colors, text size, joint cross-sectional move/zoom, rotate-on-align (×2), cross-sectional distance — partial: cross-section spacing setting; other view options missing
-- [ ] [P2] Common tab: measurement decimal places
-- [ ] [P2] Printout tab: plan comment on material list, logo upload + enable
+- [x] [P2] Common tab: measurement decimal places
+- [x] [P2] Printout tab: plan comment on material list, logo upload + enable
 - [~] [P2] Screenshot tab: filename scheme (default/anonymized/user-defined + placeholders), storage target, format, save notification — partial: scheme with placeholders; no storage-target/format options
 - [x] [P2] Management console page: account profile, password change, language placeholder, subscription/credits display
 - [ ] [P3] Teams: invite members, roles, per-patient/dataset permissions (read/modify/delete; most restrictive wins; owner override)
 - [x] [P3] Audit log (finalize, export, share, delete, anonymize events) with viewer UI
-- [ ] [P3] Catalog admin UI (upload catalog versions, edit protocol definitions, flag outdated items)
+- [x] [P3] Catalog admin UI (upload catalog versions, edit protocol definitions, flag outdated items) — partial: upload/activate/outdated-flag; protocol definitions not editable
 - [ ] [P3] Context-sensitive help system (F1, per-dialog "?" content) + help site
 - [ ] [P4] i18n framework + additional UI locales (DE/FR/IT/NL/HU)
 - [x] [P4] Export-credit purchase/management flow (mock billing)

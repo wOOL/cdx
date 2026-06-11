@@ -150,10 +150,13 @@ export class PlanningState {
 	selectedImplantId = $state<number | null>(null);
 	/** last added/dragged nerve point (for the point-diameter editor) */
 	lastNervePoint = $state<{ nerveId: number; index: number } | null>(null);
+	showNervePointNumbers = $state(false);
 	measureTool = $state<MeasureTool>('none');
 	/** in-progress measurement points (mm) */
 	pendingMeasure = $state<Vec3[]>([]);
 
+	/** raw settings rows (read-only lookups, e.g. smooth_transitions) */
+	settings: Record<string, string> = {};
 	measureDecimals = $state(1);
 	nerveSafety = $state(NERVE_SAFETY_MM);
 	implantSafety = $state(IMPLANT_SAFETY_MM);
@@ -242,6 +245,7 @@ export class PlanningState {
 		this.ds = ds;
 		this.planId = plan.id;
 		this.locked = !!plan.locked;
+		this.settings = settings;
 		if (Number(settings.nerve_safety_mm) > 0) this.nerveSafety = Number(settings.nerve_safety_mm);
 		if (Number(settings.implant_safety_mm) > 0)
 			this.implantSafety = Number(settings.implant_safety_mm);

@@ -38,7 +38,7 @@
 	$effect(() => {
 		if (!zoomSignal || zoomSignal.seq === lastZoomSeq) return;
 		lastZoomSeq = zoomSignal.seq;
-		zoom = zoomSignal.f === 0 ? 1 : Math.max(0.2, Math.min(10, zoom * zoomSignal.f));
+		animateZoom(zoomSignal.f === 0 ? 1 : Math.max(0.2, Math.min(10, zoom * zoomSignal.f)));
 		if (zoomSignal.f === 0) {
 			panX = 0;
 			panY = 0;
@@ -53,6 +53,30 @@
 
 	// local view transform
 	let zoom = $state(1);
+	let zoomAnim: number | null = null;
+
+	/** Animate zoom toward `target` over ~140ms (honors the Views > smooth-transitions setting). */
+	function animateZoom(target: number) {
+		if (!smoothTransitions()) {
+			zoom = target;
+			return;
+		}
+		const from = zoom;
+		const t0 = performance.now();
+		if (zoomAnim != null) cancelAnimationFrame(zoomAnim);
+		const step = (now: number) => {
+			const u = Math.min(1, (now - t0) / 140);
+			const e = 1 - (1 - u) * (1 - u);
+			zoom = from + (target - from) * e;
+			if (u < 1) zoomAnim = requestAnimationFrame(step);
+			else zoomAnim = null;
+		};
+		zoomAnim = requestAnimationFrame(step);
+	}
+
+	function smoothTransitions(): boolean {
+		return ps.settings?.smooth_transitions !== '0';
+	}
 	let panX = $state(0);
 	let panY = $state(0);
 
@@ -355,7 +379,7 @@
 	function onWheel(e: WheelEvent) {
 		e.preventDefault();
 		if (e.ctrlKey) {
-			zoom = Math.max(0.2, Math.min(10, zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
+			animateZoom(Math.max(0.2, Math.min(10, zoom * (e.deltaY < 0 ? 1.25 : 0.8))));
 		} else {
 			setIndex(sliceIndex + (e.deltaY > 0 ? 1 : -1));
 		}
