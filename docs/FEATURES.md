@@ -32,7 +32,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] "Protect this plan against changes" (reversible write-protection enforced across all editors)
 - [~] [P1] "Mark this plan as final" (irreversible; copy-to-edit; required for exports) — partial: reversible approval; doesn't gate exports
 - [~] [P2] Plan Management dialog: list with name, status, last editor, modification date; open/properties/delete — partial: dropdown only; no editor/date columns
-- [ ] [P2] Plan Compare: select 2 plans → difference report (incl. implant position deltas)
+- [~] [P2] Plan Compare: select 2 plans → difference report (incl. implant position deltas) — partial: implant position/axis deltas; no full report
 - [ ] [P2] Implant update mode per plan (3 options) + outdated-object prompt (keep vs replace + recheck notice)
 - [~] [P2] Plan autosave (debounced + on navigation) with last-editor/timestamp tracking — partial: no last-editor tracking (no accounts)
 - [ ] [P2] Anonymize dataset (toggleable pseudonymization of name/DOB/ID)
@@ -108,7 +108,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Millimeter scale bars in 2D views (toggle, default on) — partial: no toggle; absent in cross view
 - [~] [P2] Orientation indicators: 2D orientation strings + 3D cube/model (L/R/A/P/H/F), model choice setting, Ctrl+1..6 — partial: 2D letters only; no 3D cube
 - [~] [P2] View > Objects visibility submenu (implants, axes, crestal levels, 3D models, abutments, sleeves, teeth) + per-object tree checkboxes — partial: per-object eyes; no category submenu
-- [ ] [P2] Vertical & horizontal 3D cuts (clip planes bound to current cross-section / axial position)
+- [x] [P2] Vertical & horizontal 3D cuts (clip planes bound to current cross-section / axial position)
 - [~] [P2] Per-view Snapshot button (high-res capture, size choice, save to Image Management or download) — partial: canvas-resolution PNG only
 - [~] [P2] Grayscale presets in dialog (save/overwrite/delete; "Implant Planning (CT)" factory preset) — partial: fixed presets; no save/delete
 - [~] [P2] Hotkey system + hotkey list dialog (Ctrl+F1) per SPEC §3.9 — partial: few hotkeys; no list dialog
@@ -297,9 +297,9 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Common report chrome: header (logo, version, licensee, title, patient block, notation note), footer (disclaimer verbatim, timestamp, copyright), non-diagnostic caution — partial: no logo/version/verbatim disclaimer
 - [~] [P1] Material list report (implants/sleeves/abutments BOM with article numbers, dimensions, tooth positions) + All-Plans variant — partial: no real article numbers or All-Plans variant
 - [~] [P1] Details report: per-implant pages with view captures (3D/axial/cross-sectional/panoramic centered on implant) + implant/sleeve data + All-Plans variant — partial: cross-section figures only
-- [~] [P1] Surgical protocol report: per-implant drill sequence from data-driven protocol definitions (position, drills with Ø/color, implant, depth stop/H-position) — partial: drill lengths only; no drill-step sequence
+- [~] [P1] Surgical protocol report: per-implant drill sequence from data-driven protocol definitions (position, drills with Ø/color, implant, depth stop/H-position) — partial: drill sequences per sleeve system; no bone classes
 - [~] [P1] Print menu (Plan > Print ▸ / toolbar Print dropdown) wired to all protocols — partial: single report + print button
-- [ ] [P2] Protocol definition data model per sleeve system (ordered steps, conditions on implant Ø/length, 3 bone classes) + "no protocol available" notice
+- [~] [P2] Protocol definition data model per sleeve system (ordered steps, conditions on implant Ø/length, 3 bone classes) + "no protocol available" notice — partial: static catalog, conditions on implant diameter only
 - [ ] [P2] Bone-class rows (soft/medium/hard), handle/length glyph coding, cortical-only marks, manual-step marking
 - [~] [P2] Print preview pane (page nav, zoom, download, close) + direct-to-PDF path — partial: HTML preview; no page nav/zoom
 - [ ] [P2] Print All batch dialog with persisted document selection
