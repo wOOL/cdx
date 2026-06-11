@@ -41,6 +41,9 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	let min = Infinity;
 	let max = -Infinity;
 	const r2 = radius * radius;
+	const BINS = 16;
+	const binSum = new Array(BINS).fill(0);
+	const binCount = new Array(BINS).fill(0);
 	for (let z = lo.z; z <= hi.z; z++) {
 		const pz = (z + 0.5) * sz;
 		for (let y = lo.y; y <= hi.y; y++) {
@@ -52,9 +55,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
 				const dx = px - head.x;
 				const dy = py - head.y;
 				const dz = pz - head.z;
-				let t = dx * axis.x + dy * axis.y + dz * axis.z;
-				if (t < 0) t = 0;
-				else if (t > length) t = length;
+				const tRaw = dx * axis.x + dy * axis.y + dz * axis.z;
+				const t = tRaw < 0 ? 0 : tRaw > length ? length : tRaw;
 				const cx = dx - axis.x * t;
 				const cy = dy - axis.y * t;
 				const cz = dz - axis.z * t;
@@ -64,10 +66,16 @@ export const POST: RequestHandler = async ({ params, request }) => {
 				count++;
 				if (v < min) min = v;
 				if (v > max) max = v;
+				if (tRaw >= 0 && tRaw <= length) {
+					const b = Math.min(BINS - 1, Math.floor((tRaw / length) * BINS));
+					binSum[b] += v;
+					binCount[b]++;
+				}
 			}
 		}
 	}
 
-	if (count === 0) return json({ mean: 0, min: 0, max: 0, count: 0 });
-	return json({ mean: Math.round(sum / count), min, max, count });
+	if (count === 0) return json({ mean: 0, min: 0, max: 0, count: 0, profile: [] });
+	const profile = binSum.map((s, i) => (binCount[i] ? Math.round(s / binCount[i]) : 0));
+	return json({ mean: Math.round(sum / count), min, max, count, profile });
 };

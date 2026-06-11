@@ -82,6 +82,23 @@
 	];
 	const easyOrder: StageKey[] = ['data', 'align', 'pano', 'nerve', 'implant', 'sleeve', 'guide'];
 
+	const EASY_HELP: Record<StageKey, string> = {
+		data: 'Import the CBCT scan (.dcm files or .zip) and, if available, the intraoral model scan (.stl/.ply). The volume builds automatically after upload.',
+		align:
+			'Check the patient orientation in all views; use “Align patient axes” for corrections. Create a bone model with the threshold, and match the model scan: add ≥3 point pairs (click scan in 3D, then the same spot in a slice), Align, then Refine fit (ICP).',
+		pano: 'Enable “Draw curve” and click 5–7 points along the middle of the dental arch on the axial view, posterior → posterior. The panoramic view builds live; drag points to refine.',
+		nerve:
+			'Add the right/left nerve, then click along the canal in the panoramic view from the mental foramen backwards. Set point diameters where the canal widens. The safety system warns at < 2 mm clearance.',
+		implant:
+			'Add an implant per tooth position (double-click the axial view places it directly). Drag the body to move, drag the orange end handles to tilt. Watch the live distance chips in the status bar.',
+		sleeve:
+			'Assign a sleeve to every implant — choose system, diameter, height and offset. The drill length updates per the formula implant length + offset + sleeve height.',
+		guide:
+			'Pick the base model, set offset/wall thickness, choose the insertion direction, optionally place inspection windows, then Generate. Export requires plan approval (plan menu).',
+		report: ''
+	};
+	let easyHelpOpen = $state(true);
+
 	function easyStep(dir: 1 | -1) {
 		const i = easyOrder.indexOf(stage);
 		const next = easyOrder[Math.max(0, Math.min(easyOrder.length - 1, i + dir))];
@@ -475,7 +492,12 @@
 	}
 
 	// bone density around the selected implant
-	let densityInfo = $state<{ mean: number; min: number; max: number } | null>(null);
+	let densityInfo = $state<{
+		mean: number;
+		min: number;
+		max: number;
+		profile?: number[];
+	} | null>(null);
 	let densityTimer: ReturnType<typeof setTimeout>;
 
 	function boneClass(meanHU: number): string {
@@ -1135,6 +1157,17 @@
 						Next <Icon name="chevron" size={13} />
 					</button>
 				</div>
+				{#if EASY_HELP[stage]}
+					<div class="easy-help">
+						<button class="easy-help-head" onclick={() => (easyHelpOpen = !easyHelpOpen)}>
+							? Help — this step
+							<Icon name={easyHelpOpen ? 'chevron-down' : 'chevron'} size={11} />
+						</button>
+						{#if easyHelpOpen}
+							<p class="easy-help-body">{EASY_HELP[stage]}</p>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		{/if}
 		<div class="panel-header">Objects</div>
@@ -1270,6 +1303,32 @@
 						<input type="checkbox" bind:checked={ps.crosshairVisible} />
 						<span>Crosshair</span>
 					</label>
+					{#if selectedImplant && densityInfo?.profile?.length}
+						<label for="density-profile">Density along implant</label>
+						<div class="density-panel" id="density-profile" title="Mean HU per depth level, head (top) → apex (bottom)">
+							{#each densityInfo.profile as hu, i (i)}
+								{@const frac = Math.max(0, Math.min(1, (hu + 100) / 1600))}
+								<div class="density-row">
+									<div
+										class="density-bar"
+										style="width:{(frac * 100).toFixed(0)}%; background:{hu > 1250
+											? '#e8e8e8'
+											: hu > 850
+												? '#bcd4e6'
+												: hu > 350
+													? '#7fb8d4'
+													: hu > 150
+														? '#e0b864'
+														: '#c97f5c'}"
+									></div>
+									<span class="density-val">{hu}</span>
+								</div>
+							{/each}
+							<div class="density-foot muted">
+								Ø {densityInfo.mean} HU · {boneClass(densityInfo.mean)} · head→apex
+							</div>
+						</div>
+					{/if}
 					<label for="measure-tools">Measure (axial view)</label>
 					<div class="measure-row" id="measure-tools">
 						<button
@@ -2190,6 +2249,27 @@
 		justify-content: space-between;
 		margin-top: 4px;
 	}
+	.easy-help {
+		border-top: 1px solid var(--border-soft);
+		margin-top: 6px;
+		padding-top: 6px;
+	}
+	.easy-help-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--accent-bright);
+		padding: 2px 4px;
+	}
+	.easy-help-body {
+		font-size: 11px;
+		color: var(--text-dim);
+		margin: 6px 4px 0;
+		line-height: 1.5;
+	}
 	.spacer {
 		flex: 1;
 	}
@@ -2502,6 +2582,35 @@
 	.measure-row {
 		display: flex;
 		gap: 4px;
+	}
+	.density-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		background: var(--bg-0);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--radius);
+		padding: 6px;
+	}
+	.density-row {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		height: 8px;
+	}
+	.density-bar {
+		height: 6px;
+		border-radius: 1px;
+		min-width: 2px;
+	}
+	.density-val {
+		font-size: 8px;
+		color: var(--text-faint);
+		line-height: 1;
+	}
+	.density-foot {
+		font-size: 10px;
+		margin-top: 4px;
 	}
 	.measure-row .btn {
 		padding: 4px 8px;
