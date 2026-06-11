@@ -46,3 +46,64 @@ routing/stepping/axial+cross editing/section spin, in-view PCS rotation
 3D-click supports, free-hand contact areas, bone-reduction simulation,
 tooth-driven implant placement, sleeve recommendations, import abort,
 named segments. See VIDEO_COVERAGE.md and commits be1d0c4..HEAD.
+
+
+---
+
+# Stage-3 residuals (42 YouTube tutorials)
+
+Everything demonstrated across the 42 YouTube tutorial videos exists functionally
+in the web clone after the stage-3 build batches (see VIDEO_COVERAGE_YT.md).
+The rows below are the verified residual differences — vendor-service/hardware
+content that a self-hosted web app deliberately replaces, plus interaction-style
+deltas, each with a working equivalent. None blocks a user following a video.
+
+## Vendor services & hardware (deliberate)
+
+| Item (videos) | Our equivalent | Sev |
+|---|---|---|
+| iChiroPro/iGero surgical-motor transfer (Basic 2, EASY) | QR/JSON drill-protocol export stub on the report page | low |
+| Straumann RapidShape/NetFabb prepared transfer (Basic 2, EASY) | guide STL download works with any printer workflow | low |
+| Straumann eShop ordering (Basic 2, EASY) | material list (BOM) on the protocol + /orders module | low |
+| caseXchange cloud registration & code recovery (TT caseXchange) | account signup + contact pairing codes (/contacts) | low |
+| TeamViewer built-in remote support (Basic 2) | issue tracker/help channels (manual ch. 10) | none |
+| 3Dconnexion 3D-mouse HID support + fly-through camera (TT 3D Mouse) | orbit/pan/zoom + dbl-click pivot; no SpaceMouse HID layer in browsers | low |
+| Vendor 'Feedback' button in the AI dialogs (AI series) | self-hosted AI backend; no vendor feedback channel | none |
+| Dental Wings Online portal links (Basic 2) | built-in manual + F1 help + tour | none |
+| Branded abutment/sleeve catalog entries (Basic 2, EXPERT sleeve/abutment) | stage-2 residual family: open libraries + custom editors | low |
+
+## Platform/deployment deltas (deliberate)
+
+| Item | Why | Sev |
+|---|---|---|
+| Desktop database switching / SQL reference-lab topology (Basic 2) | server-hosted central DB by design; case packages for transfer | none |
+| >900 MB DICOM upload cap vs desktop >1 GB rescue (Predictable) | web upload guard; advanced import reduces slices after upload | low |
+| OBJ texture (MTL/jpg) rendering (Predictable) | STL/PLY/OBJ geometry imported; PLY vertex colors render | low |
+| Double-click an exported plan file opens the app (TT Exporting a Plan) | OS file association; web equivalent = Import plan… in the plan menu | none |
+| Language coverage: 6 locales vs 10+ (Basic 2) | en/de/fr/it/nl/hu on /account | low |
+| Email-confirmation onboarding + long company profile (TT caseXchange) | immediate signup; lean provider profile | none |
+
+## Interaction style (equivalent exists, different gesture)
+
+| Item (videos) | Our equivalent | Sev |
+|---|---|---|
+| Double-click the view title bar to maximize (Basic 1, EXPERT nerve/implant) | ⛶ button per view + Esc restore (no title bars in our grid) | low |
+| Drag-and-drop toolbar/workflow customization (TT Adjusting the toolbar) | Adjust-toolbar dialog: checkboxes for tools, quick-action pins, hideable workflow steps | low |
+| Workflow step reorder by drag (TT Adjusting the toolbar) | stages enforce no order in EXPERT mode; steps can be hidden | none |
+| Region-paint matching blobs (AI merge video) | ≥3 point-pair correspondences, unlimited pairs | low |
+| 'Align to another object' registration-target choice (AI merge) | scans register into the shared volume frame; copy alignment for same-frame scans | low |
+| Multi-slot segment editor w/ move/copy between segments (EXPERT segment) | single-mask editor + repeated named bone models; lo/hi HU bounds | low |
+| Consolidated 'Setup 3D view' dialog w/ numeric pan/zoom/rotation fields (TT Transparent Segmentation) | per-view hover controls: presets, threshold, clip, stereo, perspectives | none |
+| In-dialog 3D arch tooth picking (AI extraction) | FDI-labelled dropdown in the extraction dialog | low |
+| Per-wizard-section decline checkboxes (AI review) | per-object toggles, opt-in PCS, per-scan accept | low |
+| 3D pane inside the wizard scan-alignment step (AI review) | three slice planes in the wizard; full 3D check in the workspace after import | low |
+| Right-drag above/below implant to rotate (TT Moving implants) | head/apex drag handles + fine-position tilts (0.1° steps) | low |
+| Right-click context menus on objects (Basic 2) | actions surfaced inline in panels/tree/toolbars | none |
+| Hotkey customization (TT Hotkeys) | fixed hotkeys + ⌨ list (?, Ctrl+F1) | low |
+| Import dialog duplicate-position/memory readout (Predictable) | series summary + warnings before import | low |
+| AI dialog round Reset/Recall-data buttons (AI numbering) | per-step resets + re-run AI job | low |
+| 3D inset thumbnail while scrolling EASY axial (EASY pano) | axial-position popup (gauge + slice/mm) | none |
+| Two-pane delete-patients/datasets dialog (TT Deleting Patient Data) | inline start-screen deletes (patient + per-case) with cascade confirms | low |
+| 3D-in-2D shaded implant rendering toggle (Basic 2) | symbolic outline + tooth tags (the video recommends keeping it off) | low |
+| Editable scan-date field in patient verify (EXPERT new case) | DICOM study date captured and shown with the dataset | none |
+| Orientation-marker icon skins / Rudolph easter egg (Basic 2) | text direction indicator (stage-2 residual family) | none |
