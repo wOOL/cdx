@@ -16,7 +16,8 @@
 		overlayDraw,
 		onToolPointer,
 		onImageDblClick,
-		overlayDeps
+		overlayDeps,
+		zoomSignal
 	}: {
 		state: PlanningState;
 		plane: Plane;

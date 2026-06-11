@@ -2341,6 +2341,7 @@
 					<div class="view panel" class:cell-max={maximized === 'aax'} class:cell-hidden={maximized && maximized !== 'aax'}>
 						<SliceView
 							state={ps}
+							zoomSignal={zoomSig}
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={alignAxialTool}
@@ -2349,11 +2350,13 @@
 						{@render maxBtn('aax')}
 					</div>
 					<div class="view panel" class:cell-max={maximized === 'acor'} class:cell-hidden={maximized && maximized !== 'acor'}>
-						<SliceView state={ps} plane="coronal" />
+						<SliceView state={ps}
+							zoomSignal={zoomSig} plane="coronal" />
 						{@render maxBtn('acor')}
 					</div>
 					<div class="view panel" class:cell-max={maximized === 'asag'} class:cell-hidden={maximized && maximized !== 'asag'}>
-						<SliceView state={ps} plane="sagittal" />
+						<SliceView state={ps}
+							zoomSignal={zoomSig} plane="sagittal" />
 						{@render maxBtn('asag')}
 					</div>
 				</div>
@@ -2362,6 +2365,7 @@
 					<div class="view panel area-ax" class:cell-max={maximized === 'pax'} class:cell-hidden={maximized && maximized !== 'pax'}>
 						<SliceView
 							state={ps}
+							zoomSignal={zoomSig}
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={axialTool}
@@ -2387,6 +2391,7 @@
 					<div class="view panel" class:cell-max={maximized === 'dax'} class:cell-hidden={maximized && maximized !== 'dax'}>
 						<SliceView
 							state={ps}
+							zoomSignal={zoomSig}
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={axialTool}
