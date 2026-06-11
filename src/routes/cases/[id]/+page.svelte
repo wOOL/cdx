@@ -1852,6 +1852,61 @@
 		if (!showGuideOptions) openGuideOptions();
 	}
 
+	/**
+	 * Bone-reduction simulation ("Execute simulation"): cut the anatomy model
+	 * at the mean bar zTop and save the result as a new "(reduced)" model so
+	 * the post-reduction situation can be inspected in 3D.
+	 */
+	let reductionSimBusy = $state(false);
+	async function simulateReduction() {
+		if (!ps) return;
+		const bars = Array.isArray(guideAdvanced.reductionBars)
+			? (guideAdvanced.reductionBars as { zTop: number }[])
+			: [];
+		if (!bars.length) {
+			alert('Add bone-reduction bars first (Bars from implants or Design options).');
+			return;
+		}
+		const bone =
+			ps.models.find((m) => m.id === guideBaseId) ??
+			ps.models.find((m) => m.kind === 'segmentation' && m.visible) ??
+			ps.models.find((m) => m.kind === 'segmentation');
+		if (!bone) {
+			alert('No segmentation/bone model to simulate on.');
+			return;
+		}
+		const zTop = bars.reduce((a, b) => a + b.zTop, 0) / bars.length;
+		// mandible: reduction removes bone ABOVE the profile; maxilla: below
+		const maxilla = data.plan.jaw === 'maxilla';
+		reductionSimBusy = true;
+		try {
+			const res = await fetch(`/api/models/${bone.id}/edit`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					ops: [
+						maxilla
+							? { op: 'planeCut', axis: { x: 0, y: 0, z: -1 }, d: -zTop }
+							: { op: 'planeCut', axis: { x: 0, y: 0, z: 1 }, d: zTop }
+					],
+					saveAsCopy: true,
+					name: `${bone.name} (reduced)`
+				})
+			});
+			const b = await res.json().catch(() => null);
+			if (!res.ok) {
+				alert(b?.message ?? 'Reduction simulation failed');
+				return;
+			}
+			await invalidateAll();
+			alert(
+				`Reduction simulated at z = ${zTop.toFixed(1)} mm — see the new "${bone.name} (reduced)" model in the object tree (close the rim with the Mesh Editor's Close holes if needed).`
+			);
+		} finally {
+			reductionSimBusy = false;
+		}
+	}
+
 	async function openGuideOptions() {
 		if (!guideRecipes.length) {
 			try {
@@ -4180,6 +4235,14 @@
 							onclick={proposeReductionBars}
 						>
 							Bars from implants
+						</button>
+						<button
+							class="btn"
+							disabled={reductionSimBusy}
+							title="Execute the bone-reduction simulation: cuts the anatomy model at the bar profile height and saves the post-reduction situation as a new model"
+							onclick={simulateReduction}
+						>
+							{reductionSimBusy ? 'Simulating…' : 'Simulate reduction'}
 						</button>
 						<button
 							class="btn"

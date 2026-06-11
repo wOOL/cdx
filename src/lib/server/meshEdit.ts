@@ -94,6 +94,7 @@ export type MeshEditOpName =
 	| 'invert'
 	| 'erase'
 	| 'marginCut'
+	| 'planeCut'
 	| 'combine';
 
 export interface MeshEditOp {
@@ -122,6 +123,8 @@ export interface MeshEditOp {
 	/** marginCut */
 	points?: Vec3[];
 	keep?: 'inside' | 'outside';
+	/** planeCut: keep the half-space dot(p, axis) <= d (axis defaults to +z) */
+	d?: number;
 	/** combine */
 	modelId?: number;
 }
@@ -970,6 +973,56 @@ function opInvert(positions: Float32Array): MeshEditResult {
 	return { positions: out, report: { op: 'invert', triangles: out.length / 9 } };
 }
 
+/**
+ * Half-space cut: keep geometry with dot(p, n) <= d. Triangles crossing the
+ * plane are midpoint-subdivided twice and kept per sub-centroid — the cut
+ * edge is accurate to ~1/4 triangle size and the rim is left open (close it
+ * with fillHoles if a watertight result is needed).
+ */
+function opPlaneCut(positions: Float32Array, axis: Vec3, d: number): MeshEditResult {
+	const len = Math.hypot(axis.x, axis.y, axis.z) || 1;
+	const n = { x: axis.x / len, y: axis.y / len, z: axis.z / len };
+	const side = (x: number, y: number, z: number) => x * n.x + y * n.y + z * n.z - d;
+	const out: number[] = [];
+	const emit = (t: number[], depthLeft: number) => {
+		const s = [
+			side(t[0], t[1], t[2]),
+			side(t[3], t[4], t[5]),
+			side(t[6], t[7], t[8])
+		];
+		if (s.every((v) => v <= 0)) {
+			out.push(...t);
+			return;
+		}
+		if (s.every((v) => v > 0)) return;
+		if (depthLeft === 0) {
+			const cs = side(
+				(t[0] + t[3] + t[6]) / 3,
+				(t[1] + t[4] + t[7]) / 3,
+				(t[2] + t[5] + t[8]) / 3
+			);
+			if (cs <= 0) out.push(...t);
+			return;
+		}
+		// midpoint 4-way split
+		const m01 = [(t[0] + t[3]) / 2, (t[1] + t[4]) / 2, (t[2] + t[5]) / 2];
+		const m12 = [(t[3] + t[6]) / 2, (t[4] + t[7]) / 2, (t[5] + t[8]) / 2];
+		const m20 = [(t[6] + t[0]) / 2, (t[7] + t[1]) / 2, (t[8] + t[2]) / 2];
+		emit([t[0], t[1], t[2], ...m01, ...m20], depthLeft - 1);
+		emit([...m01, t[3], t[4], t[5], ...m12], depthLeft - 1);
+		emit([...m20, ...m12, t[6], t[7], t[8]], depthLeft - 1);
+		emit([...m01, ...m12, ...m20], depthLeft - 1);
+	};
+	for (let i = 0; i + 8 < positions.length; i += 9) {
+		emit([...positions.subarray(i, i + 9)], 2);
+	}
+	if (out.length === 0) throw new Error('Plane cut removed the entire mesh');
+	return {
+		positions: Float32Array.from(out),
+		report: { op: 'planeCut', triangles: out.length / 9 }
+	};
+}
+
 function opErase(
 	positions: Float32Array,
 	center: Vec3,
@@ -1216,6 +1269,9 @@ export function applyMeshEdit(
 		case 'marginCut':
 			if (!op.points || !op.keep) throw new Error('marginCut requires points and keep side');
 			return opMarginCut(positions, op.points, op.keep);
+		case 'planeCut':
+			if (!Number.isFinite(op.d)) throw new Error('planeCut requires plane offset d');
+			return opPlaneCut(positions, op.axis ?? { x: 0, y: 0, z: 1 }, op.d!);
 		case 'combine':
 			if (op.modelId == null) throw new Error('combine requires modelId');
 			return opCombine(positions, op.modelId, ctx);
