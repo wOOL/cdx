@@ -159,6 +159,11 @@ The SQLite database and all case files live in the data directory (`CDX_DATA_DIR
 default `./data`); back it up as a whole. The directory is portable — moving it to a new
 server preserves every case, plan and setting.
 
+**Optional AI segmentation backend.** Set `CDX_AISEG_URL`, `CDX_AISEG_EMAIL` and
+`CDX_AISEG_PASSWORD` in the server environment to enable the external CBCT segmentation model
+(chapter 6.4). When unset, *AI segmentation* falls back to the built-in local heuristic. The
+backend is read from the server process, so set these before starting the server.
+
 > 💡 **Hint**
 > For evaluation, `bun run dev` starts a development server on port 5173 with the same
 > feature set.

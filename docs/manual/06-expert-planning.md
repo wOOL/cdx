@@ -122,6 +122,39 @@ automatic:
 > verification across the whole arch confirms the registration. An inaccurate match degrades
 > every guide built on it.
 
+### Segmentation and AI segmentation
+
+The Align stage also builds 3D anatomy objects from the volume:
+
+- **Create bone model** — thresholds the bone at the shown HU and surfaces it (the base for
+  bone-supported and bone-reduction guides).
+- **Edit segmentation** — the manual mask editor: brush/fill, boundary polylines, slice
+  propagation, undo/redo, volume readout (chapter 7.3 for the auxiliary tools).
+- **AI segmentation** — automatic multi-structure segmentation. One click sends the volume to
+  the segmentation model and returns labelled 3D objects; a review dialog lists them for
+  selective import:
+
+![AI segmentation review dialog](img/ai-segmentation.png)
+
+The model labels the **jawbones** (mandible, maxilla), **every tooth** (named by its FDI
+position, e.g. *AI — Tooth 36*), the **left/right inferior alveolar canals**, the
+**maxillary sinuses**, **pharynx**, and existing **crowns, bridges and implants**. The
+**soft-tissue envelope** is added by the application itself (a tissue-vs-air threshold) — it
+is the one class a model isn't needed for. Empty results are shown struck-through and cannot
+be imported. Imported objects appear in the object tree like any other model and can be made
+the base of a guide, used as nerve references, or hidden.
+
+> ⚠️ **Caution**
+> AI segmentation is a planning aid, not a diagnosis. Verify every imported object against
+> the slices before relying on it — the same rule as automatic nerve detection (6.3). In
+> particular, confirm each canal's course on every slice and check tooth/bone boundaries near
+> restorations and artifacts.
+
+> 💡 **Note — external processing.** When an AI segmentation backend is configured, clicking
+> *AI segmentation* sends the scan volume to that service; the call is explicit and recorded
+> in the audit log. With no backend configured the application falls back to a local
+> threshold-based heuristic, clearly labelled as such.
+
 ## 6.5 Plan surgical treatment
 
 Open the **Implants stage** and click **Add implant** (or double-click the target position

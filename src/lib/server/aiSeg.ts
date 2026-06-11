@@ -28,6 +28,19 @@ import { caseRel, db, resolveData } from '$lib/server/db';
 import { buildMaskMesh, type LodParams } from '$lib/server/segLod';
 import { meshToStlBinary } from '$lib/server/stl';
 import { loadVolume } from '$lib/server/volumeCache';
+import { logAudit } from '$lib/server/db/repo';
+import {
+	getVolume,
+	downsampleStride,
+	downsampleVolume,
+	runVendorInference,
+	labelmapToClassMasks,
+	softTissueMask,
+	maskToStl,
+	toothFdi,
+	CLASS_LEGEND,
+	vendorConfigured
+} from '$lib/server/aiSegVendor';
 import type { Dataset, Model } from '$lib/types';
 
 export const BONE_HU = 300;
@@ -46,10 +59,12 @@ export interface AiSegModel {
 }
 
 export type AiSegStatus = 'idle' | 'running' | 'done' | 'error';
+export type AiSegBackend = 'heuristic' | 'vendor';
 
 interface AiJob {
 	jobId: string;
 	status: AiSegStatus;
+	backend: AiSegBackend;
 	models?: AiSegModel[];
 	error?: string;
 }
@@ -59,31 +74,47 @@ const jobs = new Map<number, AiJob>();
 export function getAiSegState(datasetId: number): {
 	status: AiSegStatus;
 	jobId?: string;
+	backend?: AiSegBackend;
 	models?: AiSegModel[];
 	error?: string;
 } {
 	const j = jobs.get(datasetId);
 	if (!j) return { status: 'idle' };
-	return { status: j.status, jobId: j.jobId, models: j.models, error: j.error };
+	return { status: j.status, jobId: j.jobId, backend: j.backend, models: j.models, error: j.error };
+}
+
+/** Vendor backend when CDX_AISEG_EMAIL+PASSWORD are set, else the heuristic. */
+export function selectBackend(): AiSegBackend {
+	return vendorConfigured() ? 'vendor' : 'heuristic';
 }
 
 /**
  * Kick off (or join) the segmentation job for a dataset. If a job is already
  * running its jobId is returned instead of starting a second one.
+ *
+ * Backend is chosen by env: 'vendor' (real model) when CDX_AISEG_* creds are
+ * set, otherwise the offline 'heuristic'. Both write the same model-row set and
+ * report through the identical {status, models} contract.
  */
-export function startAiSegmentation(ds: Dataset): { jobId: string } {
+export function startAiSegmentation(
+	ds: Dataset,
+	user: { email: string } | null = null
+): { jobId: string } {
 	const existing = jobs.get(ds.id);
 	if (existing?.status === 'running') return { jobId: existing.jobId };
 	const jobId = crypto.randomUUID().slice(0, 8);
-	jobs.set(ds.id, { jobId, status: 'running' });
+	const backend = selectBackend();
+	jobs.set(ds.id, { jobId, status: 'running', backend });
 	void (async () => {
 		try {
-			const models = await segmentDataset(ds);
-			jobs.set(ds.id, { jobId, status: 'done', models });
+			const models =
+				backend === 'vendor' ? await segmentDatasetVendor(ds, user) : await segmentDataset(ds);
+			jobs.set(ds.id, { jobId, status: 'done', backend, models });
 		} catch (e) {
 			jobs.set(ds.id, {
 				jobId,
 				status: 'error',
+				backend,
 				error: e instanceof Error ? e.message : 'AI segmentation failed'
 			});
 		}
@@ -318,5 +349,110 @@ async function segmentDataset(ds: Dataset): Promise<AiSegModel[]> {
 			ok: triangles > 0
 		});
 	}
+	return out;
+}
+
+// ---------------------------------------------------------------------------
+// Vendor backend (real model — see aiSegVendor.ts)
+// ---------------------------------------------------------------------------
+
+/** Human model-row name for a vendor class. */
+function vendorModelName(cls: string, fdi: number | null): string {
+	if (cls === 'Lower Jawbone') return 'AI — Mandible';
+	if (cls === 'Upper Jawbone') return 'AI — Maxilla';
+	if (cls === 'Left Inferior Alveolar Canal') return 'AI — L inferior alveolar canal';
+	if (cls === 'Right Inferior Alveolar Canal') return 'AI — R inferior alveolar canal';
+	if (fdi != null) return `AI — Tooth ${fdi}`;
+	return `AI — ${cls}`;
+}
+
+function rgbToHex([r, g, b]: [number, number, number]): string {
+	const h = (n: number) => n.toString(16).padStart(2, '0');
+	return `#${h(r)}${h(g)}${h(b)}`;
+}
+
+/**
+ * Vendor pipeline: getVolume → runVendorInference → labelmapToClassMasks →
+ * per-class model rows (+ local soft tissue). Rows are written for every class
+ * with >0 triangles; on any failure all rows/files written so far are removed
+ * so the case is never left with a half-written model set.
+ */
+async function segmentDatasetVendor(
+	ds: Dataset,
+	user: { email: string } | null
+): Promise<AiSegModel[]> {
+	const vol = await getVolume(ds);
+	// downsampled grid the vendor masks live on (same stride runVendorInference uses)
+	const dsVol = downsampleVolume(vol, downsampleStride(vol.dims));
+
+	const result = await runVendorInference(vol);
+	const masks = labelmapToClassMasks(result.labelmap, result.dims);
+
+	// optional local soft-tissue envelope (vendor does not segment soft tissue)
+	const soft = softTissueMask(dsVol, masks.values());
+
+	const written: number[] = [];
+	const out: AiSegModel[] = [];
+	try {
+		const entries: [string, Uint8Array][] = [...masks.entries()];
+		if (soft) entries.push(['__soft__', soft]);
+
+		for (const [cls, mask] of entries) {
+			const isSoft = cls === '__soft__';
+			const fdi = isSoft ? null : toothFdi(cls);
+			const name = isSoft ? 'AI — Soft tissue' : vendorModelName(cls, fdi);
+			const color = isSoft ? '#d98c7a' : rgbToHex(CLASS_LEGEND[cls]);
+			const { stlBytes, triangles } = maskToStl(mask, result.dims, result.spacing, name);
+
+			const rel = join(caseRel(ds.case_id), `ai_vendor_${crypto.randomUUID().slice(0, 8)}.stl`);
+			await Bun.write(resolveData(rel), stlBytes);
+			const model = db
+				.query(
+					`INSERT INTO models (case_id, name, kind, file_path, color, params)
+					 VALUES (?1, ?2, 'segmentation', ?3, ?4, ?5) RETURNING *`
+				)
+				.get(
+					ds.case_id,
+					name,
+					rel,
+					color,
+					JSON.stringify({
+						ai: true,
+						vendor: true,
+						class: isSoft ? 'soft' : cls,
+						fdi: fdi ?? undefined,
+						local: isSoft || undefined,
+						dataset_id: ds.id
+					})
+				) as Model;
+			written.push(model.id);
+			out.push({
+				id: model.id,
+				name,
+				class: isSoft ? 'soft' : cls,
+				color,
+				triangles,
+				ok: triangles > 0
+			});
+		}
+	} catch (e) {
+		// never leave a half-written model set
+		for (const id of written) {
+			const row = db.query('SELECT file_path FROM models WHERE id = ?1').get(id) as
+				| { file_path: string }
+				| undefined;
+			if (row?.file_path) {
+				try {
+					await Bun.file(resolveData(row.file_path)).delete();
+				} catch {
+					// already gone
+				}
+			}
+			db.query('DELETE FROM models WHERE id = ?1').run(id);
+		}
+		throw e;
+	}
+
+	logAudit(user, 'aiseg.vendor', `dataset:${ds.id}`, `${out.length} classes`);
 	return out;
 }
