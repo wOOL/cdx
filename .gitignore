@@ -30,3 +30,6 @@ vite.config.ts.timestamp-*
 /testdata/synthetic-cbct-large
 /testdata/synthetic-cbct-large.zip
 /testdata/synthetic-cbct
+
+# local guide binary files
+cod_guide

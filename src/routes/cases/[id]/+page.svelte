@@ -3110,6 +3110,17 @@
 					>
 						<Icon name="angle" size={14} /> Abutments…
 					</button>
+					<button
+						class="btn"
+						disabled={ps.implants.length < 2}
+						title="Assign angulated abutments to a group (axis parallelization, All-on-4/6)"
+						onclick={() => (showGroupAbutments = true)}
+					>
+						Group abutments…
+					</button>
+					<button class="btn" title="Place a virtual tooth from the library (prosthetic-driven planning)" onclick={() => (showVirtualTeeth = true)}>
+						<Icon name="tooth" size={14} /> Virtual tooth…
+					</button>
 					{#if outdatedImplants.length}
 						<span
 							class="warn-text"
@@ -3181,17 +3192,7 @@
 							>
 								∥ Parallelize…
 							</button>
-							<button
-								class="btn"
-								title="Assign angulated abutments to a group (axis parallelization, All-on-4/6)"
-								onclick={() => (showGroupAbutments = true)}
-							>
-								Group abutments…
-							</button>
 						{/if}
-						<button class="btn" title="Place a virtual tooth from the library (prosthetic-driven planning)" onclick={() => (showVirtualTeeth = true)}>
-							<Icon name="tooth" size={14} /> Virtual tooth…
-						</button>
 						{#if densityInfo}
 							<span class="muted" title="Mean HU in a {(selectedImplant.diameter / 2 + 1).toFixed(1)} mm cylinder around the implant">
 								bone {densityInfo.mean} HU ({boneClass(densityInfo.mean)})
