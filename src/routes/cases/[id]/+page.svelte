@@ -5319,7 +5319,12 @@
 				caseMeta={{
 					patientName: `${data.patient.last_name ?? ''} ${data.patient.first_name ?? ''}`.trim(),
 					patientId: data.patient.external_id || String(data.patient.id),
-					date: (data.plan.updated_at ?? '').slice(0, 10)
+					date: (data.plan.updated_at ?? '').slice(0, 10),
+					dateOfBirth: data.patient.date_of_birth ?? '',
+					teeth: (ps?.implants ?? [])
+						.map((im) => im.tooth)
+						.filter(Boolean)
+						.join(' ')
 				}}
 				archPoint={(tooth) => {
 					const c = ps?.curve;

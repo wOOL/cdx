@@ -38,7 +38,7 @@
 		/** The case's models (guides are filtered out) for "Guide foundation" / "Add object". */
 		models?: { id: number; name: string; kind: string }[];
 		/** Case metadata for the label preset buttons; section hidden when absent. */
-		caseMeta?: { patientName?: string; patientId?: string; date?: string } | null;
+		caseMeta?: { patientName?: string; patientId?: string; date?: string; dateOfBirth?: string; teeth?: string } | null;
 		/** FDI tooth → axial arch position (mm); the tooth quick-pick is hidden when absent. */
 		archPoint?: ((tooth: string) => { x: number; y: number } | null) | null;
 		onchange: (params: Record<string, unknown>) => void;
@@ -127,7 +127,9 @@
 		[
 			{ name: 'Patient name', value: caseMeta?.patientName ?? '' },
 			{ name: 'Patient ID', value: caseMeta?.patientId ?? '' },
-			{ name: 'Date', value: caseMeta?.date ?? '' }
+			{ name: 'Date', value: caseMeta?.date ?? '' },
+			{ name: 'Date of birth', value: caseMeta?.dateOfBirth ?? '' },
+			{ name: 'Tooth positions', value: caseMeta?.teeth ?? '' }
 		].filter((pr) => pr.value.trim().length > 0)
 	);
 
