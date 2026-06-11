@@ -95,6 +95,16 @@
 		ctx.imageSmoothingQuality = 'high';
 		ctx.drawImage(offscreen, t.ox, t.oy, img.width * t.scaleX, img.height * t.scaleY);
 
+		// axial slice reference line
+		const zy = t.oy + (img.height - 1 - ps.cursor.z + 0.5) * t.scaleY;
+		ctx.strokeStyle = 'rgba(47, 158, 199, 0.4)';
+		ctx.setLineDash([4, 4]);
+		ctx.beginPath();
+		ctx.moveTo(t.ox, zy);
+		ctx.lineTo(t.ox + img.width * t.scaleX, zy);
+		ctx.stroke();
+		ctx.setLineDash([]);
+
 		// cross-section position indicator
 		const cu = ps.crossU / stepMM;
 		const cx = t.ox + (cu + 0.5) * t.scaleX;
@@ -124,6 +134,7 @@
 		void ps.wc;
 		void ps.ww;
 		void ps.crossU;
+		void ps.cursor.z;
 		void overlayDeps;
 		void img;
 		draw();

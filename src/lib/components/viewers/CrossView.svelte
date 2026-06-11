@@ -147,6 +147,15 @@
 		ctx.moveTo(cx, t.oy);
 		ctx.lineTo(cx, t.oy + img.height * t.scaleY);
 		ctx.stroke();
+
+		// axial slice reference line (cyan, like the axial view accent)
+		const zPy = img.height - 1 - ps.cursor.z;
+		const zy = t.oy + (zPy + 0.5) * t.scaleY;
+		ctx.strokeStyle = 'rgba(47, 158, 199, 0.45)';
+		ctx.beginPath();
+		ctx.moveTo(t.ox, zy);
+		ctx.lineTo(t.ox + img.width * t.scaleX, zy);
+		ctx.stroke();
 		ctx.setLineDash([]);
 
 		if (orientation === 'cross') {
@@ -174,6 +183,7 @@
 	$effect(() => {
 		void ps.wc;
 		void ps.ww;
+		void ps.cursor.z;
 		void overlayDeps;
 		void img;
 		draw();

@@ -38,6 +38,8 @@ export interface GuideParams {
 	voxel?: number;
 	/** Extra wall around each sleeve, mm (default 1.6). */
 	mountWall?: number;
+	/** Inspection windows: vertical cylindrical cutouts through the whole guide. */
+	windows?: { x: number; y: number; diameter: number }[];
 }
 
 export interface GuideMesh {
@@ -391,6 +393,29 @@ export function generateGuide(
 					const proj = vx * u.x + vy * u.y + vz * u.z;
 					const dSq = vx * vx + vy * vy + vz * vz - proj * proj;
 					if (dSq <= rSq) grid[row + i] = 0;
+				}
+			}
+		}
+	}
+
+	// 5b. inspection windows: vertical cylindrical cutouts through the full height.
+	for (const w of params?.windows ?? []) {
+		const r = w.diameter / 2;
+		const rSq = r * r;
+		const i0 = Math.max(0, Math.floor((w.x - r - ox) / voxel));
+		const i1 = Math.min(nx - 1, Math.ceil((w.x + r - ox) / voxel));
+		const j0 = Math.max(0, Math.floor((w.y - r - oy) / voxel));
+		const j1 = Math.min(ny - 1, Math.ceil((w.y + r - oy) / voxel));
+		for (let k = 0; k < nz; k++) {
+			const slab = k * nxny;
+			for (let j = j0; j <= j1; j++) {
+				const py = oy + j * voxel;
+				const row = slab + j * nx;
+				for (let i = i0; i <= i1; i++) {
+					const px = ox + i * voxel;
+					const dx = px - w.x;
+					const dy = py - w.y;
+					if (dx * dx + dy * dy <= rSq) grid[row + i] = 0;
 				}
 			}
 		}

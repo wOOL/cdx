@@ -101,6 +101,8 @@
 			: null
 	);
 
+	let modelsVersion = $derived(ps ? JSON.stringify(ps.models) : '');
+
 	// deep snapshot so canvas overlays redraw on any object change
 	let objectsVersion = $derived(
 		ps
@@ -663,9 +665,93 @@
 		matching.lastRms = null;
 	}
 
+	// manual scan drag-alignment on the axial view (left-drag move, Shift+drag rotate)
+	let scanDragMode = $state(false);
+	let scanDragLast: { x: number; y: number } | null = null;
+
+	function translationMat4(dx: number, dy: number, dz: number): number[] {
+		return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, dx, dy, dz, 1];
+	}
+	function rotZAtMat4(ang: number, px: number, py: number): number[] {
+		const c = Math.cos(ang);
+		const s = Math.sin(ang);
+		return [c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, px - c * px + s * py, py - s * px - c * py, 0, 1];
+	}
+
+	function scanAlignTool(e: ToolPointerEvent): boolean {
+		if (!ps || !scanDragMode || ps.locked) return false;
+		const modelId = matching.modelId ?? scanModels[0]?.id;
+		const m = ps.models.find((m) => m.id === modelId);
+		if (!m) return false;
+		const mm = { x: e.px * ps.ds.spacing_x, y: e.py * ps.ds.spacing_y };
+		if (e.type === 'down') {
+			scanDragLast = mm;
+			return true;
+		}
+		if (e.type === 'move' && scanDragLast) {
+			const t = m.transform ?? translationMat4(0, 0, 0);
+			let delta: number[];
+			if (e.native.shiftKey) {
+				delta = rotZAtMat4((mm.x - scanDragLast.x) * 0.02, mm.x, mm.y);
+			} else {
+				delta = translationMat4(mm.x - scanDragLast.x, mm.y - scanDragLast.y, 0);
+			}
+			m.transform = composeMat4(delta, t);
+			scanDragLast = mm;
+			ps.saveModel(m.id);
+			return true;
+		}
+		if (e.type === 'up') {
+			scanDragLast = null;
+			return true;
+		}
+		return false;
+	}
+
+	function alignAxialTool(e: ToolPointerEvent): boolean {
+		if (scanAlignTool(e)) return true;
+		return axialTool(e);
+	}
+
 	// ---------- guide generation ----------
 	let guideParams = $state({ offset: 0.15, thickness: 2.5, regionRadius: 9 });
 	let guideInsertion = $state<'auto' | 'vertical'>('auto');
+	let guideWindows = $state<{ x: number; y: number; z: number; diameter: number }[]>(
+		(() => {
+			try {
+				const s = data.plan.settings ? JSON.parse(data.plan.settings) : {};
+				return Array.isArray(s.guideWindows) ? s.guideWindows : [];
+			} catch {
+				return [];
+			}
+		})()
+	);
+	let windowMode = $state(false);
+	let windowDiameter = $state(5);
+
+	function saveGuideWindows() {
+		let settings: Record<string, unknown> = {};
+		try {
+			settings = data.plan.settings ? JSON.parse(data.plan.settings) : {};
+		} catch {
+			settings = {};
+		}
+		settings.guideWindows = guideWindows;
+		fetch(`/api/plans/${data.plan.id}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ settings })
+		}).catch(() => {});
+	}
+
+	function onGuideMeshClick(e: { modelId: number; scanLocal: Vec3; volumeLocal: Vec3 }) {
+		if (stage === 'guide' && windowMode) {
+			guideWindows.push({ ...e.volumeLocal, diameter: windowDiameter });
+			saveGuideWindows();
+			return;
+		}
+		onScanMeshClick(e);
+	}
 	let guideBusy = $state(false);
 	let guideError = $state('');
 	let guideBaseId = $state<number | null>(null);
@@ -689,7 +775,8 @@
 					modelId: baseId,
 					planId: ps.planId,
 					params: guideParams,
-					insertion: guideInsertion
+					insertion: guideInsertion,
+					windows: guideWindows
 				})
 			});
 			const bodyJson = await res.json().catch(() => null);
@@ -1304,6 +1391,14 @@
 							{matching.busy || 'Refine fit (ICP)'}
 						</button>
 						<button class="btn" onclick={resetMatching}>Reset</button>
+						<button
+							class="btn"
+							class:primary={scanDragMode}
+							title="Drag the scan on the axial view; hold Shift to rotate"
+							onclick={() => (scanDragMode = !scanDragMode)}
+						>
+							{scanDragMode ? 'Dragging scan (Shift = rotate)' : 'Drag scan'}
+						</button>
 						{#if matching.lastRms != null}
 							<span class="muted">fit RMS {matching.lastRms.toFixed(2)} mm</span>
 						{/if}
@@ -1594,6 +1689,42 @@
 							<option value="auto">Along implant axes</option>
 							<option value="vertical">Vertical</option>
 						</select>
+						<div class="tool-sep"></div>
+						<button
+							class="btn"
+							class:primary={windowMode}
+							title="Click the guide or scan in the 3D view to place an inspection window"
+							onclick={() => (windowMode = !windowMode)}
+						>
+							{windowMode ? 'Click 3D to place window…' : `Windows (${guideWindows.length})`}
+						</button>
+						{#if windowMode}
+							<input
+								type="number"
+								min="2"
+								max="10"
+								step="0.5"
+								bind:value={windowDiameter}
+								title="Window diameter (mm)"
+								style="width:58px"
+							/>
+							<button
+								class="btn"
+								disabled={!guideWindows.length}
+								onclick={() => {
+									guideWindows.pop();
+									saveGuideWindows();
+								}}>Undo</button
+							>
+							<button
+								class="btn danger"
+								disabled={!guideWindows.length}
+								onclick={() => {
+									guideWindows.length = 0;
+									saveGuideWindows();
+								}}>Clear</button
+							>
+						{/if}
 						<button class="btn primary" disabled={guideBusy} onclick={generateGuideAction}>
 							<Icon name="guide" size={14} />
 							{guideBusy ? 'Generating…' : 'Generate guide'}
@@ -1626,7 +1757,8 @@
 							state={ps}
 							plane="axial"
 							overlayDraw={axialOverlay}
-							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion, contourTick]}
+							onToolPointer={alignAxialTool}
+							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion, contourTick, modelsVersion]}
 						/>
 					</div>
 					<div class="view panel"><SliceView state={ps} plane="coronal" /></div>
@@ -1648,7 +1780,7 @@
 				</div>
 			{:else}
 				<div class="view-grid grid-2x2">
-					<div class="view panel"><VolumeView state={ps} /></div>
+					<div class="view panel"><VolumeView state={ps} onMeshClick={onGuideMeshClick} /></div>
 					<div class="view panel">
 						<SliceView
 							state={ps}

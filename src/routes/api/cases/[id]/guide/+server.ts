@@ -89,11 +89,22 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	}));
 
 	const p = body.params ?? {};
+	// inspection windows arrive in volume coords — rotate centers into the insertion frame
+	const windows = (Array.isArray(body.windows) ? body.windows : [])
+		.filter((w: { x?: number; y?: number; diameter?: number }) =>
+			Number.isFinite(w?.x) && Number.isFinite(w?.y) && Number(w?.diameter) > 0.5
+		)
+		.map((w: { x: number; y: number; z?: number; diameter: number }) => {
+			const c = applyRot3(R, { x: w.x, y: w.y, z: Number(w.z) || 0 });
+			return { x: c.x, y: c.y, diameter: Math.min(12, Number(w.diameter)) };
+		});
+
 	const guide = generateGuide(rotated, null, rotatedImplants, {
 		offset: Number(p.offset) || 0.15,
 		thickness: Number(p.thickness) || 2.5,
 		regionRadius: Number(p.regionRadius) || 9,
-		voxel: Number(p.voxel) || 0.3
+		voxel: Number(p.voxel) || 0.3,
+		windows
 	});
 	if (guide.triangles === 0) error(400, 'Guide generation produced an empty mesh');
 
