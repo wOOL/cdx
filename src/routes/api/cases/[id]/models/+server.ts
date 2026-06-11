@@ -5,6 +5,7 @@ import { caseDir } from '$lib/server/db';
 import { db } from '$lib/server/db';
 import { getCase } from '$lib/server/db/repo';
 import type { Model } from '$lib/types';
+import { LIMITS, assertSize } from '$lib/server/uploadLimits';
 
 const KINDS = new Set(['scan', 'segmentation', 'guide', 'waxup', 'other']);
 
@@ -17,6 +18,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const form = await request.formData();
 	const file = form.get('file');
 	if (!(file instanceof File)) error(400, 'No file uploaded');
+	assertSize(file, LIMITS.model);
 	const kind = KINDS.has(String(form.get('kind'))) ? String(form.get('kind')) : 'scan';
 	const name = String(form.get('name') || file.name || 'Model');
 

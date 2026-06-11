@@ -2,6 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { getCase } from '$lib/server/db/repo';
+import { LIMITS, assertSize } from '$lib/server/uploadLimits';
 import type { Plan } from '$lib/types';
 
 /** Import a single-plan archive (from /api/plans/[id]/export) as a new plan of this case. */
@@ -13,6 +14,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const form = await request.formData();
 	const file = form.get('file');
 	if (!(file instanceof File)) error(400, 'No plan file uploaded');
+	assertSize(file, LIMITS.plan);
 
 	let payload;
 	try {

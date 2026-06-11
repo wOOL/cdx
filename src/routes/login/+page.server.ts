@@ -1,6 +1,14 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { SESSION_COOKIE, createSession, userCount, verifyUser } from '$lib/server/auth';
+import {
+	SESSION_COOKIE,
+	clearLoginFailures,
+	createSession,
+	loginBlocked,
+	recordLoginFailure,
+	userCount,
+	verifyUser
+} from '$lib/server/auth';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (locals.user) redirect(303, '/');
@@ -8,12 +16,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies, url }) => {
+	default: async ({ request, cookies, url, getClientAddress }) => {
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '');
 		const password = String(form.get('password') ?? '');
+
+		const rateKey = `${getClientAddress()}|${email.trim().toLowerCase()}`;
+		if (loginBlocked(rateKey)) {
+			return fail(429, { error: 'Too many attempts — try again in a few minutes', email });
+		}
+
 		const user = await verifyUser(email, password);
-		if (!user) return fail(400, { error: 'Invalid email or password', email });
+		if (!user) {
+			recordLoginFailure(rateKey);
+			return fail(400, { error: 'Invalid email or password', email });
+		}
+		clearLoginFailures(rateKey);
 
 		const session = createSession(user.id);
 		cookies.set(SESSION_COOKIE, session.token, {

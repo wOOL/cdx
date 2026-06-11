@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { join } from 'node:path';
 import { caseDir, db } from '$lib/server/db';
 import { getCase } from '$lib/server/db/repo';
+import { LIMITS, assertSize } from '$lib/server/uploadLimits';
 
 /** Multipart: file=<png/jpeg>, name=<display name> — stores a snapshot in the patient's image library. */
 export const POST: RequestHandler = async ({ params, request }) => {
@@ -13,6 +14,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const form = await request.formData();
 	const file = form.get('file');
 	if (!(file instanceof File)) error(400, 'No image uploaded');
+	assertSize(file, LIMITS.image);
 	const name = String(form.get('name') || 'Snapshot').slice(0, 80);
 
 	const path = join(caseDir(caseId), `img_${crypto.randomUUID().slice(0, 8)}.png`);

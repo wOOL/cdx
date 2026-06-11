@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { unzipSync } from 'fflate';
+import { LIMITS, assertSize, unzipGuarded } from '$lib/server/uploadLimits';
 import { basename, join } from 'node:path';
 import { caseDir, db } from '$lib/server/db';
 import { createPatient } from '$lib/server/db/repo';
@@ -12,12 +12,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	const file = form.get('file');
 	if (!(file instanceof File)) error(400, 'No archive uploaded');
 
-	let entries: Record<string, Uint8Array>;
-	try {
-		entries = unzipSync(new Uint8Array(await file.arrayBuffer()));
-	} catch {
-		error(400, 'Not a valid zip archive');
-	}
+	assertSize(file, LIMITS.archive);
+	const entries = unzipGuarded(new Uint8Array(await file.arrayBuffer()));
 	const manifestRaw = entries['case.json'];
 	if (!manifestRaw) error(400, 'case.json missing — not a coDiagnostiX Web archive');
 	let manifest;
