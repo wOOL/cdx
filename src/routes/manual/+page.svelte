@@ -196,6 +196,10 @@
 		color: var(--accent-bright);
 	}
 	@media print {
+		:global(.app) {
+			height: auto !important;
+			overflow: visible !important;
+		}
 		.no-print,
 		.appbar {
 			display: none;
