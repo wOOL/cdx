@@ -1,6 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { join } from 'node:path';
+import { unlink } from 'node:fs/promises';
 import { caseDir, db } from '$lib/server/db';
 import { getCase, getPlan, listImplants } from '$lib/server/db/repo';
 import { generateGuide, type GuideImplant } from '$lib/server/guideGen';
@@ -123,6 +124,15 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const stl = meshToStlBinary(guide.positions, 'surgical_guide');
 	const path = join(caseDir(caseId), `guide_${crypto.randomUUID().slice(0, 8)}.stl`);
 	await Bun.write(path, stl);
+
+	// regenerating replaces this plan's previous guide
+	const old = db
+		.query(`SELECT * FROM models WHERE case_id = ?1 AND kind = 'guide' AND plan_id = ?2`)
+		.all(caseId, plan.id) as Model[];
+	for (const o of old) {
+		if (o.file_path) await unlink(o.file_path).catch(() => {});
+		db.query('DELETE FROM models WHERE id = ?1').run(o.id);
+	}
 
 	const guideModel = db
 		.query(

@@ -69,7 +69,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Model scan import wizard shell: Source → Alignment method → Registration object → Corresponding regions → Auto registration → Verify/Finish — partial: toolbar flow; no method/registration-object steps
 - [x] [P1] Corresponding-regions step: alternating clicks on scan & registration object, ≥3 pairs, inline placement rules (far apart, not collinear, teeth/temporary implants)
 - [x] [P1] Coarse alignment from region pairs + ICP surface refinement; regions-only fallback with failure guidance
-- [~] [P1] Verification stage: merged contour overlay in all views + manual drag alignment (left move / right rotate) — partial: axial contours only, no drag alignment
+- [~] [P1] Verification stage: merged contour overlay in all views + manual drag alignment (left move / right rotate) — partial: axial contours + drag/Shift-rotate alignment
 - [~] [P1] Model scan object in tree: visibility, color, rename, delete — partial: no rename or color editing UI
 - [~] [P2] PLY import incl. vertex colors — partial: vertex colors ignored
 - [ ] [P2] Fine Alignment dialog: nudge buttons, numeric step width (mm/°), patient-oriented vs object-oriented frame (shared with implants)
@@ -94,7 +94,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] Panoramic (virtual OPG) view: curved-slab reformat along the panoramic curve
 - [~] [P1] Panoramic scrollbars: right = temporary parallel curve offset (oral/vestibular) + reset-offset button; bottom = position along curve driving cross-sections — partial: position scrub only; no parallel-offset
 - [x] [P1] 3D view: Three.js scene rendering segmentation surfaces + plan objects; orbit via scrollbars/drag
-- [~] [P1] View color coding (axial cyan, cross-sectional red, panoramic green, tangential blue) + 2D reference lines toggle — partial: reference markers yes; no per-view colors
+- [~] [P1] View color coding (axial cyan, cross-sectional red, panoramic green, tangential blue) + 2D reference lines toggle — partial: reference lines in pano/cross; no per-view color titles
 - [~] [P1] View title bars: color label, caption, Reset, Maximize/Restore (+ double-click title, F11) — partial: no maximize/restore
 - [~] [P1] Move and Turn tool (Ctrl+M): pan all views, rotate 3D — partial: pan in slice views only
 - [x] [P1] Localizer tool (Ctrl+L): click centers all views on the 3D point
@@ -251,7 +251,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Export gating: plan must be finalized; guide-export credit decremented with remaining-credit display — partial: approval gate, no credits
 - [ ] [P2] Start options: new vs from-template guide; "With bone support regions"; "With bone reduction (cut profile)"
 - [x] [P2] Base-object selection pre-step (model scan / 3D model / converted guide)
-- [ ] [P2] Inspection windows: click-to-place cylindrical cutouts, per-window height/diameter controls + wheel, unlimited, stability caution
+- [~] [P2] Inspection windows: click-to-place cylindrical cutouts, per-window height/diameter controls + wheel, unlimited, stability caution — partial: click-to-place + diameter; no per-window height
 - [ ] [P2] Label step: multiple embossed text labels, drag anchor, font size/style, confirm check, presets (factory + user)
 - [ ] [P2] Stale-design tracking: warning sign when planning changed after design; production blocked; Edit guide design reopens wizard
 - [ ] [P2] "Use bottom side of dual scan" (mucosa-supported guides)
