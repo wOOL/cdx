@@ -11,6 +11,8 @@
 	import MakeParallel from '$lib/components/MakeParallel.svelte';
 	import DistancePopover from '$lib/components/DistancePopover.svelte';
 	import ImportWizard from '$lib/components/ImportWizard.svelte';
+	import ImplantPicker from '$lib/components/ImplantPicker.svelte';
+	import GuideOptionsPanel from '$lib/components/GuideOptionsPanel.svelte';
 	import AngleBetweenImplants from '$lib/components/AngleBetweenImplants.svelte';
 	import AngleBetweenAbutments from '$lib/components/AngleBetweenAbutments.svelte';
 	import { indexAtLength } from '$lib/curve';
@@ -942,6 +944,61 @@
 	let guideBusy = $state(false);
 	let guideError = $state('');
 	let guideBaseId = $state<number | null>(null);
+	let guideAdvanced = $state<Record<string, unknown>>(
+		(() => {
+			try {
+				const st = data.plan.settings ? JSON.parse(data.plan.settings) : {};
+				return st.guideAdvanced && typeof st.guideAdvanced === 'object' ? st.guideAdvanced : {};
+			} catch {
+				return {};
+			}
+		})()
+	);
+	let guideWarnings = $state<string[]>([]);
+	let guideRecipes = $state<{ key: string; name: string; description: string; params: Record<string, unknown> }[]>([]);
+	let showGuideOptions = $state(false);
+
+	async function openGuideOptions() {
+		if (!guideRecipes.length) {
+			try {
+				const res = await fetch(`/api/cases/${data.caseData.id}/guide`);
+				guideRecipes = (await res.json()).recipes ?? [];
+			} catch {
+				guideRecipes = [];
+			}
+		}
+		showGuideOptions = !showGuideOptions;
+	}
+
+	function saveGuideAdvanced() {
+		let st: Record<string, unknown> = {};
+		try {
+			st = data.plan.settings ? JSON.parse(data.plan.settings) : {};
+		} catch {
+			st = {};
+		}
+		st.guideAdvanced = guideAdvanced;
+		fetch(`/api/plans/${data.plan.id}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ settings: st })
+		}).catch(() => {});
+	}
+
+	async function convertGuideToModel(g: { id: number }) {
+		const res = await fetch(`/api/cases/${data.caseData.id}/guide`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ planId: ps?.planId, convertToModel: true })
+		});
+		const b = await res.json().catch(() => null);
+		if (!res.ok) {
+			alert(b?.message ?? 'Convert failed');
+			return;
+		}
+		void g;
+		await invalidateAll();
+	}
 
 	let guideBases = $derived(
 		ps?.models.filter((m) => m.kind === 'scan' || m.kind === 'segmentation') ?? []
@@ -961,13 +1018,14 @@
 				body: JSON.stringify({
 					modelId: baseId,
 					planId: ps.planId,
-					params: guideParams,
+					params: { ...guideParams, ...guideAdvanced },
 					insertion: guideInsertion,
 					windows: guideWindows
 				})
 			});
 			const bodyJson = await res.json().catch(() => null);
 			if (!res.ok) throw new Error(bodyJson?.message ?? `Guide generation failed (${res.status})`);
+			guideWarnings = bodyJson.warnings ?? [];
 			ps.models.push({
 				id: bodyJson.model.id,
 				name: bodyJson.model.name,
@@ -1157,6 +1215,19 @@
 	// ---------- DICOM upload ----------
 	let uploading = $state(false);
 	let wizardFiles = $state<File[] | null>(null);
+	let showImplantPicker = $state(false);
+	let pickerFavorites = $state<string[]>([]);
+
+	async function openImplantPicker() {
+		try {
+			const res = await fetch('/api/favorites');
+			pickerFavorites = (await res.json()).favorites ?? [];
+		} catch {
+			pickerFavorites = [];
+		}
+		showImplantPicker = true;
+	}
+
 	let nerveDetecting = $state(false);
 	let showAngleDialog = $state(false);
 	let showAbutmentAngles = $state(false);
@@ -2557,6 +2628,10 @@
 								}}>Clear</button
 							>
 						{/if}
+						<button class="btn" class:primary={showGuideOptions} onclick={openGuideOptions}>
+							<Icon name="settings" size={14} /> Design options…
+							{#if guideWarnings.length}<span class="warn-text">({guideWarnings.length}⚠)</span>{/if}
+						</button>
 						<button class="btn primary" disabled={guideBusy} onclick={generateGuideAction}>
 							<Icon name="guide" size={14} />
 							{guideBusy ? 'Generating…' : 'Generate guide'}
@@ -2568,6 +2643,13 @@
 							</span>
 						{/if}
 						{#each guideModels as g (g.id)}
+							<button
+								class="btn"
+								title="Copy this guide as a plain 3D model (stacked-guide base)"
+								onclick={() => convertGuideToModel(g)}
+							>
+								→ model
+							</button>
 							{#if data.plan.approved && !data.plan.guide_stale}
 								<a class="btn" href="/api/models/{g.id}/file?download=1" title="Download STL">
 									<Icon name="export" size={14} /> {g.name}.stl
@@ -2724,6 +2806,68 @@
 	</div>
 {/if}
 
+{#if showGuideOptions && stage === 'guide'}
+	<div class="guide-options-float panel">
+		<div class="panel-header">
+			Guide design options
+			<button class="btn ghost" style="margin-left:auto" onclick={() => (showGuideOptions = false)}>×</button>
+		</div>
+		<div class="guide-options-body">
+			<GuideOptionsPanel
+				params={{ ...guideParams, ...guideAdvanced }}
+				warnings={guideWarnings}
+				recipes={guideRecipes}
+				onchange={(p) => {
+					guideParams.offset = Number(p.offset ?? guideParams.offset);
+					guideParams.thickness = Number(p.thickness ?? guideParams.thickness);
+					guideParams.regionRadius = Number(p.regionRadius ?? guideParams.regionRadius);
+					const { offset, thickness, regionRadius, ...rest } = p;
+					void offset;
+					void thickness;
+					void regionRadius;
+					guideAdvanced = rest;
+					saveGuideAdvanced();
+				}}
+				onrecipe={(key) => {
+					const r = guideRecipes.find((x) => x.key === key);
+					if (!r) return;
+					const { offset, thickness, regionRadius, ...rest } = r.params;
+					if (offset != null) guideParams.offset = Number(offset);
+					if (thickness != null) guideParams.thickness = Number(thickness);
+					if (regionRadius != null) guideParams.regionRadius = Number(regionRadius);
+					guideAdvanced = { ...guideAdvanced, ...rest };
+					saveGuideAdvanced();
+				}}
+			/>
+		</div>
+	</div>
+{/if}
+
+{#if showImplantPicker}
+	<ImplantPicker
+		{notation}
+		favorites={pickerFavorites}
+		onpick={(sel) => {
+			const idx = IMPLANT_LIBRARY.findIndex(
+				(l) => l.manufacturer === sel.line.manufacturer && l.line === sel.line.line
+			);
+			if (idx >= 0) newImplant.lineIndex = idx;
+			newImplant.diameter = sel.diameter;
+			newImplant.length = sel.length;
+			showImplantPicker = false;
+		}}
+		onfavorites={async (next) => {
+			pickerFavorites = next;
+			await fetch('/api/favorites', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ favorites: next })
+			});
+		}}
+		onclose={() => (showImplantPicker = false)}
+	/>
+{/if}
+
 {#if showAngleDialog && ps}
 	<AngleBetweenImplants
 		implants={ps.implants.map((i) => ({
@@ -2874,6 +3018,11 @@
 					{/each}
 				</select>
 			</div>
+			<div style="align-self:end">
+				<button type="button" class="btn" onclick={openImplantPicker}>
+					<Icon name="search" size={14} /> Browse library…
+				</button>
+			</div>
 		</div>
 		<div class="field-row">
 			<div>
@@ -2953,6 +3102,22 @@
 </footer>
 
 <style>
+	.guide-options-float {
+		position: fixed;
+		right: 16px;
+		top: 96px;
+		width: 380px;
+		max-height: calc(100vh - 140px);
+		display: flex;
+		flex-direction: column;
+		z-index: 60;
+		box-shadow: var(--shadow);
+	}
+	.guide-options-body {
+		overflow-y: auto;
+		padding: 10px;
+	}
+
 	.status-ic {
 		margin-left: 4px;
 		font-size: 10px;
