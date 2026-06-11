@@ -40,8 +40,12 @@ original's content images (excluding the page-header logo) and names our counter
 | 83 | CBCT/CT scan guidance | §11.4 | — | done |
 | 84–85 | Licensing matrix | §11.5 (tier matrix) | — (table) | done |
 | 86–88 | Symbols | 12-symbols.md | ui symbol crops (see reconciliation) | done |
+| — (stage 2: 17 training videos) | Video completeness pass — every feature demonstrated in the 17 official training videos audited and documented (see docs/video-coverage/VIDEO_COVERAGE.md): import abort + AI offer (§3.3), EASY guided markers / nerve review (§4.2), crosshair colors (§5.2), in-view PCS rotation + occlusal plane (§6.1), guided markers (§6.2), nerve waypoints/stepping/spin (§6.3), scan auto-/copy-alignment + AI assistant workflow (§6.4), tooth-driven placement + sleeve grouping (§6.5), guide parity bundle + reduction simulation (§6.6), Mesh Editor (new §6.8), Virtual Planning Export (new §6.9), AI chip symbol (§12) | §3.3–§6.9, §12 | pcs-rotate-preview.png, occlusal-plane.png, pano-guided-markers.png, nerve-point-review.png, ai-review-objects.png, ai-review-pano.png, mesh-editor.png, vpe-format.png, vpe-scanbodies.png | done |
 
 Reconciliation: a full page-by-page audit (every content figure of all 88 pages) was run on
 2026-06-11; the seven topic gaps and four figure gaps it found are closed (see GAPS.md
 "Closed after coverage audit"). Remaining differences are platform adaptations documented in
-GAPS.md (installer/dongle/regulatory-label material, live CAD session) or cosmetic.
+GAPS.md (installer/dongle/regulatory-label material, live CAD session) or cosmetic. A second
+(stage-2) pass against the 17 official training videos was completed the same day — 17/17
+videos closed, reference docs/video-coverage/VIDEO_COVERAGE.md; residual low-severity
+interaction/catalog differences are tabled in GAPS.md.

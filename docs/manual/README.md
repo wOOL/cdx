@@ -11,7 +11,7 @@ either find their way. Rendered in-app at `/manual` (F1 → "Open the full manua
 | [3. Basic principles](03-basics.md) | Getting acquainted, start screen, DICOM import |
 | [4. EASY mode](04-easy-mode.md) | Guided workflow rail, step-by-step case planning |
 | [5. EXPERT mode: user interface](05-expert-ui.md) | Stage bar, toolbar, views, object tree, plans |
-| [6. EXPERT mode: step-by-step](06-expert-planning.md) | PCS, panoramic curve, nerves, scan matching, treatment planning, guide design, protocols |
+| [6. EXPERT mode: step-by-step](06-expert-planning.md) | PCS, panoramic curve, nerves, scan matching, AI assistant, treatment planning, guide design, protocols, mesh editor, virtual planning export |
 | [7. Optional functionalities](07-optional.md) | Periodontal charting, lab connection, measurements |
 | [8. Safety checks](08-safety.md) | Verification checklist, distance checks, accuracy |
 | [9. Maintenance](09-maintenance.md) | Backups, updates, audit log |

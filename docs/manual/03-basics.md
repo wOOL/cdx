@@ -51,13 +51,18 @@ right of the header.
 ![Data stage with import dropzone](img/data-stage-empty.png)
 
 4. **Drop the DICOM files** (or a ZIP) onto the dropzone, or click it to browse. Model scans
-   (`.stl` / `.ply`) can be dropped the same way at any time.
+   (`.stl` / `.ply` / `.obj`) can be dropped the same way at any time; right after a scan
+   import the application asks how to align it to the volume (chapter 6.4).
 5. For full control over the import, use **Advanced import…** instead. The wizard analyzes
    the files first and lets you select the slice range, inspect the gray-value histogram,
    restrict the region, correct gantry tilt and anonymize the dataset permanently via an
    alias:
 
 ![Advanced DICOM import wizard](img/import-wizard.png)
+
+   While the wizard imports, **Abort import** stops the run. Nothing is stored until the
+   import completes — an aborted import leaves no partial dataset behind, so you can simply
+   correct the selection and start again.
 
 6. After import, the dataset appears as a card in the Data stage with its dimensions, voxel
    spacing and processing status; from here it can be locked against changes or deleted:
@@ -68,6 +73,10 @@ right of the header.
    EASY). If the patient name embedded in the DICOM files does not match the patient record,
    a **Verify patient data** notice asks you to confirm you imported into the correct record
    — the record itself is never overwritten.
+8. After a successful DICOM import the application offers to **provide the dataset to the
+   AI assistant** for automatic segmentation right away (chapter 6.4, *The AI assistant
+   workflow*). The offer notes that the AI assistant is intended for **CBCT** scans —
+   conventional (fan-beam) CT is not supported. You can keep planning while it processes.
 
 > ⚠️ **Caution**
 > You are responsible for the correctness and completeness of all data imported into the

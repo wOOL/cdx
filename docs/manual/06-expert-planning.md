@@ -12,13 +12,41 @@ Open the **Align stage** and click **Align patient axes…**:
 - **Propose automatically** analyzes the bone segmentation, fits the jaw arch and fills in
   yaw / pitch / roll (and proposes a panoramic curve at the same time). Review the values —
   a low-confidence proposal is announced explicitly.
-- Or enter the angles manually: *yaw* rotates in the axial plane, *pitch* in the sagittal,
-  *roll* in the coronal. Use the coronal view to judge roll and the sagittal view for pitch.
+- Or enter the angles manually: *yaw* rotates in the axial plane, *pitch* in the coronal,
+  *roll* in the sagittal (counter-clockwise). Use the coronal view to judge pitch and the
+  sagittal view for roll.
 - The **horizontal 3D cut** checkbox clips the 3D view at the current axial position while
   you align; the **bone threshold** field tunes the 3D bone display ("Setup 3D views").
 - **Apply rotation** resamples the volume permanently and co-rotates everything already
   planned (curve, nerves, implants, measurements). **Reset to default** undoes all applied
   rotations exactly.
+
+### Rotating directly in the views
+
+Instead of typing angles, click **Rotate in views** in the Align toolbar and **drag in any
+slice view** — the slice rotates live under the cursor so you can line the anatomy up by
+eye. Dragging the axial view adjusts the yaw, the coronal view the pitch, and the sagittal
+view the roll. The pending angles are shown in the toolbar while you work; nothing is
+resampled yet:
+
+![In-view rotation with live preview and pending angles](img/pcs-rotate-preview.png)
+
+When the orientation looks right, click **Apply rotation** to resample the volume — or
+**Discard** to drop the pending rotation without any change.
+
+### Occlusal reference plane
+
+For depth-consistent implant planning, set an **occlusal reference plane**: scroll the
+axial view to the occlusal level and click **Occlusal plane** in the Align toolbar. The
+plane is drawn as a dashed yellow line (labelled *occlusal*) in the coronal and sagittal
+views — drag near the line to move it. The toolbar button shows the current height (e.g. *Occlusal 30.6 mm*);
+clicking it again removes the plane. The setting is stored with the plan:
+
+![Occlusal reference plane in the coronal and sagittal views](img/occlusal-plane.png)
+
+While an occlusal plane is set, implants placed through the Add-implant dialog default to a
+clinically plausible depth: **10 mm below** the plane in the mandible, **10 mm above** it
+in the maxilla (chapter 6.5). Drag the implant afterwards to the exact position as usual.
 
 ## 6.2 Panoramic curve
 
@@ -33,6 +61,20 @@ Open the **Panoramic stage**:
 3. The orange line in the panoramic view is the axial reference; while scrolling axial slices
    in EASY mode an orientation popup shows the current position (chapter 4.2).
 
+### Guided markers
+
+**Guided markers** draws the curve from five prompted anatomical points instead of a free
+click sequence. The software asks for each point in turn — **incisal point** (between the
+central incisors), **between canine and first premolar** (patient right, then left) and the
+**tooth-position-8 region** (right, then left) — and assembles the five markers into arch
+order automatically:
+
+![Guided five-marker mode in the Panoramic stage](img/pano-guided-markers.png)
+
+The result is a normal panoramic curve: drag any point to refine it, or switch back to
+*Draw curve* to add points freely. Starting Guided markers replaces an existing curve after
+confirmation.
+
 > 💡 The PCS auto-proposal (6.1) can also propose the curve; accept it and refine points
 > manually where needed.
 
@@ -45,15 +87,30 @@ Open the **Nerve stage** (mandible plans):
 1. **Add right/left nerve** creates the nerve object with its color chip in the toolbar and
    the object tree.
 2. Click the entry point at the mental foramen and the exit at the mandibular foramen
-   (panoramic or cross-section view).
-3. **Automatic detection:** with both seed points placed, click **Auto detect**. The
-   software traces the low-density canal between the seeds and replaces the intermediate
-   points, then reminds you: *"Automatic detection — verify the nerve course manually on
-   every slice."*
-4. **Manual definition:** add further points by clicking in the views; drag existing points
-   to correct them. The point toolbar offers *Center views*, *To slice* (moves the point to
-   the current axial slice), *Swap ↔ next* (fixes point order) and **#** (shows point
-   numbers along the canal). The ⌀ field sets the diameter per point or for the whole nerve.
+   (panoramic, cross-section or axial view). All views center on each point as it is
+   placed, so the next click starts from the right slice.
+3. **Automatic detection:** with both seed points placed, click **Auto detect**. A
+   confirmation summarizes the run first — any markers placed **between** the endpoints are
+   kept and the detection is **routed through them as waypoints**, so a difficult canal can
+   be pinned down at known positions before detecting. The software traces the low-density
+   canal and replaces the markers with the detected path, then reminds you: *"Automatic
+   detection — verify the nerve course manually on every slice."*
+4. **Manual definition:** add further points by clicking in the views — in the
+   cross-section and axial views a click-drag places the point and positions it in one
+   gesture, and existing points are corrected by dragging them directly in any view. While
+   editing, each segment shows its **live length in mm**; labels turn orange above the
+   recommended ~10 mm spacing. The point toolbar offers *Center views*, **◀ Prev point /
+   Next point ▶** (select the neighbouring point and center all views on it — the fastest
+   way to verify the canal point by point), *To slice* (moves the point to the current
+   axial slice), *Swap ↔ next* (fixes point order) and **#** (shows point numbers along the
+   canal). The ⌀ field sets the diameter per point or for the whole nerve.
+5. **Spin the section plane** when the canal is hard to see: the cross-section view header
+   has a spin control (−90° … +90°) that rotates the section around the current position —
+   for example until the canal's dark path becomes visible as a continuous line. The view
+   title shows the spin angle; point editing is disabled while the plane is spun (the view
+   no longer corresponds to the curve frame) — reset the spin to 0° to continue editing:
+
+![Nerve point review with live segment lengths](img/nerve-point-review.png)
 
 > ⚠️ **Caution**
 > Automatic detection cannot guarantee an exact nerve display. Verify the canal on every
@@ -65,8 +122,11 @@ Open the **Nerve stage** (mandible plans):
 
 A matched surface scan is the basis for tooth-supported guides.
 
-1. In the **Data stage**, drop the scan file (`.stl` / `.ply`) onto the dropzone. It appears
-   under *Models* in the object tree.
+1. In the **Data stage**, drop the scan file (`.stl` / `.ply` / `.obj`) onto the dropzone.
+   It appears under *Models* in the object tree, and the software immediately asks how to
+   align it: **Align using AI assistant** (automatic), **align manually** (jumps to the
+   Align stage in point-pair mode), **copy the alignment** from an already-registered scan,
+   or **do not align yet**.
 2. In the **Align stage**, pick the scan in *Match scan* and add **at least three point
    pairs**: click a distinctive spot on the scan in the 3D view, then the same anatomical
    spot in a slice view. **Align** computes the registration; **Refine fit (ICP)** optimizes
@@ -81,8 +141,27 @@ A matched surface scan is the basis for tooth-supported guides.
 
 4. Mesh utilities next to the matching tools: **Check** (degenerate/duplicate triangles,
    open edges), **Repair**, **Smooth** (local, around the last clicked scan point),
-   **Fill holes**, and **Replace…** (swap the mesh file, keeping the alignment — e.g. when
-   the lab delivers a corrected scan).
+   **Fill holes**, **Replace…** (swap the mesh file, keeping the alignment — e.g. when
+   the lab delivers a corrected scan), and **Edit mesh…**, which opens the full Mesh
+   Editor (chapter 6.8) for cleaning, cutting and combining the scan.
+
+### Automatic alignment and copying an alignment
+
+- **Align using AI assistant** registers the scan to the volume in one click: the software
+  matches the scan's occlusal surface against the bone/teeth surface of the CBCT (using the
+  AI tooth segmentation as the target when one has been imported — see *AI segmentation*
+  below) with a coarse-to-fine search. The result is persisted exactly like a
+  manual registration. A low-confidence result is announced explicitly with its RMS and
+  inlier fraction — verify it in the slice views and refine where needed; if no plausible
+  alignment is found, the software says so and point-pair matching remains the fallback.
+- **Copy alignment…** transfers the registration of an already-aligned scan to another scan
+  of the **same situation** — typical for the dual-scan protocol, where the appliance scan
+  was registered first and the second scan of the same geometry must follow it. Pick the
+  source scan when prompted; the target takes over its transform unchanged.
+
+> ⚠️ **Caution**
+> Automatic and copied alignments are conveniences, not guarantees. Check the contour
+> congruency in **all** 2D views afterwards, exactly as after manual matching.
 
 > 💡 **Hint — edentulous patients**
 > When no stable teeth are available as landmarks, place temporary reference objects
@@ -129,7 +208,10 @@ The Align stage also builds 3D anatomy objects from the volume:
 - **Create bone model** — thresholds the bone at the shown HU and surfaces it (the base for
   bone-supported and bone-reduction guides).
 - **Edit segmentation** — the manual mask editor: brush/fill, boundary polylines, slice
-  propagation, undo/redo, volume readout (chapter 7.3 for the auxiliary tools).
+  propagation, undo/redo, volume readout (chapter 7.3 for the auxiliary tools). **Build 3D
+  model** turns the mask into a model and asks for a **segment name** — type your own or
+  use one of the presets (*Mandible, Maxilla, Teeth, Radiographic markers, Bone*), so the
+  object tree stays readable in multi-segment cases.
 - **AI segmentation** — automatic multi-structure segmentation. One click sends the volume to
   the segmentation model and returns labelled 3D objects; a review dialog lists them for
   selective import:
@@ -157,6 +239,49 @@ the base of a guide, used as nerve references, or hidden:
 > in the audit log. With no backend configured the application falls back to a local
 > threshold-based heuristic, clearly labelled as such.
 
+### The AI assistant workflow
+
+The AI assistant runs as a background job, so the complete workflow is: provide the data,
+keep planning, review the results when they arrive.
+
+1. **Provide the data.** Right after a DICOM import the software offers to send the new
+   dataset to the AI assistant (the offer notes that the assistant is intended for **CBCT**
+   scans — conventional fan-beam CT is not supported). Decline and you can still start the
+   job any time with *AI segmentation* in the Align stage.
+2. **Keep working.** While the job runs, an orange **⏳ AI assistant…** chip sits in the
+   status bar — planning is not blocked, and the chip survives a page reload. When the
+   results are in, the chip turns green: **✓ AI results ready — review**. Click it to open
+   the review wizard.
+3. **Review the proposed data.** The wizard walks through the results with a checklist on
+   the left; a step only appears when the AI produced that kind of data:
+
+   ![AI assistant review wizard — 3D objects step](img/ai-review-objects.png)
+
+   - **3D objects** — every proposed object as a toggleable pill plus an **FDI tooth
+     chart** for the per-tooth segmentations, with a 3D preview of the selection. Only
+     checked objects are imported; empty results cannot be selected.
+   - **Patient coordinate system** — the proposed orientation, shown for verification
+     before it is applied (chapter 6.1).
+   - **Panoramic curve** — the detected curve with draggable support points and a live
+     panoramic preview; **Reset curve** returns to the proposal:
+
+   ![AI assistant review wizard — panoramic curve step](img/ai-review-pano.png)
+
+   - **Nerve canal** — the right and left canal as sub-steps. Step through the points with
+     **◀ Previous point / Next point ▶**, drag points to correct them, **New point** adds
+     one, and **Reset** reverts the canal to the original AI proposal.
+   - **Scan alignment** — per-scan verification of the proposed scan-to-volume
+     registration, with overlays on all three planes and an embedded **Fine alignment…**
+     for corrections; **Reset alignment** discards the proposal.
+4. **Import reviewed data** applies everything you accepted in one step. The imported
+   objects appear in the object tree like any other model.
+
+> ⚠️ **Caution**
+> The review wizard exists so that no AI result enters the plan unseen. Walk every step —
+> in particular every nerve-canal point — against the slices before importing, and apply
+> the same verification rules as for automatic nerve detection (6.3) and AI segmentation
+> (above).
+
 ## 6.5 Plan surgical treatment
 
 Open the **Implants stage** and click **Add implant** (or double-click the target position
@@ -165,9 +290,12 @@ in the axial view):
 ![Add-implant dialog](img/implant-dialog.png)
 
 - Pick the tooth position on the dental chart (FDI or Universal numbering per Settings),
-  the implant system and the dimensions. **Browse library…** opens the searchable catalog —
-  filter by manufacturer, diameter, length, type (implants, fixation pins, endodontic
-  drills), region; star entries as favorites:
+  the implant system and the dimensions. Below the selection the dialog shows the exact
+  **article and platform** of the chosen configuration (e.g. *article BLT ⌀4.1 × 10 mm ·
+  platform RC*) together with the total length, so the catalog entry can be verified before
+  placing. **Browse library…** opens the searchable catalog — filter by manufacturer,
+  diameter, length, type (implants, fixation pins, endodontic drills), region; star entries
+  as favorites:
 
 ![Implant library picker](img/implant-picker.png)
 
@@ -176,9 +304,17 @@ in the axial view):
 > the root-canal treatment itself is not guide-supported. Plan the access trajectory
 > accordingly (the endodontic entries in the library carry the same note).
 
-- The implant is placed at the cross-section position. **Drag** the body to move it, drag
-  the **head/apex handles** to angle it, ▲/▼ to step the depth; the toolbar shows the bone
-  density (HU with class) along the implant:
+> ⚠️ **Caution**
+> Refer to the implant manufacturer's instructions for use for specific indications and
+> contraindications. The dialog repeats this caution with every placement.
+
+- **Place implant** sets the implant at the **arch position of the chosen tooth**: the
+  software locates the tooth along the panoramic curve and the cross views jump there, so
+  picking a tooth on the chart is enough to land in the right region (a double-click in
+  the axial view places at the clicked position instead). With an occlusal reference plane
+  set (6.1), the depth defaults to 10 mm below/above the plane per jaw. **Drag** the body
+  to move it, drag the **head/apex handles** to angle it, ▲/▼ to step the depth; the
+  toolbar shows the bone density (HU with class) along the implant:
 
 ![Implants stage](img/implant-stage.png)
 
@@ -192,9 +328,12 @@ in the axial view):
   listed in the status bar and the report repeats every active warning.
 
 **Sleeves** — in the **Sleeves stage**, assign a sleeve to every implant (the guide
-generator only builds drill channels for sleeved implants). Sleeve diameter/height and the
-drill-stop offset follow the selected system; custom systems with their negative geometry
-are defined under `/sleeves`:
+generator only builds drill channels for sleeved implants). The sleeve-system list is
+grouped by suitability for the planned implant: **Recommended (manufacturer)** lists the
+systems matching the implant's manufacturer first, **Open sleeve systems** the rest —
+*Assign sleeves to all* prefers the manufacturer-matched system automatically. Sleeve
+diameter/height and the drill-stop offset follow the selected system; custom systems with
+their negative geometry are defined under `/sleeves`:
 
 ![Sleeves stage](img/sleeve-stage.png)
 
@@ -212,18 +351,33 @@ Open the **Guide stage**:
 
 ![Guide stage with design options](img/guide-stage.png)
 
-1. Choose the **base model** (matched scan, or bone segmentation for bone-supported guides;
-   for mucosa-supported guides pass the dual-scan bottom side as the intaglio surface in
-   *Design options*).
+1. Choose the **base model** (matched scan, or bone segmentation for bone-supported guides).
+   For mucosa-supported guides, the **Guide foundation** select in *Design options* swaps
+   the seating surface: instead of the base model's own surface, the guide is built on the
+   **intaglio (bottom) surface** of another case model — typically the matched radiographic
+   template or denture from the dual-scan protocol (6.4).
 2. Set **offset** (scan-to-guide gap), **wall thickness**, **support radius** and the
-   **insertion direction** (along implant axes or vertical).
+   **insertion direction** — along the implant axes, vertical, or **Use view direction**:
+   rotate the 3D view until you look along the intended path of insertion (the occlusal
+   "look for the path" check) and click the button to take exactly that viewing direction
+   as the seating axis. A direction too far from vertical is rejected with a hint.
 3. **Design options…** holds the advanced features: recipe presets (standard, endodontic,
-   apicoectomy, sinus lift, stacked, transplant evaluation), embossed **label**, **bone
+   apicoectomy, sinus lift, stacked, transplant evaluation), the **label**, **bone
    support regions**, free-hand **contact polygons**, **bone reduction bars**, large
    connectors and the sleeve-mount hole shape (cylindrical or press-fit). **Windows** places
    inspection openings by clicking the guide in the 3D view — keep them small and away from
    sleeve mounts: an opening must never compromise the stability of the guide or the
    accuracy of drilling (the design rules warn when a window overlaps a mount).
+   - **Add object (merge into guide)** merges selected case models — e.g. the denture STL
+     of a dual-scan case — into the generated guide body. Drill corridors and inspection
+     windows are cut **through the merged geometry** as well, so the tool paths stay open.
+   - The **label** identifies the guide on the printed part: type free text or click one of
+     the **presets** built from the case (patient name, patient ID, date), position it with
+     the X/Y fields, and set **text height** and **relief depth**. The *Embossed* checkbox
+     switches between raised lettering and **impressed** (engraved) lettering.
+   - **Support regions** can be added numerically, by clicking the FDI **tooth quick-pick**
+     (a support circle drops at that tooth's position along the arch), or directly in 3D —
+     see below.
 4. **Generate guide** builds the body and lists **design-rule warnings** (thin walls,
    sleeves too close, label outside the footprint, bars crossing drill channels…). Resolve
    or consciously accept each warning.
@@ -233,6 +387,24 @@ Open the **Guide stage**:
    applies a printer calibration profile from `/sleeves`:
 
 ![Producer export dialog](img/producer-export.png)
+
+### Supports, contact areas and footprint preview
+
+Three Guide-stage tools shape where the guide touches the anatomy — use them before
+generating:
+
+- **Add support (3D)** — click directly on the model in the 3D view to drop a
+  support/connection circle at that spot (the radius is adjustable in the toolbar). This is
+  the natural way to set the manual connection points of a dual-scan guide; each click adds
+  one circle, and the circles remain editable as support regions in *Design options*.
+- **Draw contact area** — collect a free-hand polygon on the **axial view**: click the
+  outline point by point (live preview), then **Finish area** to store it. The polygon
+  becomes a contact area of the guide — material is kept there even where the standard
+  rules would not place any.
+- **Cut profile** — toggles a preview of the planned **guide footprint** as an outline on
+  the axial view, computed from the implant positions, connectors, supports and contact
+  areas. Check the footprint *before* generating: if the outline misses an area you need,
+  add supports or contact areas first and re-check, instead of iterating full generations.
 
 ### Bone reduction profile
 
@@ -252,6 +424,13 @@ carry a **bone reduction profile**:
    rules (a bar crossing a drill channel raises a warning):
 
 ![Bone reduction bars proposed from the implant positions](img/reduction-bars.png)
+
+5. **Simulate reduction** previews the surgical outcome before any guide is produced: the
+   bone model is cut at the reduction-bar profile height and the post-reduction situation
+   is saved as a new **"(reduced)"** model in the object tree. Inspect it in the 3D view to
+   judge the planned bone level — the original bone model is untouched, and the simulated
+   model can be deleted like any other (if the cut leaves an open rim, close it with the
+   Mesh Editor's *Close holes*, chapter 6.8).
 
 The same profile principle serves further interventions: **apicoectomy** (cut window at the
 root apex), **sinus-lift** lateral access profiles, **gingivectomy** levels and the
@@ -320,3 +499,81 @@ classes and guided drill lengths, active **safety warnings**, the nerve list, im
 > Printouts are documentation, not diagnostic images, and drawings are not to scale.
 > The protocol repeats every active safety-distance warning — resolve them before surgery
 > or document why they are acceptable.
+
+## 6.8 The Mesh Editor
+
+Imported scans are not always production-ready: loose debris from the scanner, holes,
+oversized rims, an appliance and its bite key in one file. The **Mesh Editor** is a
+dedicated window for this clean-up work. Open it from the **Align stage** — select the
+model under *Match scan* and click **Edit mesh…** in the mesh utilities:
+
+![Mesh Editor with the function list and 3D preview](img/mesh-editor.png)
+
+The function list on the left is ordered the way a mesh is typically worked, top-down;
+each entry shows a short help text and its parameters. The 3D preview fills the rest of
+the window (drag to rotate, wheel to zoom, *Reset view* to recenter); functions that need
+a position are driven by clicking the mesh directly.
+
+| Function | What it does |
+|----------|--------------|
+| **Part detection** | *Detect all parts* lists every connected part with its triangle/point count; selecting an entry highlights it in 3D. *Delete selected part*, *Delete all but the selected part* or *Delete all but largest part* remove loose debris in one action. |
+| **Close holes** | *Detect holes* lists every hole with edge count and circumference. Close **all** holes, close all **without the largest** (keeps the intentional opening of an intraoral scan), or close one **selected** hole. |
+| **Bridge boundaries** | Click the mesh near two open boundaries (A, then B), then *Bridge boundaries* connects them with a strip of triangles — e.g. to join an outer and inner rim before closing the rest. |
+| **Remesh** | Splits long triangles and relaxes the result — around a clicked center with adjustable radius, or the *whole mesh*. |
+| **Reduce** | Decimates the mesh to a target percentage of its triangles (10–95 %) — for oversized scans. |
+| **Invert mesh** | Flips the orientation of every triangle — for scans delivered inside-out. |
+| **Wax knife** | Click the mesh to work it locally: *Smooth*, *Remove* or *Add* material, with strengths **A–D** and adjustable radius — the digital counterpart of waxing a model. |
+| **Eraser** | Click to delete the triangles around the point (adjustable radius); **deep erase** cuts through the full thickness instead of only the front surface. |
+| **Cut along margin line** | Click point by point along a margin on the mesh, then *Cut — keep inside* / *keep outside*, or **Cut — split into two models**: the kept side stays in the editor, the other side is saved as a new model of the case (e.g. separating an appliance from its bite key). |
+| **Combine** | Merges another model of the case into this mesh, alignment-aware (both meshes keep their registered position). |
+
+Editing is non-destructive until you say otherwise:
+
+- **Undo / Redo** are exact for every operation — the editor replays the recorded operation
+  list deterministically, and previews never modify the stored mesh.
+- The footer shows the live **point and triangle counts** and the number of edits.
+- **Save as copy** stores the result as a **new** model and leaves the original untouched.
+- **Apply** overwrites the edited model; the first Apply keeps a one-time backup of the
+  original file (`.orig`), so the untouched scan is never lost.
+- **Cancel** discards all edits.
+
+> 💡 The Mesh Editor works on the case's model scans and 3D models. For quick fixes
+> (check/repair/smooth/fill holes) the inline mesh utilities of the Align stage (6.4) are
+> often enough; the editor is for everything beyond that.
+
+## 6.9 Virtual Planning Export
+
+**Virtual Planning Export** hands the planning over to CAD/CAM software: it exports a model
+scan or segmentation together with the planned implant positions — for example to design
+the temporary restoration before surgery. Open it from the **plan menu → Virtual Planning
+Export…**; a four-step wizard collects the options:
+
+![Virtual Planning Export — export format](img/vpe-format.png)
+
+1. **Export format** — STL. (The desktop product's proprietary CARES format is shown but
+   not applicable to the web edition.)
+2. **Source & mode** — pick the geometry to export: any **model scan / 3D model** or any
+   **segmentation** of the case. Then choose the mode:
+   - **Untouched export** — the selected model as-is, optionally with scanbodies added.
+   - **Insert implant analogs** — generates a closed model from the selected geometry and
+     inserts **implant analogs** at every included planned position, ready for physical
+     model printing.
+3. **Tooth positions & scanbodies** — one row per planned implant. Per position, choose to
+   **exclude** it, export on **implant level** (scanbody on the implant platform) or on
+   **abutment level** (scanbody on the abutment). *Add scanbody* opens the scanbody catalog
+   **filtered to the implant's platform**, so only geometrically compatible scanbodies are
+   offered; positions without compatible entries — fixation pins, for example — show *"No
+   scanbodies available"*. The footer counts the included positions:
+
+![Virtual Planning Export — tooth positions and scanbodies](img/vpe-scanbodies.png)
+
+4. **Preview & export** — a 3D preview of every part that will be written. Choose the
+   **export coordinate system**: *Patient / volume coordinates* (default), or the **frame
+   of any scan** — the geometry is then re-expressed in that scan's own coordinate system
+   (the inverse of its registration), which is what CAD/CAM software expects when it should
+   continue working on the original scan file. Finally pick **Single file** (one combined
+   STL) or **Multi-file** (a zip with one STL per part) and click **Export**.
+
+> 💡 Scanbodies and analogs are placed from the planned implant data — any change to the
+> implants after the export is **not** contained in the exported file; export again after
+> replanning.

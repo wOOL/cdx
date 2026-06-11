@@ -16,6 +16,7 @@ Symbols used throughout the application — examples as they appear in the UI:
 | *approved* | Plan is finalized; guide export unlocked. Revoking approval re-blocks export. |
 | *Guide outdated* | Planning changed after guide generation; regenerate before export. |
 | ⏳ / ✓ / ⚠ (dataset card) | Dataset processing status: running / ready / failed. |
+| ⏳ *AI assistant…* / ✓ *AI results ready* (status bar) | AI assistant job status: orange while processing (planning continues), green when results await review — click to open the review wizard (chapter 6.4). |
 | 👁 | Toggle object visibility in the views. |
 | 🗑 | Delete object (confirmation required where destructive). |
 | ⭐ | Favorite implant line in the library picker. |

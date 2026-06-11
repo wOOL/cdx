@@ -42,7 +42,7 @@ share the same cursor: clicking in one view moves the crosshair in all of them.
 | Zoom | **Ctrl + mouse wheel**, or **Ctrl +/−** on the keyboard (applies to all 2D views together). |
 | Reset zoom & pan | **Ctrl + 0**. |
 | Pan | Drag with the **middle** mouse button. |
-| Crosshair / reference lines | *Crosshair* checkbox in the View panel toggles the reference lines in all 2D views. |
+| Crosshair / reference lines | *Crosshair* checkbox in the View panel toggles the reference lines in all 2D views. Each line carries the color of the plane it represents — **axial blue, coronal green, sagittal red** — so you always know which view will move when you drag it. |
 | Align views to implant | In the Cross-section view header, the ⌖ button aligns the cross/tangential cut to the axis of the selected implant. |
 | Maximize a view | ![maximize](img/ui-max-btn.png) in a view's corner (or **Esc** to restore the grid). |
 | Snapshot & display controls | ![view controls](img/ui-view-controls.png) in the view header: mirror toggle, layout and snapshot. Snapshot saves to the patient's image library; **Alt-click** downloads instead. **F8** captures all visible views as one screen copy. |

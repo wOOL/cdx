@@ -33,7 +33,10 @@ The four main steps are **1. Prepare data**, **2. Implants**, **3. Guide** and *
 ### Step 1: Prepare data
 
 **Import data** — drop the DICOM files onto the dropzone, exactly as described in chapter
-3.3. The rail marks *Import data* as done as soon as a dataset exists.
+3.3. A running import can be stopped with **Abort import** — nothing is stored until the
+import completes. After the import the software offers to hand the dataset to the **AI
+assistant** (CBCT only; chapter 6.4) so segmentation runs while you continue. The rail marks
+*Import data* as done as soon as a dataset exists.
 
 **Align & segment** — verify the patient orientation in the three slice views:
 
@@ -51,8 +54,14 @@ The four main steps are **1. Prepare data**, **2. Implants**, **3. Guide** and *
 
 Click **Draw curve**, then click 5–7 points along the middle of the
 dental arch in the axial view (posterior → anterior → posterior). The panoramic view builds
-live while you place points; drag points to refine. While you scroll through axial slices,
-the **axial-position popup** in the upper right shows where you are in the volume:
+live while you place points; drag points to refine.
+
+If you prefer to be guided, click **Guided markers** instead: the software prompts you
+through **five named anatomical points** — the incisal point between the central incisors,
+between canine and first premolar on the patient's right and left, and the tooth-position-8
+region on the right and left — and assembles them into arch order automatically (chapter
+6.2). While you scroll through axial slices, the **axial-position popup** in the upper right
+shows where you are in the volume:
 
 ![EASY panoramic step](img/easy-pano-view.png)
 
@@ -60,11 +69,18 @@ the **axial-position popup** in the upper right shows where you are in the volum
 
 ![EASY nerve step](img/easy-nerve-view.png)
 
-- *Add right/left nerve*, then click the nerve course in the panoramic or cross-section view.
-- With at least the two foramen points placed, **Auto detect** traces the canal between them
-  and replaces the intermediate points. The software answers with the caution *"Automatic
-  detection — verify the nerve course manually on every slice"* — do exactly that, on every
-  slice, before continuing.
+- *Add right/left nerve*, then click the nerve course in the panoramic, cross-section or
+  axial view. All views center on each freshly placed point, and while you edit, every
+  segment shows its **live length in mm** next to the line — labels turn orange above the
+  recommended ~10 mm point spacing, telling you where another point is needed.
+- With at least the two foramen points placed, **Auto detect** traces the canal between
+  them. A confirmation summarizes what will happen first; any points you placed **between**
+  the endpoints are kept as waypoints and the detected path is routed through them. The
+  software answers with the caution *"Automatic detection — verify the nerve course manually
+  on every slice"* — do exactly that, on every slice, before continuing.
+- Review the result point by point with **◀ Prev point / Next point ▶**: each step selects
+  the neighbouring point and centers all views on it, so you can walk the whole canal
+  without scrolling (chapter 6.3).
 - The per-point ⌀ field adjusts the nerve diameter locally; the toolbar keeps showing
   *"Verify the nerve course manually"* as a permanent reminder.
 
