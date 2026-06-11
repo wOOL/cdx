@@ -110,3 +110,4 @@ deltas, each with a working equivalent. None blocks a user following a video.
 | EASY auto-segmentation live slider (EASY) | live 3D-render threshold slider; bone-model creation takes a numeric HU (lo/hi) | low |
 | Guide-wizard 'From template' start (Enjoy) | Copy-plan dialog (duplicates design settings) + guide recipes | low |
 | Branded implant detail naming in the properties panel (Enjoy) | article · platform · total-length readout; open catalogs (stage-2 family) | low |
+| Merge-dialog FDI chart + in-dialog 3D preview (AI merge) | checkbox list + arch quick-picks; result visible in the 3D view after merge | low |
