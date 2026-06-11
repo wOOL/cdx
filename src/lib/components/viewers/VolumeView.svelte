@@ -2,9 +2,29 @@
 	import { onMount } from 'svelte';
 	import * as THREE from 'three';
 	import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+	import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+	import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
 	import type { PlanningState } from '$lib/client/planning.svelte';
 
-	let { state: ps }: { state: PlanningState } = $props();
+	let {
+		state: ps,
+		onMeshClick
+	}: {
+		state: PlanningState;
+		/** click (not drag) on a surface model: scan-local + volume-local mm coords */
+		onMeshClick?: (e: {
+			modelId: number;
+			scanLocal: { x: number; y: number; z: number };
+			volumeLocal: { x: number; y: number; z: number };
+		}) => void;
+	} = $props();
+
+	/** read vertex positions of a loaded model (scan-local coords) */
+	export function getModelPositions(id: number): Float32Array | null {
+		const mesh = modelMeshes.get(id);
+		const attr = mesh?.geometry?.getAttribute('position');
+		return attr ? (attr.array as Float32Array) : null;
+	}
 
 	let container: HTMLDivElement | undefined = $state();
 	let loading = $state(true);
@@ -63,6 +83,26 @@
 			);
 			mesh.position.copy(center);
 			objGroup.add(mesh);
+
+			if (im.sleeve) {
+				const s = im.sleeve;
+				const sleeveCenter = head
+					.clone()
+					.addScaledVector(axis, -(s.offset + s.height / 2));
+				const sgeo = new THREE.CylinderGeometry(s.diameter / 2, s.diameter / 2, s.height, 24, 1, true);
+				const smat = new THREE.MeshStandardMaterial({
+					color: '#9ab8c8',
+					roughness: 0.3,
+					metalness: 0.8,
+					side: THREE.DoubleSide,
+					transparent: true,
+					opacity: 0.85
+				});
+				const sm = new THREE.Mesh(sgeo, smat);
+				sm.quaternion.copy(mesh.quaternion);
+				sm.position.copy(sleeveCenter);
+				objGroup.add(sm);
+			}
 		}
 
 		for (const n of ps.nerves) {
@@ -89,11 +129,100 @@
 
 	$effect(() => {
 		// rebuild 3D objects when planning objects change
-		void ps.implants.map((i) => [i.x, i.y, i.z, i.ax, i.ay, i.az, i.length, i.diameter, i.visible, i.color]);
+		void ps.implants.map((i) => [
+			i.x, i.y, i.z, i.ax, i.ay, i.az, i.length, i.diameter, i.visible, i.color,
+			i.sleeve?.diameter, i.sleeve?.height, i.sleeve?.offset
+		]);
 		void ps.nerves.map((n) => [n.points.length, n.diameter, n.visible, n.color, n.points.map((p) => p.x + p.y + p.z)]);
 		void ps.selectedImplantId;
 		void ps.warnings;
 		if (sceneReady) rebuildObjects();
+	});
+
+	// ---------- surface models (scans, segmentations, guides) ----------
+	let modelGroup: THREE.Group | null = null;
+	const modelMeshes = new Map<number, THREE.Mesh>();
+
+	async function loadModelMesh(id: number): Promise<void> {
+		if (modelMeshes.has(id) || !modelGroup) return;
+		const placeholder = new THREE.Mesh(); // reserve slot to avoid double-fetch
+		modelMeshes.set(id, placeholder);
+		try {
+			const res = await fetch(`/api/models/${id}/file`);
+			if (!res.ok) throw new Error(`fetch failed ${res.status}`);
+			const fmt = res.headers.get('X-Format') ?? 'stl';
+			const buf = await res.arrayBuffer();
+			let geometry: THREE.BufferGeometry;
+			if (fmt === 'ply') {
+				geometry = new PLYLoader().parse(buf);
+			} else {
+				geometry = new STLLoader().parse(buf);
+			}
+			geometry.computeVertexNormals();
+			const mesh = new THREE.Mesh(
+				geometry,
+				new THREE.MeshStandardMaterial({ roughness: 0.65, metalness: 0.05 })
+			);
+			mesh.matrixAutoUpdate = false;
+			mesh.userData.modelId = id;
+			modelMeshes.set(id, mesh);
+			modelGroup.add(mesh);
+
+			// first-time placement: center the scan on the volume so it is visible
+			const m = ps.models.find((m) => m.id === id);
+			if (m && !m.transform && m.kind === 'scan') {
+				geometry.computeBoundingBox();
+				const bb = geometry.boundingBox!;
+				const cx = (bb.min.x + bb.max.x) / 2;
+				const cy = (bb.min.y + bb.max.y) / 2;
+				const cz = (bb.min.z + bb.max.z) / 2;
+				const t = new THREE.Matrix4().makeTranslation(
+					volHalfExtent.x - cx,
+					volHalfExtent.y - cy,
+					volHalfExtent.z - cz
+				);
+				m.transform = t.toArray();
+				ps.saveModel(id);
+			}
+			syncModels();
+		} catch {
+			modelMeshes.delete(id);
+		}
+	}
+
+	function syncModels() {
+		if (!modelGroup) return;
+		const seen = new Set<number>();
+		for (const m of ps.models) {
+			seen.add(m.id);
+			const mesh = modelMeshes.get(m.id);
+			if (!mesh) {
+				loadModelMesh(m.id);
+				continue;
+			}
+			if (!mesh.geometry || !(mesh.material instanceof THREE.MeshStandardMaterial)) continue;
+			mesh.visible = m.visible;
+			mesh.material.color.set(m.color);
+			mesh.material.transparent = m.opacity < 1;
+			mesh.material.opacity = m.opacity;
+			const arr = m.transform ?? new THREE.Matrix4().identity().toArray();
+			mesh.matrix.fromArray(arr);
+			mesh.matrixWorldNeedsUpdate = true;
+		}
+		// remove deleted models
+		for (const [id, mesh] of modelMeshes) {
+			if (!seen.has(id)) {
+				modelGroup.remove(mesh);
+				mesh.geometry?.dispose();
+				modelMeshes.delete(id);
+			}
+		}
+		redraw?.();
+	}
+
+	$effect(() => {
+		void ps.models.map((m) => [m.id, m.visible, m.color, m.opacity, m.transform]);
+		if (sceneReady) syncModels();
 	});
 
 	$effect(() => {
@@ -264,6 +393,9 @@
 				volHalfExtent = { x: ex, y: ey, z: ez };
 				objGroup = new THREE.Group();
 				group.add(objGroup);
+				modelGroup = new THREE.Group();
+				modelGroup.position.set(-ex, -ey, -ez); // children live in volume-local mm
+				group.add(modelGroup);
 				scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 				const dir = new THREE.DirectionalLight(0xffffff, 1.1);
 				dir.position.set(120, 200, 160);
@@ -280,6 +412,37 @@
 				controls = new OrbitControls(camera, renderer.domElement);
 				controls.enableDamping = true;
 				controls.dampingFactor = 0.12;
+
+				// click-on-model raycast (click = pointer travel < 5px)
+				let downPos: { x: number; y: number } | null = null;
+				renderer.domElement.addEventListener('pointerdown', (e) => {
+					downPos = { x: e.clientX, y: e.clientY };
+				});
+				renderer.domElement.addEventListener('pointerup', (e) => {
+					if (!downPos || !onMeshClick || !renderer || !modelGroup) return;
+					const moved = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y);
+					downPos = null;
+					if (moved > 5) return;
+					const rect = renderer.domElement.getBoundingClientRect();
+					const ndc = new THREE.Vector2(
+						((e.clientX - rect.left) / rect.width) * 2 - 1,
+						-((e.clientY - rect.top) / rect.height) * 2 + 1
+					);
+					const ray = new THREE.Raycaster();
+					ray.setFromCamera(ndc, camera);
+					const meshes = [...modelMeshes.values()].filter((m) => m.geometry && m.visible);
+					const hits = ray.intersectObjects(meshes, false);
+					if (!hits.length) return;
+					const hit = hits[0];
+					const mesh = hit.object as THREE.Mesh;
+					const sl = mesh.worldToLocal(hit.point.clone());
+					const vl = modelGroup.worldToLocal(hit.point.clone());
+					onMeshClick({
+						modelId: mesh.userData.modelId as number,
+						scanLocal: { x: sl.x, y: sl.y, z: sl.z },
+						volumeLocal: { x: vl.x, y: vl.y, z: vl.z }
+					});
+				});
 
 				const draw = () => {
 					if (!renderer || !material) return;
@@ -320,6 +483,7 @@
 				loading = false;
 				sceneReady = true;
 				rebuildObjects();
+				syncModels();
 
 				return () => cancelTick();
 			} catch (e) {

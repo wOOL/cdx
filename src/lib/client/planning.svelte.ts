@@ -1,7 +1,8 @@
-import type { Dataset, Implant, Nerve, Plan } from '$lib/types';
+import type { Dataset, Implant, Model, Nerve, Plan } from '$lib/types';
 import { SliceCache } from './sliceCache';
 import { sampleCurve, type Vec2 } from '$lib/curve';
 import { add, scale, segPolylineDistance, type Vec3 } from '$lib/geometry';
+import type { SleeveSpec } from '$lib/implantLibrary';
 
 export interface WindowPreset {
 	name: string;
@@ -44,6 +45,18 @@ export interface ImplantData {
 	rotation: number;
 	color: string;
 	visible: boolean;
+	sleeve: SleeveSpec | null;
+}
+
+export interface ModelData {
+	id: number;
+	name: string;
+	kind: string;
+	color: string;
+	opacity: number;
+	visible: boolean;
+	/** column-major Mat4 (scan-local mm → volume-local mm) or null = identity */
+	transform: number[] | null;
 }
 
 export interface SafetyWarning {
@@ -88,6 +101,7 @@ export class PlanningState {
 	// objects
 	nerves = $state<NerveData[]>([]);
 	implants = $state<ImplantData[]>([]);
+	models = $state<ModelData[]>([]);
 	activeNerveId = $state<number | null>(null);
 	nerveEditMode = $state(false);
 	selectedImplantId = $state<number | null>(null);
@@ -118,7 +132,13 @@ export class PlanningState {
 		return out;
 	});
 
-	constructor(ds: Dataset, plan: Plan, nerves: Nerve[] = [], implants: Implant[] = []) {
+	constructor(
+		ds: Dataset,
+		plan: Plan,
+		nerves: Nerve[] = [],
+		implants: Implant[] = [],
+		models: Model[] = []
+	) {
 		this.ds = ds;
 		this.planId = plan.id;
 		this.slices = new SliceCache(ds.id);
@@ -154,24 +174,51 @@ export class PlanningState {
 			points: JSON.parse(n.points || '[]'),
 			visible: !!n.visible
 		}));
-		this.implants = implants.map((im) => ({
-			id: im.id,
-			tooth: im.tooth,
-			manufacturer: im.manufacturer,
-			line: im.line,
-			article: im.article,
-			diameter: im.diameter,
-			length: im.length,
-			x: im.x,
-			y: im.y,
-			z: im.z,
-			ax: im.ax,
-			ay: im.ay,
-			az: im.az,
-			rotation: im.rotation,
-			color: im.color,
-			visible: !!im.visible
-		}));
+		this.models = models.map((m) => {
+			let transform: number[] | null = null;
+			try {
+				const t = m.transform ? JSON.parse(m.transform) : null;
+				if (Array.isArray(t) && t.length === 16) transform = t;
+			} catch {
+				// identity
+			}
+			return {
+				id: m.id,
+				name: m.name,
+				kind: m.kind,
+				color: m.color,
+				opacity: m.opacity,
+				visible: !!m.visible,
+				transform
+			};
+		});
+		this.implants = implants.map((im) => {
+			let sleeve: SleeveSpec | null = null;
+			try {
+				if (im.sleeve) sleeve = JSON.parse(im.sleeve);
+			} catch {
+				// none
+			}
+			return {
+				id: im.id,
+				tooth: im.tooth,
+				manufacturer: im.manufacturer,
+				line: im.line,
+				article: im.article,
+				diameter: im.diameter,
+				length: im.length,
+				x: im.x,
+				y: im.y,
+				z: im.z,
+				ax: im.ax,
+				ay: im.ay,
+				az: im.az,
+				rotation: im.rotation,
+				color: im.color,
+				visible: !!im.visible,
+				sleeve
+			};
+		});
 	}
 
 	/** voxel → mm (volume-local, origin at first voxel corner) */
@@ -313,7 +360,7 @@ export class PlanningState {
 		});
 		if (!res.ok) return null;
 		const { implant } = await res.json();
-		const data: ImplantData = { ...body, id: implant.id, rotation: 0, visible: true };
+		const data: ImplantData = { ...body, id: implant.id, rotation: 0, visible: true, sleeve: null };
 		this.implants.push(data);
 		this.selectedImplantId = data.id;
 		return data;
@@ -336,5 +383,52 @@ export class PlanningState {
 		this.implants = this.implants.filter((i) => i.id !== id);
 		if (this.selectedImplantId === id) this.selectedImplantId = null;
 		await fetch(`/api/implants/${id}`, { method: 'DELETE' }).catch(() => {});
+	}
+
+	// ---------- models ----------
+	async uploadModel(file: File, kind: string): Promise<ModelData | null> {
+		const caseId = this.ds.case_id;
+		const form = new FormData();
+		form.append('file', file);
+		form.append('kind', kind);
+		form.append('name', file.name.replace(/\.(stl|ply|obj)$/i, ''));
+		const res = await fetch(`/api/cases/${caseId}/models`, { method: 'POST', body: form });
+		if (!res.ok) return null;
+		const { model } = await res.json();
+		const data: ModelData = {
+			id: model.id,
+			name: model.name,
+			kind: model.kind,
+			color: model.color,
+			opacity: model.opacity,
+			visible: true,
+			transform: null
+		};
+		this.models.push(data);
+		return data;
+	}
+
+	saveModel(id: number) {
+		const m = this.models.find((m) => m.id === id);
+		if (!m) return;
+		const payload = {
+			name: m.name,
+			color: m.color,
+			opacity: m.opacity,
+			visible: m.visible,
+			transform: m.transform
+		};
+		this.debounced(`model:${id}`, () => {
+			fetch(`/api/models/${id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload)
+			}).catch(() => {});
+		});
+	}
+
+	async deleteModel(id: number) {
+		this.models = this.models.filter((m) => m.id !== id);
+		await fetch(`/api/models/${id}`, { method: 'DELETE' }).catch(() => {});
 	}
 }

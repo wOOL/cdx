@@ -19,9 +19,15 @@
 		FDI_LOWER,
 		FDI_UPPER,
 		IMPLANT_LIBRARY,
+		SLEEVE_SYSTEMS,
 		articleName,
+		defaultSleeve,
+		drillLength,
 		implantColor
 	} from '$lib/implantLibrary';
+	import { composeMat4, icp, kabsch } from '$lib/registration';
+	import { extractSurfacePoints } from '$lib/client/icpTargets';
+	import type { Vec3 } from '$lib/geometry';
 
 	let { data } = $props();
 
@@ -42,7 +48,7 @@
 	let stage = $state<StageKey>('data');
 	let ps = $derived(
 		data.datasets[0]
-			? new PlanningState(data.datasets[0], data.plan, data.nerves, data.implants)
+			? new PlanningState(data.datasets[0], data.plan, data.nerves, data.implants, data.models)
 			: null
 	);
 
@@ -233,6 +239,140 @@
 
 	let selectedImplant = $derived(ps?.implants.find((i) => i.id === ps?.selectedImplantId) ?? null);
 
+	// ---------- scan matching (align stage) ----------
+	let alignVolView = $state<ReturnType<typeof VolumeView>>();
+	let matching = $state<{
+		modelId: number | null;
+		mode: 'idle' | 'pick-scan' | 'pick-volume';
+		pairs: { scan: Vec3; vol?: Vec3 }[];
+		busy: string;
+		lastRms: number | null;
+	}>({ modelId: null, mode: 'idle', pairs: [], busy: '', lastRms: null });
+
+	let scanModels = $derived(ps?.models.filter((m) => m.kind === 'scan') ?? []);
+	let completePairs = $derived(matching.pairs.filter((p) => p.vol));
+
+	function onScanMeshClick(e: { modelId: number; scanLocal: Vec3; volumeLocal: Vec3 }) {
+		if (matching.mode !== 'pick-scan') return;
+		if (matching.modelId == null) matching.modelId = e.modelId;
+		if (e.modelId !== matching.modelId) return;
+		matching.pairs.push({ scan: e.scanLocal });
+		matching.mode = 'pick-volume';
+	}
+
+	let cursorBaseline = '';
+	$effect(() => {
+		if (!ps) return;
+		const key = `${ps.cursor.x},${ps.cursor.y},${ps.cursor.z}`;
+		if (matching.mode === 'pick-volume') {
+			if (cursorBaseline === '') {
+				cursorBaseline = key;
+				return;
+			}
+			if (key !== cursorBaseline) {
+				const pair = matching.pairs[matching.pairs.length - 1];
+				if (pair && !pair.vol) pair.vol = ps.toMM(ps.cursor);
+				matching.mode = 'idle';
+				cursorBaseline = '';
+			}
+		} else {
+			cursorBaseline = '';
+		}
+	});
+
+	function computeAlignment() {
+		if (!ps || matching.modelId == null || completePairs.length < 3) return;
+		const m = ps.models.find((m) => m.id === matching.modelId);
+		if (!m) return;
+		m.transform = kabsch(
+			completePairs.map((p) => p.scan),
+			completePairs.map((p) => p.vol!)
+		);
+		ps.saveModel(m.id);
+		matching.lastRms = null;
+	}
+
+	async function refineICP() {
+		if (!ps || matching.modelId == null || !alignVolView) return;
+		const m = ps.models.find((m) => m.id === matching.modelId);
+		if (!m || !m.transform) return;
+		matching.busy = 'Extracting bone surface…';
+		try {
+			const targets = await extractSurfacePoints(ps.ds, 300);
+			const raw = alignVolView.getModelPositions(m.id);
+			if (!raw || targets.length === 0) return;
+			matching.busy = 'Running ICP…';
+			await new Promise((r) => setTimeout(r, 30)); // let the UI paint
+			const t = m.transform;
+			const stride = Math.max(1, Math.floor(raw.length / 3 / 3000)) * 3;
+			const source: Vec3[] = [];
+			for (let i = 0; i < raw.length; i += stride) {
+				// apply current transform (column-major mat4)
+				const x = raw[i];
+				const y = raw[i + 1];
+				const z = raw[i + 2];
+				source.push({
+					x: t[0] * x + t[4] * y + t[8] * z + t[12],
+					y: t[1] * x + t[5] * y + t[9] * z + t[13],
+					z: t[2] * x + t[6] * y + t[10] * z + t[14]
+				});
+			}
+			// coarse-to-fine: wide gate first, then tight gate to shed outlier pairs
+			const coarse = icp(source, targets, { maxPairDistance: 6, maxIterations: 30 });
+			const refined = source.map((p) => {
+				const t1 = coarse.transform;
+				return {
+					x: t1[0] * p.x + t1[4] * p.y + t1[8] * p.z + t1[12],
+					y: t1[1] * p.x + t1[5] * p.y + t1[9] * p.z + t1[13],
+					z: t1[2] * p.x + t1[6] * p.y + t1[10] * p.z + t1[14]
+				};
+			});
+			const fine = icp(refined, targets, { maxPairDistance: 1.2, maxIterations: 30 });
+			const delta = composeMat4(fine.transform, coarse.transform);
+			m.transform = composeMat4(delta, t);
+			matching.lastRms = isFinite(fine.rms) ? fine.rms : coarse.rms;
+			ps.saveModel(m.id);
+		} finally {
+			matching.busy = '';
+		}
+	}
+
+	function resetMatching() {
+		matching.pairs = [];
+		matching.mode = 'idle';
+		matching.lastRms = null;
+	}
+
+	// ---------- bone segmentation ----------
+	let segThreshold = $state(300);
+	let segBusy = $state(false);
+
+	async function createBoneModel() {
+		if (!ps) return;
+		segBusy = true;
+		try {
+			const res = await fetch(`/api/datasets/${ps.ds.id}/segment`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ threshold: segThreshold })
+			});
+			if (res.ok) {
+				const { model } = await res.json();
+				ps.models.push({
+					id: model.id,
+					name: model.name,
+					kind: model.kind,
+					color: model.color,
+					opacity: model.opacity,
+					visible: true,
+					transform: null
+				});
+			}
+		} finally {
+			segBusy = false;
+		}
+	}
+
 	// ---------- DICOM upload ----------
 	let uploading = $state(false);
 	let uploadError = $state('');
@@ -245,15 +385,37 @@
 		uploading = true;
 		uploadError = '';
 		try {
-			const form = new FormData();
-			for (const f of list) form.append('files', f);
-			const res = await fetch(`/api/cases/${data.caseData.id}/import`, {
-				method: 'POST',
-				body: form
-			});
-			if (!res.ok) {
-				const body = await res.json().catch(() => null);
-				throw new Error(body?.message ?? `Import failed (${res.status})`);
+			// route surface scans (.stl/.ply/.obj) to model import, the rest to DICOM
+			const modelFiles = list.filter((f) => /\.(stl|ply|obj)$/i.test(f.name));
+			const dicomFiles = list.filter((f) => !/\.(stl|ply|obj)$/i.test(f.name));
+
+			for (const f of modelFiles) {
+				if (ps) {
+					const m = await ps.uploadModel(f, 'scan');
+					if (!m) throw new Error(`Model import failed for ${f.name}`);
+				} else {
+					const form = new FormData();
+					form.append('file', f);
+					form.append('kind', 'scan');
+					const res = await fetch(`/api/cases/${data.caseData.id}/models`, {
+						method: 'POST',
+						body: form
+					});
+					if (!res.ok) throw new Error(`Model import failed for ${f.name}`);
+				}
+			}
+
+			if (dicomFiles.length) {
+				const form = new FormData();
+				for (const f of dicomFiles) form.append('files', f);
+				const res = await fetch(`/api/cases/${data.caseData.id}/import`, {
+					method: 'POST',
+					body: form
+				});
+				if (!res.ok) {
+					const body = await res.json().catch(() => null);
+					throw new Error(body?.message ?? `Import failed (${res.status})`);
+				}
 			}
 			await invalidateAll();
 		} catch (e) {
@@ -324,8 +486,28 @@
 			</div>
 			<div class="tree-group">
 				<div class="tree-group-label">Models</div>
-				{#each data.models as m (m.id)}
-					<div class="tree-item"><Icon name="tooth" size={14} /><span>{m.name}</span></div>
+				{#each ps?.models ?? [] as m (m.id)}
+					<div class="tree-item">
+						<span class="dot" style="background:{m.color}"></span>
+						<span class="tree-item-label" title={m.kind}>{m.name}</span>
+						<button
+							class="tree-eye"
+							title="Toggle visibility"
+							onclick={() => {
+								m.visible = !m.visible;
+								ps?.saveModel(m.id);
+							}}
+						>
+							<Icon name={m.visible ? 'eye' : 'eye-off'} size={13} />
+						</button>
+						<button
+							class="tree-eye"
+							title="Delete model"
+							onclick={() => confirm(`Delete model "${m.name}"?`) && ps?.deleteModel(m.id)}
+						>
+							<Icon name="trash" size={13} />
+						</button>
+					</div>
 				{:else}
 					<div class="tree-empty">none</div>
 				{/each}
@@ -443,16 +625,16 @@
 						<p class="muted">Parsing slices and building the volume</p>
 					{:else}
 						<Icon name="import" size={44} />
-						<h3>Import DICOM data</h3>
+						<h3>Import data</h3>
 						<p class="muted">
-							Drop DICOM files (.dcm) or a .zip archive here, or click to browse.<br />
-							CT / CBCT, uncompressed transfer syntax.
+							Drop DICOM files (.dcm / .zip) or model scans (.stl / .ply) here, or click to browse.<br />
+							CT / CBCT with uncompressed transfer syntax; surface scans as STL or PLY.
 						</p>
 					{/if}
 					<input
 						type="file"
 						multiple
-						accept=".dcm,.zip,application/zip,application/dicom"
+						accept=".dcm,.zip,.stl,.ply,.obj,application/zip,application/dicom"
 						bind:this={fileInput}
 						onchange={(e) => e.currentTarget.files && uploadFiles(e.currentTarget.files)}
 						hidden
@@ -510,7 +692,57 @@
 					/>
 					<span class="muted">{ps.panoThickness.toFixed(1)} mm</span>
 				{:else if stage === 'align'}
-					<span class="muted">Multiplanar review — left-click to navigate, right-drag for window/level, wheel to scroll</span>
+					{#if scanModels.length}
+						<span class="muted">Match scan:</span>
+						{#if scanModels.length > 1}
+							<select
+								value={matching.modelId ?? scanModels[0]?.id}
+								onchange={(e) => (matching.modelId = Number(e.currentTarget.value))}
+							>
+								{#each scanModels as m (m.id)}
+									<option value={m.id}>{m.name}</option>
+								{/each}
+							</select>
+						{/if}
+						<button
+							class="btn"
+							class:primary={matching.mode !== 'idle'}
+							onclick={() => {
+								if (matching.modelId == null) matching.modelId = scanModels[0]?.id ?? null;
+								matching.mode = 'pick-scan';
+							}}
+						>
+							{matching.mode === 'pick-scan'
+								? 'Click a point on the scan (3D view)…'
+								: matching.mode === 'pick-volume'
+									? 'Now click the same spot in a slice view…'
+									: `Add point pair (${completePairs.length})`}
+						</button>
+						<button class="btn" disabled={!matching.pairs.length} onclick={() => matching.pairs.pop()}>
+							Undo
+						</button>
+						<button class="btn" disabled={completePairs.length < 3} onclick={computeAlignment}>
+							Align ({completePairs.length}/3)
+						</button>
+						<button
+							class="btn"
+							disabled={!ps.models.find((m) => m.id === matching.modelId)?.transform || !!matching.busy}
+							onclick={refineICP}
+						>
+							{matching.busy || 'Refine fit (ICP)'}
+						</button>
+						<button class="btn" onclick={resetMatching}>Reset</button>
+						{#if matching.lastRms != null}
+							<span class="muted">fit RMS {matching.lastRms.toFixed(2)} mm</span>
+						{/if}
+						<div class="tool-sep"></div>
+					{/if}
+					<label class="inline-label" for="seg-th">Bone HU</label>
+					<input id="seg-th" type="number" step="50" bind:value={segThreshold} style="width:70px" />
+					<button class="btn" disabled={segBusy} onclick={createBoneModel}>
+						<Icon name="volume" size={14} />
+						{segBusy ? 'Segmenting…' : 'Create bone model'}
+					</button>
 				{:else if stage === 'nerve'}
 					<button class="btn" onclick={() => addNerve('right')}>
 						<Icon name="nerve" size={14} /> Add right nerve
@@ -574,6 +806,103 @@
 					{:else if ps.implants.length}
 						<span class="muted">Click an implant in any view to select and drag it; handles tilt the axis</span>
 					{/if}
+				{:else if stage === 'sleeve'}
+					{#if !ps.implants.length}
+						<span class="muted">Place implants first — sleeves are assigned per implant.</span>
+					{:else}
+						<button
+							class="btn"
+							disabled={ps.implants.every((i) => i.sleeve)}
+							onclick={() => {
+								if (!ps) return;
+								for (const im of ps.implants) {
+									if (!im.sleeve) {
+										im.sleeve = defaultSleeve();
+										ps.saveImplant(im.id);
+									}
+								}
+							}}
+						>
+							Assign sleeves to all
+						</button>
+						{#if selectedImplant}
+							<div class="tool-sep"></div>
+							<span><strong>{selectedImplant.tooth ? `Tooth ${selectedImplant.tooth}` : 'Implant'}</strong></span>
+							<select
+								value={selectedImplant.sleeve?.system ?? ''}
+								onchange={(e) => {
+									if (!selectedImplant || !ps) return;
+									const sys = SLEEVE_SYSTEMS.find((s) => s.name === e.currentTarget.value);
+									if (!sys) {
+										selectedImplant.sleeve = null;
+									} else {
+										selectedImplant.sleeve = {
+											system: sys.name,
+											diameter: sys.diameters[0],
+											height: sys.heights[0],
+											offset: sys.offsets[Math.floor(sys.offsets.length / 2)]
+										};
+									}
+									ps.saveImplant(selectedImplant.id);
+								}}
+							>
+								<option value="">No sleeve</option>
+								{#each SLEEVE_SYSTEMS as s (s.name)}
+									<option value={s.name}>{s.name}</option>
+								{/each}
+							</select>
+							{#if selectedImplant.sleeve}
+								{@const sys = SLEEVE_SYSTEMS.find((s) => s.name === selectedImplant?.sleeve?.system)}
+								<select
+									value={selectedImplant.sleeve.diameter}
+									title="Sleeve diameter"
+									onchange={(e) => {
+										if (selectedImplant?.sleeve && ps) {
+											selectedImplant.sleeve.diameter = Number(e.currentTarget.value);
+											ps.saveImplant(selectedImplant.id);
+										}
+									}}
+								>
+									{#each sys?.diameters ?? [] as d (d)}
+										<option value={d}>⌀ {d.toFixed(1)}</option>
+									{/each}
+								</select>
+								<select
+									value={selectedImplant.sleeve.height}
+									title="Sleeve height"
+									onchange={(e) => {
+										if (selectedImplant?.sleeve && ps) {
+											selectedImplant.sleeve.height = Number(e.currentTarget.value);
+											ps.saveImplant(selectedImplant.id);
+										}
+									}}
+								>
+									{#each sys?.heights ?? [] as h (h)}
+										<option value={h}>H {h.toFixed(1)}</option>
+									{/each}
+								</select>
+								<select
+									value={selectedImplant.sleeve.offset}
+									title="Offset (shoulder → sleeve bottom)"
+									onchange={(e) => {
+										if (selectedImplant?.sleeve && ps) {
+											selectedImplant.sleeve.offset = Number(e.currentTarget.value);
+											ps.saveImplant(selectedImplant.id);
+										}
+									}}
+								>
+									{#each sys?.offsets ?? [] as o (o)}
+										<option value={o}>offset {o.toFixed(0)} mm</option>
+									{/each}
+								</select>
+								<span class="muted">
+									drill length {drillLength(selectedImplant.length, selectedImplant.sleeve).toFixed(1)} mm
+								</span>
+							{/if}
+						{:else}
+							<span class="muted">Select an implant in a view or the object tree.</span>
+						{/if}
+					{/if}
 				{:else}
 					<span class="muted">{stages.find((s) => s.key === stage)?.label} tools coming soon</span>
 				{/if}
@@ -581,7 +910,9 @@
 
 			{#if stage === 'align'}
 				<div class="view-grid grid-2x2">
-					<div class="view panel"><VolumeView state={ps} /></div>
+					<div class="view panel">
+						<VolumeView state={ps} bind:this={alignVolView} onMeshClick={onScanMeshClick} />
+					</div>
 					<div class="view panel"><SliceView state={ps} plane="axial" overlayDraw={curveOverlay} overlayDeps={[ps.curveControl, ps.crossU]} /></div>
 					<div class="view panel"><SliceView state={ps} plane="coronal" /></div>
 					<div class="view panel"><SliceView state={ps} plane="sagittal" /></div>

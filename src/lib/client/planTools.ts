@@ -66,6 +66,44 @@ function implantApex(im: ImplantData): Vec3 {
 	};
 }
 
+/** sleeve bottom/top 3D positions (above the implant head, against the axis) */
+export function sleeveEnds(im: ImplantData): { bottom: Vec3; top: Vec3 } | null {
+	if (!im.sleeve) return null;
+	const s = im.sleeve;
+	return {
+		bottom: { x: im.x - im.ax * s.offset, y: im.y - im.ay * s.offset, z: im.z - im.az * s.offset },
+		top: {
+			x: im.x - im.ax * (s.offset + s.height),
+			y: im.y - im.ay * (s.offset + s.height),
+			z: im.z - im.az * (s.offset + s.height)
+		}
+	};
+}
+
+function drawSleeveGlyph(
+	ctx: CanvasRenderingContext2D,
+	bottom: { x: number; y: number },
+	top: { x: number; y: number },
+	halfWidthPx: number,
+	selected: boolean
+) {
+	const dx = top.x - bottom.x;
+	const dy = top.y - bottom.y;
+	const len = Math.hypot(dx, dy) || 1;
+	const nx = -dy / len;
+	const ny = dx / len;
+	ctx.strokeStyle = selected ? '#bfe2f2' : '#9ab8c8';
+	ctx.lineWidth = selected ? 2 : 1.4;
+	ctx.beginPath();
+	// two walls + caps
+	ctx.moveTo(bottom.x + nx * halfWidthPx, bottom.y + ny * halfWidthPx);
+	ctx.lineTo(top.x + nx * halfWidthPx, top.y + ny * halfWidthPx);
+	ctx.lineTo(top.x - nx * halfWidthPx, top.y - ny * halfWidthPx);
+	ctx.lineTo(bottom.x - nx * halfWidthPx, bottom.y - ny * halfWidthPx);
+	ctx.closePath();
+	ctx.stroke();
+}
+
 function warningIds(ps: PlanningState): Set<number> {
 	const ids = new Set<number>();
 	for (const w of ps.warnings) {
@@ -146,6 +184,20 @@ export function drawPanoOverlay(
 			ps.selectedImplantId === im.id,
 			warns.has(im.id)
 		);
+		const se = sleeveEnds(im);
+		if (se && im.sleeve) {
+			const b = ps.toPano(se.bottom);
+			const tp = ps.toPano(se.top);
+			if (b && tp) {
+				drawSleeveGlyph(
+					ctx,
+					map.toCanvas(b.u, b.zmm),
+					map.toCanvas(tp.u, tp.zmm),
+					(im.sleeve.diameter / 2) * map.pxPerMMx,
+					ps.selectedImplantId === im.id
+				);
+			}
+		}
 	}
 }
 
@@ -390,6 +442,18 @@ export function drawCrossOverlay(
 			ps.selectedImplantId === im.id,
 			warns.has(im.id)
 		);
+		const se = sleeveEnds(im);
+		if (se && im.sleeve) {
+			const b = projectToSection(frame, se.bottom);
+			const tp = projectToSection(frame, se.top);
+			drawSleeveGlyph(
+				ctx,
+				map.toCanvas(b.w, b.zmm),
+				map.toCanvas(tp.w, tp.zmm),
+				(im.sleeve.diameter / 2) * map.pxPerMMx,
+				ps.selectedImplantId === im.id
+			);
+		}
 		ctx.globalAlpha = 1;
 	}
 }

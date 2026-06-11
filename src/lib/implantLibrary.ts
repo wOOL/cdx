@@ -83,3 +83,39 @@ export function implantColor(index: number): string {
 export function articleName(line: ImplantLine, d: number, l: number): string {
 	return `${line.line} ⌀${d.toFixed(1)} × ${l.toFixed(1)} mm`;
 }
+
+// ---------------- sleeves ----------------
+
+export interface SleeveSystem {
+	name: string;
+	/** outer diameter options (mm) */
+	diameters: number[];
+	/** sleeve height options (mm) */
+	heights: number[];
+	/** shoulder-to-sleeve-bottom offset options (mm), coDiagnostiX H-positions */
+	offsets: number[];
+	wall: number;
+}
+
+export const SLEEVE_SYSTEMS: SleeveSystem[] = [
+	{ name: 'Straumann T-Sleeve', diameters: [5.0, 6.0], heights: [5.0], offsets: [2, 4, 6], wall: 0.55 },
+	{ name: 'Generic sleeve', diameters: [4.0, 5.0, 6.0], heights: [4.0, 5.0, 6.0], offsets: [2, 3, 4, 5, 6, 7, 8], wall: 0.5 },
+	{ name: 'Pilot drill sleeve', diameters: [2.8, 3.5], heights: [4.0, 6.0], offsets: [2, 4, 6, 8], wall: 0.4 }
+];
+
+export interface SleeveSpec {
+	system: string;
+	diameter: number;
+	height: number;
+	offset: number;
+}
+
+export function defaultSleeve(): SleeveSpec {
+	const s = SLEEVE_SYSTEMS[1];
+	return { system: s.name, diameter: 5.0, height: 5.0, offset: 4 };
+}
+
+/** total drill length from sleeve top to implant apex */
+export function drillLength(implantLength: number, sleeve: SleeveSpec): number {
+	return implantLength + sleeve.offset + sleeve.height;
+}
