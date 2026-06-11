@@ -412,6 +412,47 @@
 		matching.lastRms = null;
 	}
 
+	// ---------- guide generation ----------
+	let guideParams = $state({ offset: 0.15, thickness: 2.5, regionRadius: 9 });
+	let guideBusy = $state(false);
+	let guideError = $state('');
+	let guideBaseId = $state<number | null>(null);
+
+	let guideBases = $derived(
+		ps?.models.filter((m) => m.kind === 'scan' || m.kind === 'segmentation') ?? []
+	);
+	let guideModels = $derived(ps?.models.filter((m) => m.kind === 'guide') ?? []);
+
+	async function generateGuideAction() {
+		if (!ps) return;
+		const baseId = guideBaseId ?? guideBases[0]?.id;
+		if (!baseId) return;
+		guideBusy = true;
+		guideError = '';
+		try {
+			const res = await fetch(`/api/cases/${data.caseData.id}/guide`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ modelId: baseId, planId: ps.planId, params: guideParams })
+			});
+			const bodyJson = await res.json().catch(() => null);
+			if (!res.ok) throw new Error(bodyJson?.message ?? `Guide generation failed (${res.status})`);
+			ps.models.push({
+				id: bodyJson.model.id,
+				name: bodyJson.model.name,
+				kind: 'guide',
+				color: bodyJson.model.color,
+				opacity: bodyJson.model.opacity,
+				visible: true,
+				transform: null
+			});
+		} catch (e) {
+			guideError = e instanceof Error ? e.message : 'Guide generation failed';
+		} finally {
+			guideBusy = false;
+		}
+	}
+
 	// ---------- bone segmentation ----------
 	let segThreshold = $state(300);
 	let segBusy = $state(false);
@@ -1062,6 +1103,65 @@
 						{:else}
 							<span class="muted">Select an implant in a view or the object tree.</span>
 						{/if}
+					{/if}
+				{:else if stage === 'guide'}
+					{#if !ps.implants.some((i) => i.sleeve)}
+						<span class="muted">Assign sleeves to your implants first (Sleeves stage).</span>
+					{:else if !guideBases.length}
+						<span class="muted">
+							Import a model scan or create a bone model (Align stage) to base the guide on.
+						</span>
+					{:else}
+						<label class="inline-label" for="guide-base">Base</label>
+						<select
+							id="guide-base"
+							value={guideBaseId ?? guideBases[0]?.id}
+							onchange={(e) => (guideBaseId = Number(e.currentTarget.value))}
+						>
+							{#each guideBases as m (m.id)}
+								<option value={m.id}>{m.name}</option>
+							{/each}
+						</select>
+						<label class="inline-label" for="guide-off">Offset</label>
+						<input
+							id="guide-off"
+							type="number"
+							step="0.05"
+							min="0"
+							max="1"
+							bind:value={guideParams.offset}
+							style="width:64px"
+						/>
+						<label class="inline-label" for="guide-th">Thickness</label>
+						<input
+							id="guide-th"
+							type="number"
+							step="0.5"
+							min="1"
+							max="6"
+							bind:value={guideParams.thickness}
+							style="width:64px"
+						/>
+						<label class="inline-label" for="guide-r">Radius</label>
+						<input
+							id="guide-r"
+							type="number"
+							step="1"
+							min="5"
+							max="20"
+							bind:value={guideParams.regionRadius}
+							style="width:64px"
+						/>
+						<button class="btn primary" disabled={guideBusy} onclick={generateGuideAction}>
+							<Icon name="guide" size={14} />
+							{guideBusy ? 'Generating…' : 'Generate guide'}
+						</button>
+						{#if guideError}<span class="warn-text">{guideError}</span>{/if}
+						{#each guideModels as g (g.id)}
+							<a class="btn" href="/api/models/{g.id}/file?download=1" title="Download STL">
+								<Icon name="export" size={14} /> {g.name}.stl
+							</a>
+						{/each}
 					{/if}
 				{:else}
 					<span class="muted">{stages.find((s) => s.key === stage)?.label} tools coming soon</span>
