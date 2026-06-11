@@ -420,6 +420,35 @@
 			drawMeasurements(ps, ctx, t);
 			if (connectorPreview && stage === 'guide') drawConnectorPreview(ctx, t);
 			if (footprintPreview && stage === 'guide') drawFootprintPreview(ctx, t);
+			if (stage === 'guide' && (contactDraft.length || contactDrawMode)) drawContactDraft(ctx, t);
+		}
+	}
+
+	/** in-progress free-hand contact-area polygon on the axial view */
+	function drawContactDraft(ctx: CanvasRenderingContext2D, t: ViewTransform) {
+		if (!ps || contactDraft.length === 0) return;
+		const sx = ps.ds.spacing_x;
+		const sy = ps.ds.spacing_y;
+		ctx.strokeStyle = 'rgba(240, 200, 60, 0.9)';
+		ctx.fillStyle = 'rgba(240, 200, 60, 0.15)';
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		contactDraft.forEach((p, i) => {
+			const x = t.ox + (p.x / sx + 0.5) * t.scaleX;
+			const y = t.oy + (p.y / sy + 0.5) * t.scaleY;
+			if (i === 0) ctx.moveTo(x, y);
+			else ctx.lineTo(x, y);
+		});
+		if (contactDraft.length >= 3) {
+			ctx.closePath();
+			ctx.fill();
+		}
+		ctx.stroke();
+		for (const p of contactDraft) {
+			ctx.beginPath();
+			ctx.arc(t.ox + (p.x / sx + 0.5) * t.scaleX, t.oy + (p.y / sy + 0.5) * t.scaleY, 3, 0, Math.PI * 2);
+			ctx.fillStyle = 'rgba(240, 200, 60, 0.95)';
+			ctx.fill();
 		}
 	}
 
@@ -486,6 +515,7 @@
 		if (measureAxialTool(ps, e)) return true;
 		if (measureEditTool(ps, e)) return true;
 		if (axialNerveTool(e)) return true;
+		if (contactDrawTool(e)) return true;
 		return curveTool(e);
 	}
 
@@ -1668,7 +1698,45 @@
 			saveGuideWindows();
 			return;
 		}
+		if (stage === 'guide' && supportMode) {
+			// click-dropped support circle (the original's connection points)
+			const regions = Array.isArray(guideAdvanced.supportRegions)
+				? (guideAdvanced.supportRegions as { x: number; y: number; radius: number }[])
+				: [];
+			regions.push({ x: e.volumeLocal.x, y: e.volumeLocal.y, radius: supportRadius });
+			guideAdvanced = { ...guideAdvanced, supportRegions: regions };
+			saveGuideAdvanced();
+			return;
+		}
 		onScanMeshClick(e);
+	}
+	let supportMode = $state(false);
+	let supportRadius = $state(4);
+
+	// free-hand contact-area drawing on the axial view (closed polygon, mm)
+	let contactDrawMode = $state(false);
+	let contactDraft = $state<{ x: number; y: number }[]>([]);
+
+	function contactDrawTool(e: ToolPointerEvent): boolean {
+		if (!ps || stage !== 'guide' || !contactDrawMode || ps.locked) return false;
+		if (e.type === 'down') {
+			contactDraft.push({ x: e.px * ps.ds.spacing_x, y: e.py * ps.ds.spacing_y });
+			return true;
+		}
+		return e.type === 'move' || e.type === 'up' ? false : false;
+	}
+
+	function finishContactArea() {
+		if (contactDraft.length >= 3) {
+			const polys = Array.isArray(guideAdvanced.contactPolygons)
+				? (guideAdvanced.contactPolygons as { x: number; y: number }[][])
+				: [];
+			polys.push([...contactDraft]);
+			guideAdvanced = { ...guideAdvanced, contactPolygons: polys };
+			saveGuideAdvanced();
+		}
+		contactDraft = [];
+		contactDrawMode = false;
 	}
 	let guideBusy = $state(false);
 	let guideError = $state('');
@@ -2090,13 +2158,19 @@
 
 	async function maskBuildModel() {
 		if (!ps) return;
+		// name the segment like the original's segment slots (free text or preset)
+		const name =
+			prompt(
+				'Name for the segmentation model — type your own or use a preset:\nMandible · Maxilla · Teeth · Radiographic markers · Bone',
+				'Mandible'
+			)?.trim() || 'Custom segmentation';
 		segEdit.busy = 'Building model…';
 		try {
 			await flushPaintOps();
 			const res = await fetch(`/api/datasets/${ps.ds.id}/mask/build-model`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name: 'Custom segmentation', ...(segEdit.lodId ? { lodId: segEdit.lodId } : {}) })
+				body: JSON.stringify({ name, ...(segEdit.lodId ? { lodId: segEdit.lodId } : {}) })
 			});
 			if (res.ok) {
 				const { model } = await res.json();
@@ -4123,6 +4197,41 @@
 						>
 							Cut profile
 						</button>
+						<button
+							class="btn"
+							class:primary={supportMode}
+							title="Click on the model in the 3D view to drop extra support/connection circles for the guide"
+							onclick={() => (supportMode = !supportMode)}
+						>
+							{supportMode ? 'Click model to add support' : 'Add support (3D)'}
+						</button>
+						{#if supportMode}
+							<input
+								type="number"
+								min="2"
+								max="10"
+								step="0.5"
+								bind:value={supportRadius}
+								title="Support circle radius (mm)"
+								style="width:56px"
+							/>
+						{/if}
+						<button
+							class="btn"
+							class:primary={contactDrawMode}
+							title="Draw a free-hand contact area: click corner points on the axial view, then Finish"
+							onclick={() => {
+								contactDrawMode = !contactDrawMode;
+								if (!contactDrawMode) contactDraft = [];
+							}}
+						>
+							{contactDrawMode ? 'Drawing contact area…' : 'Draw contact area'}
+						</button>
+						{#if contactDrawMode}
+							<button class="btn primary" disabled={contactDraft.length < 3} onclick={finishContactArea}>
+								Finish area ({contactDraft.length})
+							</button>
+						{/if}
 						<button class="btn" title="Adjust offset/wall thickness for your producer and apply printer calibration" onclick={openProducerExport}>
 							<Icon name="export" size={14} /> Producer export…
 						</button>
