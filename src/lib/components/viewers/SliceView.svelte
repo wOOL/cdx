@@ -2,11 +2,26 @@
 	import type { PlanningState } from '$lib/client/planning.svelte';
 	import type { Plane, Slice } from '$lib/client/sliceCache';
 
+	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
+
 	let {
 		state: ps,
 		plane,
-		label = ''
-	}: { state: PlanningState; plane: Plane; label?: string } = $props();
+		label = '',
+		overlayDraw,
+		onToolPointer,
+		overlayDeps
+	}: {
+		state: PlanningState;
+		plane: Plane;
+		label?: string;
+		/** drawn after image + crosshair; coords via transform (slice px → canvas px) */
+		overlayDraw?: (ctx: CanvasRenderingContext2D, t: ViewTransform) => void;
+		/** return true to consume left-button events (suppresses crosshair placement) */
+		onToolPointer?: (e: ToolPointerEvent) => boolean;
+		/** reactive value(s) the overlay depends on — read in the redraw effect */
+		overlayDeps?: unknown;
+	} = $props();
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 	let container: HTMLDivElement | undefined = $state();
@@ -148,6 +163,8 @@
 			ctx.stroke();
 		}
 
+		overlayDraw?.(ctx, t);
+
 		// overlays
 		ctx.fillStyle = 'rgba(216, 220, 228, 0.85)';
 		ctx.font = '11px Inter, sans-serif';
@@ -211,6 +228,7 @@
 		void panY;
 		void hoverHU;
 		void ps.crosshairVisible;
+		void overlayDeps;
 		scheduleDraw();
 	});
 
@@ -227,13 +245,24 @@
 	});
 
 	// ---------- mouse interaction ----------
-	let dragMode: 'none' | 'cursor' | 'wl' | 'pan' = 'none';
+	let dragMode: 'none' | 'cursor' | 'wl' | 'pan' | 'tool' = 'none';
 	let lastMouse = { x: 0, y: 0 };
+
+	function toolEvent(type: 'down' | 'move' | 'up', e: PointerEvent): boolean {
+		if (!onToolPointer || !lastSlice) return false;
+		const p = canvasToSlice(e.offsetX, e.offsetY);
+		if (!p) return false;
+		return onToolPointer({ type, px: p.px, py: p.py, native: e });
+	}
 
 	function onPointerDown(e: PointerEvent) {
 		canvas?.setPointerCapture(e.pointerId);
 		lastMouse = { x: e.offsetX, y: e.offsetY };
 		if (e.button === 0) {
+			if (toolEvent('down', e)) {
+				dragMode = 'tool';
+				return;
+			}
 			dragMode = 'cursor';
 			applyCursor(e);
 		} else if (e.button === 2) {
@@ -254,7 +283,9 @@
 	function onPointerMove(e: PointerEvent) {
 		const dx = e.offsetX - lastMouse.x;
 		const dy = e.offsetY - lastMouse.y;
-		if (dragMode === 'cursor') {
+		if (dragMode === 'tool') {
+			toolEvent('move', e);
+		} else if (dragMode === 'cursor') {
 			applyCursor(e);
 		} else if (dragMode === 'wl') {
 			ps.ww = Math.max(10, ps.ww + dx * 8);
@@ -280,7 +311,8 @@
 		}
 	}
 
-	function onPointerUp() {
+	function onPointerUp(e: PointerEvent) {
+		if (dragMode === 'tool') toolEvent('up', e);
 		dragMode = 'none';
 	}
 

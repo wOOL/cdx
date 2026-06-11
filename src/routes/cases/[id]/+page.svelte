@@ -3,7 +3,11 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import SliceView from '$lib/components/viewers/SliceView.svelte';
 	import VolumeView from '$lib/components/viewers/VolumeView.svelte';
+	import PanoView from '$lib/components/viewers/PanoView.svelte';
+	import CrossView from '$lib/components/viewers/CrossView.svelte';
 	import { PlanningState, WINDOW_PRESETS } from '$lib/client/planning.svelte';
+	import { indexAtLength } from '$lib/curve';
+	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
 
 	let { data } = $props();
 
@@ -22,12 +26,113 @@
 
 	let hasVolume = $derived(data.datasets.length > 0);
 	let stage = $state<StageKey>('data');
-	let ps = $derived(data.datasets[0] ? new PlanningState(data.datasets[0]) : null);
+	let ps = $derived(data.datasets[0] ? new PlanningState(data.datasets[0], data.plan) : null);
 
 	// move off the data stage automatically once a volume exists
 	$effect(() => {
 		if (hasVolume && stage === 'data') stage = 'pano';
 	});
+
+	// curve drawing only makes sense on the pano stage
+	$effect(() => {
+		if (stage !== 'pano' && ps) ps.curveEditMode = false;
+	});
+
+	// ---------- panoramic curve editing on the axial view ----------
+	let dragPointIndex = -1;
+
+	function curveOverlay(ctx: CanvasRenderingContext2D, t: ViewTransform) {
+		if (!ps) return;
+		const sx = ps.ds.spacing_x;
+		const sy = ps.ds.spacing_y;
+		const toCanvas = (mmx: number, mmy: number) => ({
+			x: t.ox + (mmx / sx + 0.5) * t.scaleX,
+			y: t.oy + (mmy / sy + 0.5) * t.scaleY
+		});
+
+		const c = ps.curve;
+		if (c) {
+			ctx.strokeStyle = 'rgba(69, 184, 224, 0.9)';
+			ctx.lineWidth = 1.5;
+			ctx.beginPath();
+			c.points.forEach((p, i) => {
+				const q = toCanvas(p.x, p.y);
+				if (i === 0) ctx.moveTo(q.x, q.y);
+				else ctx.lineTo(q.x, q.y);
+			});
+			ctx.stroke();
+
+			// cross-section position marker on the curve
+			const ci = indexAtLength(c, ps.crossU);
+			const cp = c.points[ci];
+			const cn = c.normals[ci];
+			const q = toCanvas(cp.x, cp.y);
+			const q2 = toCanvas(cp.x + cn.x * 6, cp.y + cn.y * 6);
+			const q3 = toCanvas(cp.x - cn.x * 6, cp.y - cn.y * 6);
+			ctx.strokeStyle = 'rgba(240, 138, 36, 0.95)';
+			ctx.lineWidth = 1.5;
+			ctx.beginPath();
+			ctx.moveTo(q3.x, q3.y);
+			ctx.lineTo(q2.x, q2.y);
+			ctx.stroke();
+			ctx.fillStyle = 'rgba(240, 138, 36, 0.95)';
+			ctx.beginPath();
+			ctx.arc(q.x, q.y, 3, 0, Math.PI * 2);
+			ctx.fill();
+		}
+
+		for (const p of ps.curveControl) {
+			const q = toCanvas(p.x, p.y);
+			ctx.fillStyle = ps.curveEditMode ? 'rgba(69, 184, 224, 1)' : 'rgba(69, 184, 224, 0.6)';
+			ctx.beginPath();
+			ctx.arc(q.x, q.y, ps.curveEditMode ? 4 : 3, 0, Math.PI * 2);
+			ctx.fill();
+			if (ps.curveEditMode) {
+				ctx.strokeStyle = '#0b0d10';
+				ctx.lineWidth = 1;
+				ctx.stroke();
+			}
+		}
+	}
+
+	function curveTool(e: ToolPointerEvent): boolean {
+		if (!ps || !ps.curveEditMode) return false;
+		const mm = { x: e.px * ps.ds.spacing_x, y: e.py * ps.ds.spacing_y };
+		if (e.type === 'down') {
+			const idx = ps.curveControl.findIndex((p) => Math.hypot(p.x - mm.x, p.y - mm.y) < 2.5);
+			if (idx >= 0) {
+				dragPointIndex = idx;
+			} else {
+				ps.curveControl.push(mm);
+				dragPointIndex = ps.curveControl.length - 1;
+				ps.curveZ = ps.cursor.z;
+			}
+			ps.saveCurve();
+			return true;
+		}
+		if (e.type === 'move' && dragPointIndex >= 0) {
+			ps.curveControl[dragPointIndex] = mm;
+			ps.saveCurve();
+			return true;
+		}
+		if (e.type === 'up') {
+			dragPointIndex = -1;
+			return true;
+		}
+		return false;
+	}
+
+	function undoCurvePoint() {
+		if (!ps) return;
+		ps.curveControl.pop();
+		ps.saveCurve();
+	}
+	function clearCurve() {
+		if (!ps) return;
+		if (ps.curveControl.length && !confirm('Clear the panoramic curve?')) return;
+		ps.curveControl.length = 0;
+		ps.saveCurve();
+	}
 
 	// ---------- DICOM upload ----------
 	let uploading = $state(false);
@@ -244,12 +349,77 @@
 				{/if}
 			</div>
 		{:else}
-			<div class="view-grid">
-				<div class="view panel"><VolumeView state={ps} /></div>
-				<div class="view panel"><SliceView state={ps} plane="axial" /></div>
-				<div class="view panel"><SliceView state={ps} plane="coronal" /></div>
-				<div class="view panel"><SliceView state={ps} plane="sagittal" /></div>
+			<div class="stage-tools">
+				{#if stage === 'pano'}
+					<button
+						class="btn"
+						class:primary={ps.curveEditMode}
+						onclick={() => ps && (ps.curveEditMode = !ps.curveEditMode)}
+					>
+						<Icon name="edit" size={14} />
+						{ps.curveEditMode ? 'Drawing curve — click along the arch' : 'Draw curve'}
+					</button>
+					<button class="btn" disabled={!ps.curveControl.length} onclick={undoCurvePoint}>
+						Undo point
+					</button>
+					<button class="btn danger" disabled={!ps.curveControl.length} onclick={clearCurve}>
+						Clear
+					</button>
+					<div class="tool-sep"></div>
+					<label class="inline-label" for="pano-thickness">Slab</label>
+					<input
+						id="pano-thickness"
+						type="range"
+						min="0"
+						max="8"
+						step="0.5"
+						bind:value={ps.panoThickness}
+						style="width:90px"
+					/>
+					<span class="muted">{ps.panoThickness.toFixed(1)} mm</span>
+				{:else if stage === 'align'}
+					<span class="muted">Multiplanar review — left-click to navigate, right-drag for window/level, wheel to scroll</span>
+				{:else}
+					<span class="muted">{stages.find((s) => s.key === stage)?.label} tools coming soon</span>
+				{/if}
 			</div>
+
+			{#if stage === 'align'}
+				<div class="view-grid grid-2x2">
+					<div class="view panel"><VolumeView state={ps} /></div>
+					<div class="view panel"><SliceView state={ps} plane="axial" overlayDraw={curveOverlay} overlayDeps={[ps.curveControl, ps.crossU]} /></div>
+					<div class="view panel"><SliceView state={ps} plane="coronal" /></div>
+					<div class="view panel"><SliceView state={ps} plane="sagittal" /></div>
+				</div>
+			{:else if stage === 'pano'}
+				<div class="view-grid grid-pano">
+					<div class="view panel area-ax">
+						<SliceView
+							state={ps}
+							plane="axial"
+							overlayDraw={curveOverlay}
+							onToolPointer={curveTool}
+							overlayDeps={[ps.curveControl, ps.curveEditMode, ps.crossU]}
+						/>
+					</div>
+					<div class="view panel area-3d"><VolumeView state={ps} /></div>
+					<div class="view panel area-pano"><PanoView state={ps} /></div>
+				</div>
+			{:else}
+				<div class="view-grid grid-2x2">
+					<div class="view panel"><VolumeView state={ps} /></div>
+					<div class="view panel">
+						<SliceView
+							state={ps}
+							plane="axial"
+							overlayDraw={curveOverlay}
+							overlayDeps={[ps.curveControl, ps.crossU]}
+						/>
+					</div>
+					<div class="view panel"><PanoView state={ps} /></div>
+					<div class="view panel"><CrossView state={ps} /></div>
+				</div>
+			{/if}
 		{/if}
 	</main>
 </div>
@@ -371,6 +541,26 @@
 	.view-area {
 		min-height: 0;
 		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.stage-tools {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 4px 2px;
+		flex: none;
+		min-height: 34px;
+	}
+	.tool-sep {
+		width: 1px;
+		height: 20px;
+		background: var(--border);
+		margin: 0 4px;
+	}
+	.inline-label {
+		display: inline;
+		margin: 0;
 	}
 	.data-stage {
 		flex: 1;
@@ -434,9 +624,28 @@
 	.view-grid {
 		flex: 1;
 		display: grid;
+		gap: 8px;
+		min-height: 0;
+	}
+	.grid-2x2 {
 		grid-template-columns: 1fr 1fr;
 		grid-template-rows: 1fr 1fr;
-		gap: 8px;
+	}
+	.grid-pano {
+		grid-template-columns: 1fr 1fr;
+		grid-template-rows: 3fr 2fr;
+		grid-template-areas:
+			'ax v3d'
+			'pano pano';
+	}
+	.area-ax {
+		grid-area: ax;
+	}
+	.area-3d {
+		grid-area: v3d;
+	}
+	.area-pano {
+		grid-area: pano;
 	}
 	.view {
 		position: relative;
