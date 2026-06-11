@@ -117,7 +117,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P3] View display-mode choosers (pane-config switching: cross-sectional+tangential / +panoramic / only) + toolbar config-cycle button — partial: cross/tangential toggle only; layouts stage-fixed
 - [~] [P3] 3D Setup dialog: per-segmentation visibility/name/color/transparency, Alpha/Beta/Gamma absolute rotation, relative rotation step, move/zoom steps, 6 perspectives, 3D contrast/brightness, threshold edit — partial: threshold + presets only
 - [x] [P3] Interactive grayscale drag tool (up/down = level, left/right = width)
-- [ ] [P3] Smooth animated view transitions (setting, default on)
+- [x] [P3] Smooth animated view transitions (setting, default on)
 - [~] [P3] Image Management: per-patient image library (add file BMP/JPEG/TIFF/DICOM + metadata, select/invert/clear, delete, export with naming & format options) — partial: snapshot library with download/delete; no external upload
 - [x] [P3] Image Viewer: 1/2/4-image layouts, navigation, info display, full screen, pan, 5 zoom levels
 - [x] [P3] Screenshot function (F8) honoring Screenshot settings (filename scheme, storage, notification)
@@ -134,9 +134,9 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] Edit Panoramic Curve dialog (axial view + layer scrollbar, Ctrl+P)
 - [~] [P1] Curve editing: drag points; click along curve to add red extra points; right-click delete extra point; Shift+drag whole curve; reset to initial shape — partial: drag/append/clear only; no insert/delete/shift-drag
 - [x] [P1] Curve regenerates panoramic & cross-sectional views live
-- [ ] [P2] Geometric auto-proposal of PCS + panoramic curve from segmentation (jaw-arch fit)
-- [ ] [P2] PCS dialog extras: horizontal 3D cut toggle + Setup 3D Views (threshold) access
-- [ ] [P3] EASY axial-position popup (upper-right 3D orientation aid while scrolling)
+- [~] [P2] Geometric auto-proposal of PCS + panoramic curve from segmentation (jaw-arch fit) — partial: bone-PCA + polar arch fit in src/lib/server/pcsProposal.ts, POST /api/datasets/[id]/pcs-propose (read-only proposal); case-page apply UI pending
+- [x] [P2] PCS dialog extras: horizontal 3D cut toggle + Setup 3D Views (threshold) access
+- [x] [P3] EASY axial-position popup (upper-right 3D orientation aid while scrolling)
 
 ## 6. Segmentation & 3D Models (SPEC §5)
 
@@ -178,7 +178,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] Angle measurement (3 points, degrees)
 - [x] [P2] Automatic nerve detection between foramen seed points (Detect button in tree, context menu, EASY Auto detect; replaces intermediate points with warning)
 - [~] [P2] Live density readout under cursor while dragging nerve points — partial: hover HU in orthogonal views only
-- [ ] [P2] Nerve point context menu: bring-to-slice, interchange successor/predecessor, show point numbers, center-views-to-point, clickzoom toggle
+- [x] [P2] Nerve point context menu: bring-to-slice, interchange successor/predecessor, show point numbers, center-views-to-point, clickzoom toggle — partial: point toolbar (center/to-slice/swap/numbers); right-click reserved for W/L
 - [x] [P2] Nerve cautions displayed verbatim (verify manually / poor image quality / safety distance)
 - [x] [P2] Continuous distance measurement (polyline, per-segment labels, total in tree)
 - [x] [P2] Auxiliary line object (2 points, no value)
@@ -206,8 +206,8 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] Fixation pins as implants: XX default position, lateral auto-angled placement, pin sleeves
 - [x] [P2] Endodontic drills as implants (straight-path note) 
 - [x] [P2] Make Parallel dialog (implant checkbox list, master vs mean direction, Preview/Reset/confirm)
-- [ ] [P2] Implant Appearance toggles (axes, crestal planes, 3D models in 2D) + 2D implant color + selection box setting
-- [ ] [P2] Tooth-position relabel via header Properties (label-only change)
+- [x] [P2] Implant Appearance toggles (axes, crestal planes, 3D models in 2D) + 2D implant color + selection box setting — partial: 3D-models-in-2D rendered as scaled glyphs, not mesh sections
+- [x] [P2] Tooth-position relabel via header Properties (label-only change) — partial: via Change… dialog (keeps position/axis)
 - [x] [P2] Localizer double-click to add implant at point
 - [~] [P2] Object groups: create dialog (two-list picker + hotkeys), group move modes (none / implants only / all objects), batch visibility/abutments/sleeves — partial: group visibility toggles per object type; no custom groups
 - [~] [P3] Abutments: catalog tab on implant add; Edit Abutments dialog (database/user-defined/none; all-vs-selected prompt) — partial: preset abutments per implant (straight/angled), 2D/3D render, report column
@@ -215,7 +215,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P3] Abutment rotational alignment tab (drag around implant axis)
 - [ ] [P3] User-defined abutment editor (emergence profile + mesostructure, height/Ø per segment, inclination 0–45°, rotation, handles)
 - [ ] [P3] Virtual teeth from library (prosthetic-driven planning)
-- [ ] [P3] Catalog admin: import/update catalog versions, outdated flagging, region availability
+- [x] [P3] Catalog admin: import/update catalog versions, outdated flagging, region availability
 - [ ] [P4] Implant Designer (segment editor or STL import, publish-to-catalog with lock + user icon)
 - [x] [P4] Density-statistics-driven sinus-lift offsets documentation links in panel
 
@@ -249,23 +249,23 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Finish step: review render; guide becomes object-tree object; 2D cross-section rendering (white guide, green sleeve) — partial: no 2D guide cross-section rendering
 - [~] [P1] STL export of final guide (binary STL download; export records audit entry) — partial: no audit entry
 - [~] [P1] Export gating: plan must be finalized; guide-export credit decremented with remaining-credit display — partial: approval gate, no credits
-- [ ] [P2] Start options: new vs from-template guide; "With bone support regions"; "With bone reduction (cut profile)"
+- [x] [P2] Start options: new vs from-template guide; "With bone support regions"; "With bone reduction (cut profile)" — partial: recipes act as templates; bone-support/reduction via options panel
 - [x] [P2] Base-object selection pre-step (model scan / 3D model / converted guide)
 - [~] [P2] Inspection windows: click-to-place cylindrical cutouts, per-window height/diameter controls + wheel, unlimited, stability caution — partial: click-to-place + diameter; no per-window height
 - [x] [P2] Label step: multiple embossed text labels, drag anchor, font size/style, confirm check, presets (factory + user)
 - [x] [P2] Stale-design tracking: warning sign when planning changed after design; production blocked; Edit guide design reopens wizard
-- [ ] [P2] "Use bottom side of dual scan" (mucosa-supported guides)
+- [x] [P2] "Use bottom side of dual scan" (mucosa-supported guides) — partial: intaglioModelId param; pass a second scan in Design options
 - [x] [P2] Design-rule validation warnings: 200×200×100 mm volume, ≥3 support points, bar minimum 4×3 mm
 - [x] [P2] Use-large-connectors option
 - [x] [P3] Bone support regions step: add region, pick segmentation, drag handles; show-sleeves option; persisted segmentation choice
 - [x] [P3] Free-hand drawing tool for contact areas (palatal support, stacked-guide edges)
-- [ ] [P3] Show contact surface order / connector preview toggle
+- [x] [P3] Show contact surface order / connector preview toggle
 - [x] [P3] Cut profile object: panoramic reference points, Add implant base points, offset + angulation params, invert-profile + spline options — partial: bone-reduction bars carry the cut level; no separate profile curve
 - [x] [P3] Bone reduction bars step (Oral/Vestibular checkboxes; width/height/offset per bar)
 - [x] [P3] Sleeve-mount hole shape option (cylindrical vs fit-to-form)
 - [x] [P3] Convert guide → 3D model (stacked-guide base)
 - [x] [P3] Stacked-guide recipe support (unselect pin sleeves, spheres on pin holes, edge drawing) — partial: recipe + convert-to-model base; no sphere-on-pin-hole step
-- [ ] [P3] Producer export dialog: adjust offset/wall thickness at export + calibration-matrix offset application
+- [x] [P3] Producer export dialog: adjust offset/wall thickness at export + calibration-matrix offset application
 - [x] [P4] Endodontic / apicoectomy / sinus-lift guide recipe presets (documentation + default parameter sets)
 - [x] [P4] Tooth auto-transplantation evaluation guide workflow — partial: recipe preset + note; no donor-tooth pairing UI
 
@@ -287,7 +287,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] Mode switching: EASY ↔ EXPERT on same dataset without data loss
 - [x] [P2] EASY temporary measurements mode in implant step
 - [x] [P3] EASY zoom hotkeys (Ctrl +/−/0) + Ctrl-click recent dataset opens in EASY
-- [ ] [P3] Toolbar customization (right-click Adjust, drag in/out, preset reset)
+- [x] [P3] Toolbar customization (right-click Adjust, drag in/out, preset reset) — partial: right-click Adjust + reset on the measure rail; stage bars fixed
 - [ ] [P4] Treatment Evaluation module: study list, scanbody-scan and postop-CT study types, region matching, implant alignment, deviation report + CSV export
 - [ ] [P4] AI assistance integration points (import offer, toolbar button, background jobs, review dialog, status icons)
 
@@ -339,7 +339,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P3] Audit log (finalize, export, share, delete, anonymize events) with viewer UI
 - [x] [P3] Catalog admin UI (upload catalog versions, edit protocol definitions, flag outdated items) — partial: upload/activate/outdated-flag; protocol definitions not editable
 - [ ] [P3] Context-sensitive help system (F1, per-dialog "?" content) + help site
-- [ ] [P4] i18n framework + additional UI locales (DE/FR/IT/NL/HU)
+- [~] [P4] i18n framework + additional UI locales (DE/FR/IT/NL/HU) — partial: runes framework (src/lib/i18n.svelte.ts) + 6 locale tables (~122 keys); login/account consume t() with locale picker on /account; planning workspace adopts strings progressively
 - [x] [P4] Export-credit purchase/management flow (mock billing)
 - [~] [P4] Demo/read-only sandbox mode with bundled sample case — partial: demo case creation; not read-only
 

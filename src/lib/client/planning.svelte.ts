@@ -151,6 +151,8 @@ export class PlanningState {
 	/** last added/dragged nerve point (for the point-diameter editor) */
 	lastNervePoint = $state<{ nerveId: number; index: number } | null>(null);
 	showNervePointNumbers = $state(false);
+	showCrestalPlanes = $state(false);
+	showSelectionBox = $state(true);
 	measureTool = $state<MeasureTool>('none');
 	/** in-progress measurement points (mm) */
 	pendingMeasure = $state<Vec3[]>([]);

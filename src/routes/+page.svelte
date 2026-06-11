@@ -4,6 +4,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import AboutDialog from '$lib/components/AboutDialog.svelte';
 	import OnboardingTour from '$lib/components/OnboardingTour.svelte';
+	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
 	import ImagesLink from '$lib/components/ImagesLink.svelte';
 	import type { Patient } from '$lib/types';
 
@@ -23,6 +24,7 @@
 	});
 	let showAbout = $state(false);
 	let showTour = $state(false);
+	let helpOpen = $state(false);
 	$effect(() => {
 		if (!localStorage.getItem('cdx_tour_done')) showTour = true;
 	});
@@ -420,6 +422,19 @@
 		</div>
 	</form>
 </dialog>
+
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'F1') {
+			e.preventDefault();
+			helpOpen = !helpOpen;
+		}
+	}}
+/>
+
+{#if helpOpen}
+	<HelpOverlay topic="dentaldb" onclose={() => (helpOpen = false)} />
+{/if}
 
 {#if showAbout}
 	<AboutDialog onclose={() => (showAbout = false)} />

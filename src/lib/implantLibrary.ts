@@ -401,3 +401,159 @@ export const DENSITY_DOC_LINKS: { label: string; url: string }[] = [
 		url: 'https://dental.straumann.com/sinus-lift/transcrestal'
 	}
 ];
+
+// ---------------- user-defined abutments ----------------
+
+/**
+ * User-designed abutment: 1–4 stacked conical segments (emergence profile +
+ * mesostructure, bottom → top), an inclination of the whole stack (0–45°)
+ * and a rotation around the implant axis (degrees).
+ * Valid ranges: height 0.5–8 mm, diameters 1–8 mm per segment.
+ */
+export interface UserAbutment {
+	name: string;
+	segments: { height: number; lowerD: number; upperD: number }[];
+	/** stack inclination relative to the implant axis, degrees (0–45) */
+	inclination: number;
+	/** rotation around the implant axis, degrees */
+	rotation: number;
+}
+
+/**
+ * Abutment JSON stored on an implant. Superset of AbutmentSpec so the
+ * existing 2D glyph rendering (type/angle/height/diameter) keeps working;
+ * custom abutments carry their source segments + rotation alongside.
+ */
+export type StoredAbutment = AbutmentSpec & {
+	preset?: string;
+	rotation?: number;
+	segments?: UserAbutment['segments'];
+};
+
+/**
+ * Convert a user-defined abutment into the AbutmentSpec-compatible JSON shape
+ * consumed by the planning glyphs: total height = sum of segment heights,
+ * platform diameter = widest segment diameter, angle = inclination.
+ */
+export function userAbutmentToSpec(a: UserAbutment): StoredAbutment {
+	const height = a.segments.reduce((s, seg) => s + seg.height, 0);
+	const diameter = a.segments.reduce((d, seg) => Math.max(d, seg.lowerD, seg.upperD), 0);
+	return {
+		type: a.inclination > 0 ? 'angled' : 'straight',
+		angle: a.inclination,
+		height,
+		diameter,
+		preset: 'custom',
+		rotation: a.rotation,
+		segments: a.segments.map((s) => ({ ...s }))
+	};
+}
+
+// ---------------- virtual teeth (prosthetic-driven planning) ----------------
+
+/**
+ * Virtual-tooth crown templates, one per tooth type and jaw (8 shapes × 2 jaws,
+ * mirrored across quadrants). `tooth` is the representative FDI number in
+ * quadrant 1 (upper) / 4 (lower); widths are mesiodistal, heights are crown
+ * heights (mm, population averages).
+ */
+export const VIRTUAL_TEETH: { tooth: number; name: string; widthMM: number; heightMM: number }[] = [
+	{ tooth: 11, name: 'Upper central incisor', widthMM: 8.5, heightMM: 10.5 },
+	{ tooth: 12, name: 'Upper lateral incisor', widthMM: 6.5, heightMM: 9.0 },
+	{ tooth: 13, name: 'Upper canine', widthMM: 7.6, heightMM: 10.0 },
+	{ tooth: 14, name: 'Upper first premolar', widthMM: 7.0, heightMM: 8.5 },
+	{ tooth: 15, name: 'Upper second premolar', widthMM: 6.8, heightMM: 8.0 },
+	{ tooth: 16, name: 'Upper first molar', widthMM: 10.3, heightMM: 7.5 },
+	{ tooth: 17, name: 'Upper second molar', widthMM: 9.8, heightMM: 7.0 },
+	{ tooth: 18, name: 'Upper third molar', widthMM: 9.2, heightMM: 6.5 },
+	{ tooth: 41, name: 'Lower central incisor', widthMM: 5.3, heightMM: 9.0 },
+	{ tooth: 42, name: 'Lower lateral incisor', widthMM: 5.9, heightMM: 9.5 },
+	{ tooth: 43, name: 'Lower canine', widthMM: 6.9, heightMM: 11.0 },
+	{ tooth: 44, name: 'Lower first premolar', widthMM: 6.9, heightMM: 8.5 },
+	{ tooth: 45, name: 'Lower second premolar', widthMM: 7.1, heightMM: 8.0 },
+	{ tooth: 46, name: 'Lower first molar', widthMM: 11.2, heightMM: 7.5 },
+	{ tooth: 47, name: 'Lower second molar', widthMM: 10.7, heightMM: 7.0 },
+	{ tooth: 48, name: 'Lower third molar', widthMM: 10.5, heightMM: 6.5 }
+];
+
+/** Template for any of the 32 FDI teeth (quadrants 2/3 map to the 1/4 templates). */
+export function virtualToothTemplate(
+	tooth: number
+): { tooth: number; name: string; widthMM: number; heightMM: number } | null {
+	const q = Math.floor(tooth / 10);
+	const pos = tooth % 10;
+	if (q < 1 || q > 4 || pos < 1 || pos > 8) return null;
+	const repQuadrant = q <= 2 ? 1 : 4;
+	return VIRTUAL_TEETH.find((t) => t.tooth === repQuadrant * 10 + pos) ?? null;
+}
+
+/**
+ * Closed 2D crown outline polygon for a virtual tooth (FDI number), in mm,
+ * centered on the origin: x = mesiodistal, y = occlusal-cervical (crown
+ * height). Simple anatomically plausible shapes — molar = rounded square with
+ * a cusp hint, premolar = rounded square (2 cusps), canine = pointed,
+ * incisor = chisel (flat incisal edge, rounded cervical).
+ * The polygon is explicitly closed (first point repeated as the last) and
+ * always has ≥ 8 distinct vertices. Quadrants 2/3 are mirrored in x.
+ */
+export function virtualToothOutline(tooth: number): { x: number; y: number }[] {
+	const tpl = virtualToothTemplate(tooth);
+	if (!tpl) return [];
+	const q = Math.floor(tooth / 10);
+	const pos = tooth % 10;
+	const hw = tpl.widthMM / 2;
+	const hh = tpl.heightMM / 2;
+	const mirror = q === 2 || q === 3 ? -1 : 1;
+
+	// superellipse radius: |cos|^p, |sin|^p shaping; cuspK adds a cusp hint
+	const N = 36;
+	const pts: { x: number; y: number }[] = [];
+	let exp: number; // squareness (higher = boxier)
+	let cusps = 0;
+	let cuspAmp = 0;
+	let chisel = false;
+	let pointed = false;
+	if (pos >= 6) {
+		exp = 0.35; // molar: rounded square
+		cusps = 4;
+		cuspAmp = 0.045;
+	} else if (pos >= 4) {
+		exp = 0.5; // premolar: rounded, slightly boxy
+		cusps = 2;
+		cuspAmp = 0.04;
+	} else if (pos === 3) {
+		exp = 1.0; // canine: oval with a labial point
+		pointed = true;
+	} else {
+		exp = 0.55; // incisor: chisel
+		chisel = true;
+	}
+
+	for (let i = 0; i < N; i++) {
+		const th = (i / N) * Math.PI * 2;
+		const c = Math.cos(th);
+		const s = Math.sin(th);
+		// superellipse parametrization
+		let x = Math.sign(c) * Math.pow(Math.abs(c), exp) * hw;
+		let y = Math.sign(s) * Math.pow(Math.abs(s), exp) * hh;
+		if (cusps > 0) {
+			const m = 1 + cuspAmp * Math.cos(cusps * th + Math.PI / 4);
+			x *= m;
+			y *= m;
+		}
+		if (chisel && y > 0) {
+			// flatten the incisal edge (top) into a chisel
+			y = hh * (0.92 + 0.08 * Math.abs(s));
+			x *= 0.96;
+		}
+		if (pointed && y > 0) {
+			// taper toward a single incisal point
+			const t = y / hh;
+			x *= 1 - 0.65 * t;
+			y = hh * Math.min(1, t * 1.08);
+		}
+		pts.push({ x: mirror * x, y });
+	}
+	pts.push({ ...pts[0] }); // explicit closure
+	return pts;
+}

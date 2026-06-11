@@ -37,8 +37,12 @@
 			</button>
 		{/each}
 		<span class="tab-links">
-			<a class="tab" href="/catalogs">Implant catalogs ↗</a>
-			<a class="tab" href="/sleeves">Sleeve systems ↗</a>
+			<a class="tab" href="/catalogs">Catalogs ↗</a>
+			<a class="tab" href="/sleeves">Sleeves ↗</a>
+			<a class="tab" href="/designer">Designer ↗</a>
+			<a class="tab" href="/orders">Orders ↗</a>
+			<a class="tab" href="/teams">Teams ↗</a>
+			<a class="tab" href="/evaluation">Evaluation ↗</a>
 		</span>
 	</div>
 

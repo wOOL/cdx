@@ -2,87 +2,106 @@
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import Icon from '$lib/components/Icon.svelte';
+	import { AVAILABLE_LOCALES, i18n, setLocale, t } from '$lib/i18n.svelte';
 
 	let { data, form } = $props();
 	let saved = $derived(page.url.searchParams.get('saved') === '1');
 </script>
 
 <svelte:head>
-	<title>Account — coDiagnostiX Web</title>
+	<title>{t('page.account')} — coDiagnostiX Web</title>
 </svelte:head>
 
 <header class="appbar">
 	<a class="btn ghost" href="/"><Icon name="back" size={18} /></a>
 	<div class="brand"><span class="brand-x">co</span>DiagnostiX<span class="brand-web">web</span></div>
-	<div class="appbar-sub">Account</div>
-	{#if saved}<span class="saved-note"><Icon name="check" size={14} /> Saved</span>{/if}
+	<div class="appbar-sub">{t('page.account')}</div>
+	{#if saved}<span class="saved-note"><Icon name="check" size={14} /> {t('account.saved')}</span>{/if}
 </header>
 
 <div class="account-wrap">
 	<form class="panel account-form" method="POST" action="?/profile" use:enhance>
-		<div class="panel-header">Profile</div>
+		<div class="panel-header">{t('account.profile')}</div>
 		<div class="account-body">
 			{#if form?.profileError}<div class="form-error">{form.profileError}</div>{/if}
 			<div class="field-row">
 				<div>
-					<label for="a-name">Name</label>
+					<label for="a-name">{t('common.name')}</label>
 					<input id="a-name" name="name" value={data.account.name} style="width:100%" />
 				</div>
 				<div>
-					<label for="a-email">Email</label>
+					<label for="a-email">{t('auth.email')}</label>
 					<input id="a-email" value={data.account.email} disabled style="width:100%" />
 				</div>
 			</div>
 			<div class="field-row">
 				<div>
-					<span class="field-label">Tier</span>
+					<span class="field-label">{t('account.tier')}</span>
 					<span class="tier-badge" class:viewer={data.account.tier === 'viewer'}>{data.account.tier}</span>
 				</div>
 				<div>
-					<span class="field-label">Export credits</span>
+					<span class="field-label">{t('account.credits')}</span>
 					<span class="credits">{data.account.credits}</span>
+				</div>
+			</div>
+			<div class="field-row">
+				<div>
+					<label for="a-locale">{t('account.language')}</label>
+					<select
+						id="a-locale"
+						value={i18n.locale}
+						onchange={(e) => setLocale(e.currentTarget.value)}
+						style="width:100%"
+					>
+						{#each AVAILABLE_LOCALES as l (l.code)}
+							<option value={l.code}>{l.name}</option>
+						{/each}
+					</select>
+				</div>
+				<div class="align-end">
+					<p class="muted locale-note">{t('settings.languageNote')}</p>
 				</div>
 			</div>
 		</div>
 		<div class="account-actions">
-			<button class="btn primary" type="submit">Save profile</button>
+			<button class="btn primary" type="submit">{t('account.saveProfile')}</button>
 		</div>
 	</form>
 
 	<form class="panel account-form section" method="POST" action="?/buyCredits" use:enhance>
-		<div class="panel-header">Export credits</div>
+		<div class="panel-header">{t('account.credits')}</div>
 		<div class="account-body">
 			<p class="muted">
-				Each surgical-guide export for production consumes one credit. Remaining: <strong>{data.account.credits}</strong>
+				{t('account.creditsNote')} {t('account.remaining')}: <strong>{data.account.credits}</strong>
 			</p>
 		</div>
 		<div class="account-actions">
-			<button class="btn primary" type="submit">Buy 10 credits</button>
+			<button class="btn primary" type="submit">{t('account.buyCredits')}</button>
 		</div>
 	</form>
 
 	<form class="panel account-form section" method="POST" action="?/password" use:enhance>
-		<div class="panel-header">Change password</div>
+		<div class="panel-header">{t('account.changePassword')}</div>
 		<div class="account-body">
 			{#if form?.passwordError}<div class="form-error">{form.passwordError}</div>{/if}
 			<div class="field-row">
 				<div>
-					<label for="a-current">Current password</label>
+					<label for="a-current">{t('account.currentPassword')}</label>
 					<input id="a-current" name="current_password" type="password" required autocomplete="current-password" style="width:100%" />
 				</div>
 				<div>
-					<label for="a-new">New password (min. 8)</label>
+					<label for="a-new">{t('account.newPassword')}</label>
 					<input id="a-new" name="new_password" type="password" minlength="8" required autocomplete="new-password" style="width:100%" />
 				</div>
 			</div>
 		</div>
 		<div class="account-actions">
-			<button class="btn primary" type="submit">Change password</button>
+			<button class="btn primary" type="submit">{t('account.changePassword')}</button>
 		</div>
 	</form>
 
 	<div class="panel account-form section">
-		<div class="panel-header">Two-factor authentication (TOTP)</div>
+		<div class="panel-header">{t('account.mfa')}</div>
 		<div class="account-body">
 			{#if data.mfaEnabled}
 				<p class="muted">
@@ -136,7 +155,7 @@
 	</div>
 
 	<div class="panel account-form section">
-		<div class="panel-header">Users &amp; tiers</div>
+		<div class="panel-header">{t('account.usersTiers')}</div>
 		<div class="account-body">
 			<p class="muted">
 				<strong>pro</strong> has full planning and export access; <strong>viewer</strong> is read-only (server-enforced).
@@ -295,5 +314,9 @@
 	}
 	.tier-form {
 		display: inline;
+	}
+	.locale-note {
+		font-size: 11px;
+		margin: 0;
 	}
 </style>

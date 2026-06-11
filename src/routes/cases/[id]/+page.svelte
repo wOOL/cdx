@@ -13,6 +13,15 @@
 	import ImportWizard from '$lib/components/ImportWizard.svelte';
 	import ImplantPicker from '$lib/components/ImplantPicker.svelte';
 	import GuideOptionsPanel from '$lib/components/GuideOptionsPanel.svelte';
+	import FineAlignDialog from '$lib/components/FineAlignDialog.svelte';
+	import GroupAbutmentDialog from '$lib/components/GroupAbutmentDialog.svelte';
+	import AbutmentRotateDial from '$lib/components/AbutmentRotateDial.svelte';
+	import AbutmentEditor from '$lib/components/AbutmentEditor.svelte';
+	import VirtualToothPicker from '$lib/components/VirtualToothPicker.svelte';
+	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
+	import AugmentWizard from '$lib/components/AugmentWizard.svelte';
+	import AiReviewDialog from '$lib/components/AiReviewDialog.svelte';
+	import ProstheticImportDialog from '$lib/components/ProstheticImportDialog.svelte';
 	import AngleBetweenImplants from '$lib/components/AngleBetweenImplants.svelte';
 	import AngleBetweenAbutments from '$lib/components/AngleBetweenAbutments.svelte';
 	import { indexAtLength } from '$lib/curve';
@@ -42,9 +51,10 @@
 		toothLabel,
 		ABUTMENT_PRESETS,
 		abutmentLabel,
-		type Notation
+		type Notation,
+		userAbutmentToSpec
 	} from '$lib/implantLibrary';
-	import { composeMat4, icp, kabsch } from '$lib/registration';
+	import { applyMat4, composeMat4, icp, identityMat4, kabsch } from '$lib/registration';
 	import { extractSurfacePoints } from '$lib/client/icpTargets';
 	import { axialContours, primeModel } from '$lib/client/meshContours';
 	import {
@@ -648,6 +658,9 @@
 		} else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
 			e.preventDefault();
 			zoomSig = { seq: zoomSig.seq + 1, f: 0 };
+		} else if (e.key === 'F1') {
+			e.preventDefault();
+			helpOpen = !helpOpen;
 		} else if (e.key === 'F8') {
 			e.preventDefault();
 			screenCopy();
@@ -810,6 +823,7 @@
 	let completePairs = $derived(matching.pairs.filter((p) => p.vol));
 
 	function onScanMeshClick(e: { modelId: number; scanLocal: Vec3; volumeLocal: Vec3 }) {
+		lastScanClick = { modelId: e.modelId, scanLocal: e.scanLocal };
 		if (matching.mode !== 'pick-scan') return;
 		if (matching.modelId == null) matching.modelId = e.modelId;
 		if (e.modelId !== matching.modelId) return;
@@ -836,6 +850,218 @@
 			cursorBaseline = '';
 		}
 	});
+
+	let showFineAlign = $state(false);
+	let showPackageImport = $state(false);
+	let showGroupAbutments = $state(false);
+	let showAbutmentEditor = $state(false);
+	let showVirtualTeeth = $state(false);
+	let showAbutmentDial = $state(false);
+	let helpOpen = $state(false);
+	let showAugment = $state(false);
+	let aiBusy = $state(false);
+	let aiReview = $state<{ id: number; name: string; ok: boolean }[] | null>(null);
+	let lastScanClick = $state<{ modelId: number; scanLocal: Vec3 } | null>(null);
+	let meshToolBusy = $state('');
+
+	async function runAiSegmentation() {
+		if (!ps || aiBusy) return;
+		aiBusy = true;
+		try {
+			await fetch(`/api/datasets/${ps.ds.id}/ai-segment`, { method: 'POST' });
+			for (let i = 0; i < 120; i++) {
+				await new Promise((r) => setTimeout(r, 1500));
+				const st = await (await fetch(`/api/datasets/${ps.ds.id}/ai-segment`)).json();
+				if (st.status === 'done') {
+					aiReview = (st.models ?? []).map((m: { id: number; name: string; ok: boolean }) => ({
+						id: m.id,
+						name: m.name,
+						ok: m.ok
+					}));
+					return;
+				}
+				if (st.status === 'error') {
+					alert(`AI segmentation failed: ${st.error ?? 'unknown error'}`);
+					return;
+				}
+			}
+			alert('AI segmentation timed out');
+		} finally {
+			aiBusy = false;
+		}
+	}
+
+	async function aiImport(keepIds: number[]) {
+		const all = aiReview ?? [];
+		for (const m of all) {
+			if (!keepIds.includes(m.id)) {
+				await fetch(`/api/models/${m.id}`, { method: 'DELETE' }).catch(() => {});
+			}
+		}
+		aiReview = null;
+		await invalidateAll();
+	}
+
+	async function meshEditOp(op: string) {
+		if (!ps || matching.modelId == null) return;
+		meshToolBusy = op;
+		try {
+			const body: Record<string, unknown> = { op };
+			if (op === 'smooth' || op === 'remesh') {
+				if (!lastScanClick || lastScanClick.modelId !== matching.modelId) {
+					alert('Click a point on the scan in the 3D view first — the tool works locally around it.');
+					return;
+				}
+				body.center = lastScanClick.scanLocal;
+				body.radius = 5;
+			}
+			const res = await fetch(`/api/models/${matching.modelId}/edit`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body)
+			});
+			const b = await res.json().catch(() => null);
+			if (!res.ok) alert(b?.message ?? 'Mesh edit failed');
+			else await invalidateAll();
+		} finally {
+			meshToolBusy = '';
+		}
+	}
+
+	async function repairModel(mode: 'repair' | 'detect') {
+		if (matching.modelId == null) return;
+		meshToolBusy = mode;
+		try {
+			const res = await fetch(`/api/models/${matching.modelId}/repair`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ mode })
+			});
+			const b = await res.json().catch(() => null);
+			if (!res.ok) {
+				alert(b?.message ?? 'Mesh operation failed');
+				return;
+			}
+			if (mode === 'detect')
+				alert(
+					`Mesh check: ${b.issues.degenerate} degenerate, ${b.issues.duplicates} duplicate triangles, ${b.issues.openEdges} open edges.`
+				);
+			else {
+				alert(
+					`Repaired: removed ${b.report.removedDegenerate} degenerate + ${b.report.removedDuplicate} duplicate triangles, flipped ${b.report.flippedNormals} normals. Original kept as .orig.`
+				);
+				await invalidateAll();
+			}
+		} finally {
+			meshToolBusy = '';
+		}
+	}
+
+	let replaceInput: HTMLInputElement | undefined = $state();
+	async function replaceModelFile(fl: FileList | null) {
+		if (!fl?.length || matching.modelId == null) return;
+		const form = new FormData();
+		form.append('file', fl[0]);
+		const res = await fetch(`/api/models/${matching.modelId}/replace`, { method: 'POST', body: form });
+		const b = await res.json().catch(() => null);
+		if (!res.ok) alert(b?.message ?? 'Replace failed');
+		else await invalidateAll();
+	}
+
+	/** rotation about a unit axis through point c, as column-major Mat4 */
+	function rotAboutMat4(axis: 'x' | 'y' | 'z', deg: number, c: Vec3): number[] {
+		const r = (deg * Math.PI) / 180;
+		const cs = Math.cos(r);
+		const sn = Math.sin(r);
+		let R: number[][];
+		if (axis === 'x') R = [[1, 0, 0], [0, cs, -sn], [0, sn, cs]];
+		else if (axis === 'y') R = [[cs, 0, sn], [0, 1, 0], [-sn, 0, cs]];
+		else R = [[cs, -sn, 0], [sn, cs, 0], [0, 0, 1]];
+		const t = {
+			x: c.x - (R[0][0] * c.x + R[0][1] * c.y + R[0][2] * c.z),
+			y: c.y - (R[1][0] * c.x + R[1][1] * c.y + R[1][2] * c.z),
+			z: c.z - (R[2][0] * c.x + R[2][1] * c.y + R[2][2] * c.z)
+		};
+		// column-major
+		return [R[0][0], R[1][0], R[2][0], 0, R[0][1], R[1][1], R[2][1], 0, R[0][2], R[1][2], R[2][2], 0, t.x, t.y, t.z, 1];
+	}
+
+	function modelCentroidWorld(m: { id: number; transform: number[] | null }): Vec3 {
+		const raw = alignVolView?.getModelPositions(m.id);
+		if (!raw || raw.length < 9) return { x: 0, y: 0, z: 0 };
+		let sx = 0;
+		let sy = 0;
+		let sz = 0;
+		const stride = Math.max(3, Math.floor(raw.length / 3 / 500) * 3);
+		let n = 0;
+		for (let i = 0; i + 2 < raw.length; i += stride) {
+			const pt = m.transform
+				? applyMat4(m.transform, { x: raw[i], y: raw[i + 1], z: raw[i + 2] })
+				: { x: raw[i], y: raw[i + 1], z: raw[i + 2] };
+			sx += pt.x;
+			sy += pt.y;
+			sz += pt.z;
+			n++;
+		}
+		return n ? { x: sx / n, y: sy / n, z: sz / n } : { x: 0, y: 0, z: 0 };
+	}
+
+	function fineNudge(
+		delta: { tx: number; ty: number; tz: number; rx: number; ry: number; rz: number },
+		frame: 'patient' | 'object'
+	) {
+		if (!ps || matching.modelId == null) return;
+		const m = ps.models.find((x) => x.id === matching.modelId);
+		if (!m) return;
+		const T = m.transform ?? identityMat4();
+		const c = modelCentroidWorld(m);
+		let D: number[] | null = null;
+		if (delta.tx || delta.ty || delta.tz) {
+			D = identityMat4();
+			if (frame === 'patient') {
+				D[12] = delta.tx;
+				D[13] = delta.ty;
+				D[14] = delta.tz;
+			} else {
+				// object frame: translate along the model's current local axes (columns of T)
+				D[12] = T[0] * delta.tx + T[4] * delta.ty + T[8] * delta.tz;
+				D[13] = T[1] * delta.tx + T[5] * delta.ty + T[9] * delta.tz;
+				D[14] = T[2] * delta.tx + T[6] * delta.ty + T[10] * delta.tz;
+			}
+		} else {
+			const axis = delta.rx ? 'x' : delta.ry ? 'y' : 'z';
+			const deg = delta.rx || delta.ry || delta.rz;
+			if (frame === 'patient') {
+				D = rotAboutMat4(axis, deg, c);
+			} else {
+				// object frame: rotate about the model's own axis direction through its centroid.
+				// Approximate via patient-frame rotation about the transformed axis: for small
+				// nudges use the local axis mapped to world.
+				const col = axis === 'x' ? 0 : axis === 'y' ? 4 : 8;
+				const ax = { x: T[col], y: T[col + 1], z: T[col + 2] };
+				const len = Math.hypot(ax.x, ax.y, ax.z) || 1;
+				// Rodrigues rotation matrix about arbitrary unit axis u through c
+				const u = { x: ax.x / len, y: ax.y / len, z: ax.z / len };
+				const r = (deg * Math.PI) / 180;
+				const cs = Math.cos(r);
+				const sn = Math.sin(r);
+				const R = [
+					[cs + u.x * u.x * (1 - cs), u.x * u.y * (1 - cs) - u.z * sn, u.x * u.z * (1 - cs) + u.y * sn],
+					[u.y * u.x * (1 - cs) + u.z * sn, cs + u.y * u.y * (1 - cs), u.y * u.z * (1 - cs) - u.x * sn],
+					[u.z * u.x * (1 - cs) - u.y * sn, u.z * u.y * (1 - cs) + u.x * sn, cs + u.z * u.z * (1 - cs)]
+				];
+				const t = {
+					x: c.x - (R[0][0] * c.x + R[0][1] * c.y + R[0][2] * c.z),
+					y: c.y - (R[1][0] * c.x + R[1][1] * c.y + R[1][2] * c.z),
+					z: c.z - (R[2][0] * c.x + R[2][1] * c.y + R[2][2] * c.z)
+				};
+				D = [R[0][0], R[1][0], R[2][0], 0, R[0][1], R[1][1], R[2][1], 0, R[0][2], R[1][2], R[2][2], 0, t.x, t.y, t.z, 1];
+			}
+		}
+		if (!D) return;
+		m.transform = composeMat4(D, T);
+		ps.saveModel(m.id);
+	}
 
 	function computeAlignment() {
 		if (!ps || matching.modelId == null || completePairs.length < 3) return;
@@ -1169,6 +1395,27 @@
 	let pcsAngles = $state({ yaw: 0, pitch: 0, roll: 0 });
 	let pcsBusy = $state(false);
 	let pcsCut = $state(false);
+	let pcsProposing = $state(false);
+	let proposedCurve: { x: number; y: number }[] | null = null;
+
+	async function proposePcs() {
+		if (!ps) return;
+		pcsProposing = true;
+		try {
+			const res = await fetch(`/api/datasets/${ps.ds.id}/pcs-propose`, { method: 'POST' });
+			const b = await res.json().catch(() => null);
+			if (!res.ok) {
+				alert(b?.message ?? 'Proposal failed');
+				return;
+			}
+			pcsAngles = { yaw: Math.round(b.yaw * 10) / 10, pitch: Math.round(b.pitch * 10) / 10, roll: Math.round(b.roll * 10) / 10 };
+			proposedCurve = b.curve;
+			if (b.confidence === 'low')
+				alert('Low confidence: not enough bone mass for a reliable proposal — verify the angles before applying.');
+		} finally {
+			pcsProposing = false;
+		}
+	}
 
 	async function applyPcs(reset = false) {
 		if (!ps) return;
@@ -1184,6 +1431,18 @@
 				const body = await res.json().catch(() => null);
 				alert(body?.message ?? 'Alignment failed');
 				return;
+			}
+			// adopt the auto-proposed panoramic curve (already in post-align coordinates,
+			// so it must be written AFTER /align — which co-rotates the previous curve)
+			if (!reset && proposedCurve && ps) {
+				await fetch(`/api/plans/${ps.planId}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						pan_curve: { control: proposedCurve, z: ps.cursor.z * ps.ds.spacing_z }
+					})
+				}).catch(() => {});
+				proposedCurve = null;
 			}
 			pcsDialog?.close();
 			pcsAngles = { yaw: 0, pitch: 0, roll: 0 };
@@ -2244,6 +2503,14 @@
 						<input type="checkbox" bind:checked={ps.showImplantAxes} />
 						<span>Implant axes</span>
 					</label>
+					<label class="checkbox-row">
+						<input type="checkbox" bind:checked={ps.showCrestalPlanes} />
+						<span>Crestal planes</span>
+					</label>
+					<label class="checkbox-row">
+						<input type="checkbox" bind:checked={ps.showSelectionBox} />
+						<span>Selection box</span>
+					</label>
 					{#if selectedImplant && densityInfo?.profile?.length}
 						<label for="density-profile">Density along implant</label>
 						<div class="density-panel" id="density-profile" title="Mean HU per depth level, head (top) → apex (bottom)">
@@ -2418,6 +2685,9 @@
 					<button class="btn" onclick={() => advInput?.click()}>
 						<Icon name="settings" size={14} /> Advanced import… (slice selection, crop, gantry, histogram)
 					</button>
+					<button class="btn" onclick={() => (showPackageImport = true)}>
+						<Icon name="import" size={14} /> Import order package…
+					</button>
 					<input
 						type="file"
 						multiple
@@ -2527,6 +2797,33 @@
 						>
 							{scanDragMode ? 'Dragging scan (Shift = rotate)' : 'Drag scan'}
 						</button>
+						<button
+							class="btn"
+							class:primary={showFineAlign}
+							title="Fine alignment: nudge the scan by numeric steps (patient- or object-oriented)"
+							onclick={() => {
+								if (matching.modelId == null) matching.modelId = scanModels[0]?.id ?? null;
+								showFineAlign = !showFineAlign;
+							}}
+						>
+							Fine align…
+						</button>
+						<button class="btn" disabled={!!meshToolBusy} title="Remove degenerate/duplicate triangles, unify winding" onclick={() => repairModel('repair')}>
+							{meshToolBusy === 'repair' ? '…' : 'Repair'}
+						</button>
+						<button class="btn" disabled={!!meshToolBusy} title="Check the mesh for issues" onclick={() => repairModel('detect')}>
+							Check
+						</button>
+						<button class="btn" disabled={!!meshToolBusy} title="Smooth locally around the last clicked scan point" onclick={() => meshEditOp('smooth')}>
+							Smooth
+						</button>
+						<button class="btn" disabled={!!meshToolBusy} title="Close small holes in the mesh" onclick={() => meshEditOp('fillHoles')}>
+							Fill holes
+						</button>
+						<button class="btn" title="Replace the mesh file, keeping the alignment" onclick={() => replaceInput?.click()}>
+							Replace…
+						</button>
+						<input type="file" accept=".stl,.ply" hidden bind:this={replaceInput} onchange={(e) => replaceModelFile(e.currentTarget.files)} />
 						{#if matching.lastRms != null}
 							<span class="muted">fit RMS {matching.lastRms.toFixed(2)} mm</span>
 						{/if}
@@ -2639,6 +2936,16 @@
 					<button class="btn" disabled={segBusy} onclick={createBoneModel}>
 						<Icon name="volume" size={14} />
 						{segBusy ? 'Segmenting…' : 'Create bone model'}
+					</button>
+					<button
+						class="btn"
+						title="Plan an augmentation: draw closed outlines with the boundary tool, then define the filling"
+						onclick={() => (showAugment = true)}
+					>
+						Augment…
+					</button>
+					<button class="btn" disabled={aiBusy} title="Automatic multi-structure segmentation (offline heuristic)" onclick={runAiSegmentation}>
+						{aiBusy ? 'AI running…' : 'AI segmentation'}
 					</button>
 				{:else if stage === 'nerve'}
 					<button class="btn" onclick={() => addNerve('right')}>
@@ -2853,6 +3160,19 @@
 								<option value={p.name}>Abutment: {p.name}</option>
 							{/each}
 						</select>
+						{#if selectedImplant.abutment}
+							<button
+								class="btn"
+								class:primary={showAbutmentDial}
+								title="Rotational alignment of the abutment around the implant axis"
+								onclick={() => (showAbutmentDial = !showAbutmentDial)}
+							>
+								⟳ abut.
+							</button>
+						{/if}
+						<button class="btn" title="Define a custom abutment (emergence profile + mesostructure)" onclick={() => (showAbutmentEditor = true)}>
+							Custom abut…
+						</button>
 						{#if ps.implants.length > 1}
 							<button
 								class="btn"
@@ -2861,7 +3181,17 @@
 							>
 								∥ Parallelize…
 							</button>
+							<button
+								class="btn"
+								title="Assign angulated abutments to a group (axis parallelization, All-on-4/6)"
+								onclick={() => (showGroupAbutments = true)}
+							>
+								Group abutments…
+							</button>
 						{/if}
+						<button class="btn" title="Place a virtual tooth from the library (prosthetic-driven planning)" onclick={() => (showVirtualTeeth = true)}>
+							<Icon name="tooth" size={14} /> Virtual tooth…
+						</button>
 						{#if densityInfo}
 							<span class="muted" title="Mean HU in a {(selectedImplant.diameter / 2 + 1).toFixed(1)} mm cylinder around the implant">
 								bone {densityInfo.mean} HU ({boneClass(densityInfo.mean)})
@@ -3270,6 +3600,144 @@
 	</div>
 {/if}
 
+{#if helpOpen}
+	<HelpOverlay
+		topic={stage === 'data' ? 'data' : stage === 'align' ? 'align' : stage === 'pano' ? 'pano' : stage === 'nerve' ? 'nerve' : stage === 'implant' ? 'implant' : stage === 'sleeve' ? 'sleeve' : stage === 'guide' ? 'guide' : 'report'}
+		onclose={() => (helpOpen = false)}
+	/>
+{/if}
+
+{#if showGroupAbutments && ps}
+	<GroupAbutmentDialog
+		implants={ps.implants.map((i) => ({
+			id: i.id,
+			label: `${i.tooth ? toothLabel(i.tooth, notation) + ' — ' : ''}${i.article || i.line}`,
+			ax: i.ax,
+			ay: i.ay,
+			az: i.az,
+			abutment: i.abutment
+				? { preset: abutmentLabel(i.abutment), angle: i.abutment.angle, rotation: (i.abutment as { rotation?: number }).rotation ?? 0 }
+				: null
+		}))}
+		presets={[
+			{ name: 'Straight', angles: [0] },
+			{ name: 'Angled', angles: [17, 30] }
+		]}
+		onassign={async (rows) => {
+			if (!ps) return;
+			ps.markEdit();
+			for (const r of rows) {
+				const im = ps.implants.find((i) => i.id === r.id);
+				if (!im) continue;
+				im.abutment = {
+					type: r.abutment.angle > 0 ? 'angled' : 'straight',
+					angle: r.abutment.angle,
+					height: 4,
+					diameter: 4.5
+				};
+				ps.saveImplant(im.id);
+			}
+		}}
+		onclose={() => (showGroupAbutments = false)}
+	/>
+{/if}
+
+{#if showAbutmentDial && selectedImplant?.abutment && ps}
+	<div class="dial-float panel">
+		<div class="panel-header">
+			Abutment rotation
+			<button class="btn ghost" style="margin-left:auto" onclick={() => (showAbutmentDial = false)}>×</button>
+		</div>
+		<div style="padding:10px">
+			<AbutmentRotateDial
+				rotation={(selectedImplant.abutment as { rotation?: number }).rotation ?? 0}
+				onrotate={(deg) => {
+					if (!selectedImplant?.abutment || !ps) return;
+					(selectedImplant.abutment as { rotation?: number }).rotation = deg;
+					ps.saveImplant(selectedImplant.id);
+				}}
+			/>
+		</div>
+	</div>
+{/if}
+
+{#if showAbutmentEditor && ps}
+	<AbutmentEditor
+		initial={null}
+		onsave={(a) => {
+			if (!ps || !selectedImplant) {
+				showAbutmentEditor = false;
+				return;
+			}
+			ps.markEdit();
+			selectedImplant.abutment = userAbutmentToSpec(a);
+			ps.saveImplant(selectedImplant.id);
+			showAbutmentEditor = false;
+		}}
+		onclose={() => (showAbutmentEditor = false)}
+	/>
+{/if}
+
+{#if showVirtualTeeth && ps}
+	<VirtualToothPicker
+		{notation}
+		onpick={(tooth) => {
+			if (!ps) return;
+			ps.markEdit();
+			ps.addMeasurement(
+				'annotation',
+				[
+					{
+						x: ps.cursor.x * ps.ds.spacing_x,
+						y: ps.cursor.y * ps.ds.spacing_y,
+						z: ps.cursor.z * ps.ds.spacing_z
+					}
+				],
+				tooth,
+				`Virtual tooth ${toothLabel(tooth, notation)}`
+			);
+			showVirtualTeeth = false;
+		}}
+		onclose={() => (showVirtualTeeth = false)}
+	/>
+{/if}
+
+{#if showAugment && ps}
+	<AugmentWizard
+		caseId={data.caseData.id}
+		datasetId={ps.ds.id}
+		getOutlines={() => segBoundaries}
+		onclose={() => (showAugment = false)}
+		ondone={async () => {
+			showAugment = false;
+			await invalidateAll();
+		}}
+	/>
+{/if}
+
+{#if aiReview}
+	<AiReviewDialog models={aiReview} onimport={aiImport} onclose={() => aiImport([])} />
+{/if}
+
+{#if showPackageImport}
+	<ProstheticImportDialog
+		caseId={data.caseData.id}
+		onclose={() => (showPackageImport = false)}
+		ondone={async () => {
+			showPackageImport = false;
+			await invalidateAll();
+		}}
+	/>
+{/if}
+
+{#if showFineAlign && ps}
+	<FineAlignDialog
+		name={ps.models.find((m) => m.id === matching.modelId)?.name ?? 'Scan'}
+		onnudge={fineNudge}
+		onclose={() => (showFineAlign = false)}
+	/>
+{/if}
+
 {#if showToolbarAdjust}
 	<div class="backdrop2" role="presentation" onclick={() => (showToolbarAdjust = false)}>
 		<div class="panel pe-dialog" role="dialog" onclick={(e) => e.stopPropagation()}>
@@ -3527,6 +3995,15 @@
 		<button
 			type="button"
 			class="btn"
+			disabled={pcsProposing || pcsBusy}
+			title="Geometric auto-proposal from the bone segmentation (jaw-arch fit): fills the angles and proposes a panoramic curve"
+			onclick={proposePcs}
+		>
+			{pcsProposing ? 'Analyzing…' : 'Propose automatically'}
+		</button>
+		<button
+			type="button"
+			class="btn"
 			disabled={pcsBusy}
 			title="Undo all applied PCS rotations (restores the original orientation)"
 			onclick={() => applyPcs(true)}
@@ -3670,6 +4147,14 @@
 </footer>
 
 <style>
+	.dial-float {
+		position: fixed;
+		right: 16px;
+		top: 120px;
+		z-index: 70;
+		box-shadow: var(--shadow);
+	}
+
 	:global(.tool-hidden) {
 		display: none !important;
 	}

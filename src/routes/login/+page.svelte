@@ -1,23 +1,24 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { t } from '$lib/i18n.svelte';
 
 	let { data, form } = $props();
 </script>
 
 <svelte:head>
-	<title>Sign in — coDiagnostiX Web</title>
+	<title>{t('auth.signIn')} — coDiagnostiX Web</title>
 </svelte:head>
 
 <div class="auth-wrap">
 	<div class="auth-card panel">
 		<div class="auth-logo"><span class="brand-x">co</span>DiagnostiX<span class="brand-web">web</span></div>
-		<h2>Sign in</h2>
+		<h2>{t('auth.signIn')}</h2>
 		{#if form?.mfa}
 			<form method="POST" use:enhance>
 				{#if form?.error}<div class="auth-error">{form.error}</div>{/if}
-				<p class="muted mfa-hint">Two-factor authentication is enabled — enter the 6-digit code from your authenticator app.</p>
+				<p class="muted mfa-hint">{t('auth.mfaHint')}</p>
 				<input type="hidden" name="pending" value={form.pending} />
-				<label for="code">Authenticator code</label>
+				<label for="code">{t('auth.mfaCode')}</label>
 				<input
 					id="code"
 					name="code"
@@ -27,21 +28,21 @@
 					maxlength="7"
 					required
 				/>
-				<button class="btn primary" type="submit">Verify</button>
+				<button class="btn primary" type="submit">{t('auth.verify')}</button>
 			</form>
-			<p class="muted"><a href="/login">Start over</a></p>
+			<p class="muted"><a href="/login">{t('auth.startOver')}</a></p>
 		{:else}
 			<form method="POST" use:enhance>
 				{#if form?.error}<div class="auth-error">{form.error}</div>{/if}
-				<label for="email">Email</label>
+				<label for="email">{t('auth.email')}</label>
 				<input id="email" name="email" type="email" value={form?.email ?? ''} required autocomplete="email" />
-				<label for="password">Password</label>
+				<label for="password">{t('auth.password')}</label>
 				<input id="password" name="password" type="password" required autocomplete="current-password" />
-				<button class="btn primary" type="submit">Sign in</button>
+				<button class="btn primary" type="submit">{t('auth.signIn')}</button>
 			</form>
 			<p class="muted">
-				{data.hasUsers ? 'New here?' : 'No accounts yet — create the first one:'}
-				<a href="/register">Create an account</a>
+				{data.hasUsers ? t('auth.newHere') : t('auth.noAccounts')}
+				<a href="/register">{t('auth.createAccount')}</a>
 			</p>
 		{/if}
 	</div>

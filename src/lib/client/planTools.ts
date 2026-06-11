@@ -17,7 +17,8 @@ function drawImplantGlyph(
 	halfWidthPx: number,
 	color: string,
 	selected: boolean,
-	warning: boolean
+	warning: boolean,
+	opts?: { crestal?: boolean; selectionBox?: boolean }
 ) {
 	const dx = apex.x - head.x;
 	const dy = apex.y - head.y;
@@ -44,6 +45,31 @@ function drawImplantGlyph(
 	ctx.lineTo(head.x - nx * halfWidthPx, head.y - ny * halfWidthPx);
 	ctx.lineWidth = 2.5;
 	ctx.stroke();
+
+	if (opts?.crestal) {
+		// crestal plane: extended platform-level line perpendicular to the axis
+		ctx.strokeStyle = '#e8d44d';
+		ctx.setLineDash([5, 3]);
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(head.x + nx * halfWidthPx * 2.6, head.y + ny * halfWidthPx * 2.6);
+		ctx.lineTo(head.x - nx * halfWidthPx * 2.6, head.y - ny * halfWidthPx * 2.6);
+		ctx.stroke();
+		ctx.setLineDash([]);
+	}
+
+	if (selected && opts?.selectionBox !== false) {
+		const pad = 6;
+		const minX = Math.min(head.x, apex.x) - halfWidthPx - pad;
+		const maxX = Math.max(head.x, apex.x) + halfWidthPx + pad;
+		const minY = Math.min(head.y, apex.y) - halfWidthPx - pad;
+		const maxY = Math.max(head.y, apex.y) + halfWidthPx + pad;
+		ctx.strokeStyle = '#f08a24';
+		ctx.setLineDash([4, 3]);
+		ctx.lineWidth = 1;
+		ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+		ctx.setLineDash([]);
+	}
 
 	if (selected) {
 		for (const p of [head, apex]) {
@@ -237,6 +263,8 @@ export function drawPanoOverlay(
 			im.color,
 			ps.selectedImplantId === im.id,
 			warns.has(im.id)
+		,
+			{ crestal: ps.showCrestalPlanes, selectionBox: ps.showSelectionBox }
 		);
 		if (ps.showImplantAxes) {
 			const ext1 = ps.toPano({ x: im.x - im.ax * 8, y: im.y - im.ay * 8, z: im.z - im.az * 8 });
@@ -546,6 +574,8 @@ export function drawCrossOverlay(
 			im.color,
 			ps.selectedImplantId === im.id,
 			warns.has(im.id)
+		,
+			{ crestal: ps.showCrestalPlanes, selectionBox: ps.showSelectionBox }
 		);
 		const se = sleeveEnds(im);
 		if (se && im.sleeve) {
