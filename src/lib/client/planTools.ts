@@ -347,10 +347,10 @@ export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 
 // ---------------- cross-section view ----------------
 
-function crossFrame(ps: PlanningState) {
+export function crossFrame(ps: PlanningState, u?: number) {
 	const c = ps.curve;
 	if (!c) return null;
-	const ci = indexAtLength(c, ps.crossU);
+	const ci = indexAtLength(c, u ?? ps.crossU);
 	return {
 		origin: c.points[ci],
 		normal: c.normals[ci], // in-plane horizontal axis
@@ -389,9 +389,10 @@ export function drawCrossOverlay(
 	ps: PlanningState,
 	ctx: CanvasRenderingContext2D,
 	t: ViewTransform,
-	info: ReconInfo
+	info: ReconInfo,
+	atU?: number
 ) {
-	const frame = crossFrame(ps);
+	const frame = crossFrame(ps, atU);
 	if (!frame) return;
 	const map = crossMap(ps, t, info);
 

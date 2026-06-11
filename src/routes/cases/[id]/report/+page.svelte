@@ -4,6 +4,7 @@
 	import VolumeView from '$lib/components/viewers/VolumeView.svelte';
 	import { PlanningState } from '$lib/client/planning.svelte';
 	import { drawPanoOverlay } from '$lib/client/planTools';
+	import ReportCross from '$lib/components/viewers/ReportCross.svelte';
 	import { drillLength, type SleeveSpec } from '$lib/implantLibrary';
 
 	let { data } = $props();
@@ -156,6 +157,23 @@
 			</section>
 		{/if}
 
+		{#if ps && ps.curve && ps.implants.length}
+			<section>
+				<h2>Implant cross-sections</h2>
+				<div class="cross-grid">
+					{#each ps.implants as im (im.id)}
+						<figure class="cross-fig">
+							<ReportCross state={ps} implant={im} />
+							<figcaption>
+								<strong>{im.tooth ? `Tooth ${im.tooth}` : 'Implant'}</strong> — {im.manufacturer}
+								{im.article}
+							</figcaption>
+						</figure>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
 		{#if ps && ps.curve}
 			<section>
 				<h2>Panoramic overview</h2>
@@ -299,6 +317,22 @@
 		border-radius: 3px;
 		overflow: hidden;
 		background: #000;
+	}
+	.cross-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 12px;
+	}
+	.cross-fig {
+		margin: 0;
+		border: 1px solid #ccd;
+		border-radius: 3px;
+		padding: 6px;
+	}
+	.cross-fig figcaption {
+		font-size: 11px;
+		margin-top: 4px;
+		color: #334;
 	}
 	.report-foot {
 		display: flex;
