@@ -304,7 +304,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Print preview pane (page nav, zoom, download, close) + direct-to-PDF path — partial: HTML preview; no page nav/zoom
 - [ ] [P2] Print All batch dialog with persisted document selection
 - [ ] [P2] Screen copy (current screen capture to PDF/PNG)
-- [ ] [P2] User logo upload + header inclusion setting; plan-comment-on-material-list setting
+- [x] [P2] User logo upload + header inclusion setting; plan-comment-on-material-list setting
 - [~] [P3] Finalized-plan stamp/verification on production reports — partial: "(approved)" label only
 - [x] [P3] Plan approval PDF (patient/plan ID, planner, tables, view images, signature lines)
 - [ ] [P4] iChiropro-style QR export stub of protocol data
@@ -333,7 +333,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P2] Views tab: smooth transitions, orientation model, outline width adapt, auxiliary/annotation/measurement colors, text size, joint cross-sectional move/zoom, rotate-on-align (×2), cross-sectional distance
 - [ ] [P2] Common tab: measurement decimal places
 - [ ] [P2] Printout tab: plan comment on material list, logo upload + enable
-- [ ] [P2] Screenshot tab: filename scheme (default/anonymized/user-defined + placeholders), storage target, format, save notification
+- [~] [P2] Screenshot tab: filename scheme (default/anonymized/user-defined + placeholders), storage target, format, save notification — partial: scheme with placeholders; no storage-target/format options
 - [ ] [P2] Management console page: account profile, password change, language placeholder, subscription/credits display
 - [ ] [P3] Teams: invite members, roles, per-patient/dataset permissions (read/modify/delete; most restrictive wins; owner override)
 - [ ] [P3] Audit log (finalize, export, share, delete, anonymize events) with viewer UI
