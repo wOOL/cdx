@@ -108,3 +108,5 @@ deltas, each with a working equivalent. None blocks a user following a video.
 | Editable scan-date field in patient verify (EXPERT new case) | DICOM study date captured and shown with the dataset | none |
 | Orientation-marker icon skins / Rudolph easter egg (Basic 2) | text direction indicator (stage-2 residual family) | none |
 | EASY auto-segmentation live slider (EASY) | live 3D-render threshold slider; bone-model creation takes a numeric HU (lo/hi) | low |
+| Guide-wizard 'From template' start (Enjoy) | Copy-plan dialog (duplicates design settings) + guide recipes | low |
+| Branded implant detail naming in the properties panel (Enjoy) | article · platform · total-length readout; open catalogs (stage-2 family) | low |
