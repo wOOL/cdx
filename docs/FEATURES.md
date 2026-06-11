@@ -95,7 +95,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Panoramic scrollbars: right = temporary parallel curve offset (oral/vestibular) + reset-offset button; bottom = position along curve driving cross-sections — partial: position scrub only; no parallel-offset
 - [x] [P1] 3D view: Three.js scene rendering segmentation surfaces + plan objects; orbit via scrollbars/drag
 - [~] [P1] View color coding (axial cyan, cross-sectional red, panoramic green, tangential blue) + 2D reference lines toggle — partial: reference lines in pano/cross; no per-view color titles
-- [~] [P1] View title bars: color label, caption, Reset, Maximize/Restore (+ double-click title, F11) — partial: no maximize/restore
+- [~] [P1] View title bars: color label, caption, Reset, Maximize/Restore (+ double-click title, F11) — partial: maximize button + Esc restore; no F11
 - [~] [P1] Move and Turn tool (Ctrl+M): pan all views, rotate 3D — partial: pan in slice views only
 - [x] [P1] Localizer tool (Ctrl+L): click centers all views on the 3D point
 - [~] [P1] Zoom: Shift+wheel everywhere; zoom tool (click step / drag dynamic); Reset all views — partial: Ctrl+wheel in slice views; no reset-all
@@ -104,7 +104,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Status bar: patient info + live chips (Average density HU, Distance to other implants, Distance to nerve canal, Distance to other sleeves) with red/green state — partial: warnings + density only; no distance chips
 - [ ] [P2] Status-bar distance chip popups listing per-object live distances (1 decimal mm)
 - [~] [P2] Cross-sectional link button "jointly move and zoom" + auto-recenter on implant selection — partial: auto-recenter done; no link button
-- [ ] [P2] 3D default-perspective dropdown (Left/Right/Anterior/Posterior/Superior/Inferior)
+- [x] [P2] 3D default-perspective dropdown (Left/Right/Anterior/Posterior/Superior/Inferior)
 - [~] [P2] Millimeter scale bars in 2D views (toggle, default on) — partial: no toggle; absent in cross view
 - [~] [P2] Orientation indicators: 2D orientation strings + 3D cube/model (L/R/A/P/H/F), model choice setting, Ctrl+1..6 — partial: 2D letters only; no 3D cube
 - [~] [P2] View > Objects visibility submenu (implants, axes, crestal levels, 3D models, abutments, sleeves, teeth) + per-object tree checkboxes — partial: per-object eyes; no category submenu

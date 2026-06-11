@@ -427,6 +427,13 @@
 	let crossGroupMode = $state(false);
 	let crossSpacing = $state(2);
 
+	// view maximize/restore (one cell fills the whole grid)
+	let maximized = $state<string | null>(null);
+	$effect(() => {
+		void stage;
+		maximized = null; // changing stages restores the layout
+	});
+
 	let grayscaleOpen = $state(false);
 	let compareOpen = $state(false);
 
@@ -534,6 +541,10 @@
 			e.preventDefault();
 			ps.redo();
 		} else if (e.key === 'Escape') {
+			if (maximized) {
+				maximized = null;
+				return;
+			}
 			ps.curveEditMode = false;
 			ps.nerveEditMode = false;
 			ps.measureTool = 'none';
@@ -950,6 +961,16 @@
 </svelte:head>
 
 <svelte:window onkeydown={onKeydown} />
+
+{#snippet maxBtn(key: string)}
+	<button
+		class="max-btn"
+		title={maximized === key ? 'Restore (Esc)' : 'Maximize view'}
+		onclick={() => (maximized = maximized === key ? null : key)}
+	>
+		{maximized === key ? '🗗' : '⛶'}
+	</button>
+{/snippet}
 
 <header class="case-bar">
 	<a class="btn ghost" href="/?sel={data.patient.id}" title="Back to patient database">
@@ -1809,10 +1830,11 @@
 
 			{#if stage === 'align'}
 				<div class="view-grid grid-2x2">
-					<div class="view panel">
+					<div class="view panel" class:cell-max={maximized === 'a3d'} class:cell-hidden={maximized && maximized !== 'a3d'}>
 						<VolumeView state={ps} bind:this={alignVolView} onMeshClick={onScanMeshClick} />
+						{@render maxBtn('a3d')}
 					</div>
-					<div class="view panel">
+					<div class="view panel" class:cell-max={maximized === 'aax'} class:cell-hidden={maximized && maximized !== 'aax'}>
 						<SliceView
 							state={ps}
 							plane="axial"
@@ -1820,13 +1842,20 @@
 							onToolPointer={alignAxialTool}
 							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion, contourTick, modelsVersion]}
 						/>
+						{@render maxBtn('aax')}
 					</div>
-					<div class="view panel"><SliceView state={ps} plane="coronal" /></div>
-					<div class="view panel"><SliceView state={ps} plane="sagittal" /></div>
+					<div class="view panel" class:cell-max={maximized === 'acor'} class:cell-hidden={maximized && maximized !== 'acor'}>
+						<SliceView state={ps} plane="coronal" />
+						{@render maxBtn('acor')}
+					</div>
+					<div class="view panel" class:cell-max={maximized === 'asag'} class:cell-hidden={maximized && maximized !== 'asag'}>
+						<SliceView state={ps} plane="sagittal" />
+						{@render maxBtn('asag')}
+					</div>
 				</div>
 			{:else if stage === 'pano'}
 				<div class="view-grid grid-pano">
-					<div class="view panel area-ax">
+					<div class="view panel area-ax" class:cell-max={maximized === 'pax'} class:cell-hidden={maximized && maximized !== 'pax'}>
 						<SliceView
 							state={ps}
 							plane="axial"
@@ -1834,14 +1863,24 @@
 							onToolPointer={axialTool}
 							overlayDeps={[ps.curveControl, ps.curveEditMode, ps.crossU, objectsVersion, contourTick]}
 						/>
+						{@render maxBtn('pax')}
 					</div>
-					<div class="view panel area-3d"><VolumeView state={ps} /></div>
-					<div class="view panel area-pano"><PanoView state={ps} /></div>
+					<div class="view panel area-3d" class:cell-max={maximized === 'p3d'} class:cell-hidden={maximized && maximized !== 'p3d'}>
+						<VolumeView state={ps} />
+						{@render maxBtn('p3d')}
+					</div>
+					<div class="view panel area-pano" class:cell-max={maximized === 'ppano'} class:cell-hidden={maximized && maximized !== 'ppano'}>
+						<PanoView state={ps} />
+						{@render maxBtn('ppano')}
+					</div>
 				</div>
 			{:else}
 				<div class="view-grid grid-2x2">
-					<div class="view panel"><VolumeView state={ps} onMeshClick={onGuideMeshClick} /></div>
-					<div class="view panel">
+					<div class="view panel" class:cell-max={maximized === 'd3d'} class:cell-hidden={maximized && maximized !== 'd3d'}>
+						<VolumeView state={ps} onMeshClick={onGuideMeshClick} />
+						{@render maxBtn('d3d')}
+					</div>
+					<div class="view panel" class:cell-max={maximized === 'dax'} class:cell-hidden={maximized && maximized !== 'dax'}>
 						<SliceView
 							state={ps}
 							plane="axial"
@@ -1850,16 +1889,18 @@
 							onImageDblClick={onAxialDblClick}
 							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion, contourTick]}
 						/>
+						{@render maxBtn('dax')}
 					</div>
-					<div class="view panel">
+					<div class="view panel" class:cell-max={maximized === 'dpano'} class:cell-hidden={maximized && maximized !== 'dpano'}>
 						<PanoView
 							state={ps}
 							overlayDraw={(ctx, t, info) => ps && drawPanoOverlay(ps, ctx, t, info)}
 							onToolPointer={(e) => (ps ? panoTool(ps, e) : false)}
 							overlayDeps={[objectsVersion]}
 						/>
+						{@render maxBtn('dpano')}
 					</div>
-					<div class="view panel">
+					<div class="view panel" class:cell-max={maximized === 'dcross'} class:cell-hidden={maximized && maximized !== 'dcross'}>
 						{#if crossGroupMode}
 							<div class="cross-group">
 								{#each [-crossSpacing, 0, crossSpacing] as off (off)}
@@ -1892,6 +1933,7 @@
 						>
 							{crossGroupMode ? '1×' : '3×'}
 						</button>
+						{@render maxBtn('dcross')}
 					</div>
 				</div>
 			{/if}
@@ -2381,6 +2423,29 @@
 		position: relative;
 		overflow: hidden;
 		border-right: 1px solid var(--border-soft);
+	}
+	.cell-max {
+		grid-area: 1 / 1 / -1 / -1 !important;
+	}
+	.cell-hidden {
+		display: none !important;
+	}
+	.max-btn {
+		position: absolute;
+		bottom: 6px;
+		left: 6px;
+		z-index: 3;
+		width: 24px;
+		height: 20px;
+		border-radius: 3px;
+		border: 1px solid var(--border);
+		background: var(--bg-2);
+		color: var(--text-dim);
+		font-size: 11px;
+		opacity: 0.35;
+	}
+	.view:hover .max-btn {
+		opacity: 1;
 	}
 	.group-toggle {
 		position: absolute;

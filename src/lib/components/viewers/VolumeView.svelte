@@ -47,6 +47,31 @@
 	let redraw: (() => void) | null = null;
 	let objGroup: THREE.Group | null = null;
 	let groupRef: THREE.Group | null = null;
+	let cameraRef: THREE.PerspectiveCamera | null = null;
+	let controlsRef: OrbitControls | null = null;
+	let viewDistance = 0;
+
+	/** standard anatomical camera perspectives (world: +y = head up, +z = anterior) */
+	function setPerspective(name: string) {
+		if (!cameraRef || !controlsRef) return;
+		const d = viewDistance;
+		const eps = d * 0.001;
+		const pos: Record<string, [number, number, number]> = {
+			anterior: [0, 0, d],
+			posterior: [0, 0, -d],
+			left: [d, 0, 0],
+			right: [-d, 0, 0],
+			superior: [0, d, eps],
+			inferior: [0, -d, eps]
+		};
+		const p = pos[name];
+		if (!p) return;
+		cameraRef.position.set(p[0], p[1], p[2]);
+		controlsRef.target.set(0, 0, 0);
+		cameraRef.lookAt(0, 0, 0);
+		controlsRef.update();
+		redraw?.();
+	}
 	let sceneReady = $state(false);
 	let volHalfExtent = { x: 0, y: 0, z: 0 };
 	let meshClipPlanes: THREE.Plane[] = [];
@@ -501,10 +526,13 @@
 				const maxExt = Math.max(ex, ey, ez);
 				camera.position.set(0, maxExt * 1.2, maxExt * 2.6);
 				camera.lookAt(0, 0, 0);
+				cameraRef = camera;
+				viewDistance = maxExt * 2.8;
 
 				controls = new OrbitControls(camera, renderer.domElement);
 				controls.enableDamping = true;
 				controls.dampingFactor = 0.12;
+				controlsRef = controls;
 
 				// click-on-model raycast (click = pointer travel < 5px)
 				let downPos: { x: number; y: number } | null = null;
@@ -617,6 +645,22 @@
 			title="Vertical cut at the cross-section"
 			onclick={() => (clipCross = !clipCross)}>◧</button
 		>
+		<select
+			value=""
+			title="Camera perspective"
+			onchange={(e) => {
+				setPerspective(e.currentTarget.value);
+				e.currentTarget.value = '';
+			}}
+		>
+			<option value="" disabled>View…</option>
+			<option value="anterior">Anterior</option>
+			<option value="posterior">Posterior</option>
+			<option value="left">Left</option>
+			<option value="right">Right</option>
+			<option value="superior">Superior</option>
+			<option value="inferior">Inferior</option>
+		</select>
 		<select bind:value={preset}>
 			{#each PRESETS as p (p.name)}
 				<option value={p.name}>{p.name}</option>
