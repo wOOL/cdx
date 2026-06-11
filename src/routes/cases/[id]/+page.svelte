@@ -2,6 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import Icon from '$lib/components/Icon.svelte';
 	import SliceView from '$lib/components/viewers/SliceView.svelte';
+	import VolumeView from '$lib/components/viewers/VolumeView.svelte';
 	import { PlanningState, WINDOW_PRESETS } from '$lib/client/planning.svelte';
 
 	let { data } = $props();
@@ -244,10 +245,7 @@
 			</div>
 		{:else}
 			<div class="view-grid">
-				<div class="view panel">
-					<div class="view-label-3d">3D</div>
-					<div class="view-placeholder muted">3D view — coming next</div>
-				</div>
+				<div class="view panel"><VolumeView state={ps} /></div>
 				<div class="view panel"><SliceView state={ps} plane="axial" /></div>
 				<div class="view panel"><SliceView state={ps} plane="coronal" /></div>
 				<div class="view panel"><SliceView state={ps} plane="sagittal" /></div>
