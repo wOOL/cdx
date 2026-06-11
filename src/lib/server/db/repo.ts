@@ -253,6 +253,37 @@ export function deletePlan(planId: number): boolean {
 	return true;
 }
 
+// ---------- audit log ----------
+
+export interface AuditRow {
+	id: number;
+	user_email: string;
+	action: string;
+	target: string;
+	detail: string;
+	created_at: string;
+}
+
+export function logAudit(
+	user: { email: string } | null,
+	action: string,
+	target: string,
+	detail = ''
+): void {
+	db.query(`INSERT INTO audit (user_email, action, target, detail) VALUES (?1, ?2, ?3, ?4)`).run(
+		user?.email ?? 'system',
+		action,
+		target,
+		detail
+	);
+}
+
+export function listAudit(limit = 100): AuditRow[] {
+	return db
+		.query('SELECT * FROM audit ORDER BY id DESC LIMIT ?1')
+		.all(limit) as AuditRow[];
+}
+
 // ---------- images ----------
 
 export interface ImageRow {

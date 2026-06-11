@@ -71,6 +71,32 @@
 			<button class="btn primary" type="submit">Save settings</button>
 		</div>
 	</form>
+
+	<div class="panel settings-form audit-panel">
+		<div class="panel-header">Audit log (last 100 events)</div>
+		<div class="audit-body">
+			{#if data.audit.length}
+				<table class="audit-table">
+					<thead>
+						<tr><th>Time (UTC)</th><th>User</th><th>Action</th><th>Target</th><th>Detail</th></tr>
+					</thead>
+					<tbody>
+						{#each data.audit as a (a.id)}
+							<tr>
+								<td class="audit-time">{a.created_at}</td>
+								<td>{a.user_email}</td>
+								<td><span class="audit-action">{a.action}</span></td>
+								<td>{a.target}</td>
+								<td>{a.detail}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			{:else}
+				<p class="muted">No audited events yet. Plan approvals, locks, guide exports, shares, deletions and anonymization are recorded here.</p>
+			{/if}
+		</div>
+	</div>
 </div>
 
 <style>
@@ -134,5 +160,32 @@
 		gap: 5px;
 		color: var(--green);
 		font-size: 12px;
+	}
+	.audit-panel {
+		margin-top: 16px;
+	}
+	.audit-body {
+		padding: 12px;
+		max-height: 360px;
+		overflow-y: auto;
+	}
+	.audit-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 11px;
+	}
+	.audit-table th,
+	.audit-table td {
+		border-bottom: 1px solid var(--border-soft);
+		padding: 4px 8px;
+		text-align: left;
+	}
+	.audit-time {
+		font-family: var(--mono);
+		white-space: nowrap;
+	}
+	.audit-action {
+		color: var(--accent-bright);
+		font-family: var(--mono);
 	}
 </style>

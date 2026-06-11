@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { SETTING_DEFAULTS, getSettings, setSetting } from '$lib/server/db/repo';
+import { SETTING_DEFAULTS, getSettings, listAudit, setSetting } from '$lib/server/db/repo';
 
 export const load: PageServerLoad = async () => {
-	return { settings: getSettings() };
+	return { settings: getSettings(), audit: listAudit(100) };
 };
 
 export const actions: Actions = {

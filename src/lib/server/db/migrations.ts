@@ -193,6 +193,18 @@ const MIGRATIONS: string[] = [
 	// 9 — reversible patient anonymization (original identity stashed while anonymized)
 	`
 	ALTER TABLE patients ADD COLUMN real_data TEXT NOT NULL DEFAULT '';
+	`,
+	// 10 — audit log for clinically sensitive events
+	`
+	CREATE TABLE audit (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_email TEXT NOT NULL DEFAULT '',
+		action TEXT NOT NULL,
+		target TEXT NOT NULL DEFAULT '',
+		detail TEXT NOT NULL DEFAULT '',
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
+	CREATE INDEX idx_audit_time ON audit(created_at);
 	`
 ];
 

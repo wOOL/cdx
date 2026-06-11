@@ -1,10 +1,10 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-import { getPlan } from '$lib/server/db/repo';
+import { getPlan, logAudit } from '$lib/server/db/repo';
 
 /** Create (or return the existing) read-only share link for a plan. */
-export const POST: RequestHandler = async ({ params, url }) => {
+export const POST: RequestHandler = async ({ params, url, locals }) => {
 	const plan = getPlan(Number(params.id));
 	if (!plan) error(404, 'Plan not found');
 
@@ -15,6 +15,7 @@ export const POST: RequestHandler = async ({ params, url }) => {
 		const token = crypto.randomUUID().replace(/-/g, '').slice(0, 20);
 		db.query('INSERT INTO shares (token, plan_id) VALUES (?1, ?2)').run(token, plan.id);
 		row = { token };
+		logAudit(locals.user, 'plan.share', `plan:${plan.id}`, plan.name);
 	}
 	return json({ token: row.token, url: `${url.origin}/share/${row.token}` });
 };

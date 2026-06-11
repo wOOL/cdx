@@ -12,6 +12,7 @@ import {
 	listDatasets,
 	listImages,
 	listPatients,
+	logAudit,
 	updatePatient
 } from '$lib/server/db/repo';
 import { importDicomToCase } from '$lib/server/dicom/import';
@@ -61,10 +62,14 @@ export const actions: Actions = {
 		redirect(303, `/?sel=${id}`);
 	},
 
-	deletePatient: async ({ request }) => {
+	deletePatient: async ({ request, locals }) => {
 		const form = await request.formData();
 		const id = Number(form.get('id'));
-		if (id) deletePatient(id);
+		if (id) {
+			const p = getPatient(id);
+			deletePatient(id);
+			logAudit(locals.user, 'patient.delete', `patient:${id}`, p ? `${p.last_name}, ${p.first_name}` : '');
+		}
 		redirect(303, '/');
 	},
 
@@ -77,11 +82,12 @@ export const actions: Actions = {
 		redirect(303, `/cases/${c.id}`);
 	},
 
-	toggleAnonymize: async ({ request }) => {
+	toggleAnonymize: async ({ request, locals }) => {
 		const form = await request.formData();
 		const id = Number(form.get('id'));
 		const p = getPatient(id);
 		if (!p) return fail(404, { error: 'Patient not found' });
+		logAudit(locals.user, p.real_data ? 'patient.deanonymize' : 'patient.anonymize', `patient:${id}`);
 
 		if (!p.real_data) {
 			// anonymize: stash the identity, replace with a pseudonym
@@ -134,11 +140,14 @@ export const actions: Actions = {
 		redirect(303, `/cases/${c.id}`);
 	},
 
-	deleteCase: async ({ request }) => {
+	deleteCase: async ({ request, locals }) => {
 		const form = await request.formData();
 		const id = Number(form.get('id'));
 		const patientId = Number(form.get('patient_id'));
-		if (id) deleteCase(id);
+		if (id) {
+			deleteCase(id);
+			logAudit(locals.user, 'case.delete', `case:${id}`);
+		}
 		redirect(303, patientId ? `/?sel=${patientId}` : '/');
 	}
 };

@@ -1,8 +1,8 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { deletePlan, getPlan, updatePlan } from '$lib/server/db/repo';
+import { deletePlan, getPlan, logAudit, updatePlan } from '$lib/server/db/repo';
 
-export const PATCH: RequestHandler = async ({ params, request }) => {
+export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const id = Number(params.id);
 	const plan = getPlan(id);
 	if (!plan) error(404, 'Plan not found');
@@ -24,6 +24,12 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	if ('jaw' in body) fields.jaw = body.jaw === 'maxilla' ? 'maxilla' : 'mandible';
 
 	updatePlan(id, fields);
+	if ('approved' in body) {
+		logAudit(locals.user, body.approved ? 'plan.approve' : 'plan.unapprove', `plan:${id}`, plan.name);
+	}
+	if ('locked' in body) {
+		logAudit(locals.user, body.locked ? 'plan.lock' : 'plan.unlock', `plan:${id}`, plan.name);
+	}
 	return json({ plan: getPlan(id) });
 };
 

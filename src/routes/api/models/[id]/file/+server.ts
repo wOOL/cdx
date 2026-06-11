@@ -1,10 +1,10 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-import { getPlan } from '$lib/server/db/repo';
+import { getPlan, logAudit } from '$lib/server/db/repo';
 import type { Model } from '$lib/types';
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, locals }) => {
 	const m = db.query('SELECT * FROM models WHERE id = ?1').get(Number(params.id)) as Model | null;
 	if (!m || !m.file_path) error(404, 'Model not found');
 	const file = Bun.file(m.file_path);
@@ -22,6 +22,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 			if (plan && !plan.approved) {
 				error(409, 'Approve the plan before exporting the guide for production');
 			}
+			logAudit(locals.user, 'guide.export', `model:${m.id}`, m.name);
 		}
 		const safe = m.name.replace(/[^\w\-. ]+/g, '_');
 		headers['Content-Disposition'] = `attachment; filename="${safe}.${ext}"`;
