@@ -57,8 +57,8 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
 | 27 | Segment DICOM data (Easy) *(–)* | pending | |
-| 28 | Define the panoramic curve (Easy) *(–)* | pending | |
-| 29 | Detect the nerve canal (Easy) *(–)* | pending | |
+| 28 | Define the panoramic curve (Easy) *(14)* | verifying | (3D inset thumbnail → GAPS) |
+| 29 | Detect the nerve canal (Easy) *(18)* | verifying | detect with-or-without intermediate waypoints choice |
 
 ## Tips & Tricks
 

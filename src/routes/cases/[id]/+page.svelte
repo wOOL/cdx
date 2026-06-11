@@ -2650,11 +2650,18 @@
 		const n = ps.nerves.find((x) => x.id === nerveId);
 		if (!n || n.points.length < 2) return;
 		const nVia = n.points.length - 2;
-		const msg =
-			nVia > 0
-				? `Detect the nerve canal from marker 1 to marker ${n.points.length}, routing through the ${nVia} intermediate marker${nVia === 1 ? '' : 's'}? The markers will be replaced by the detected path.`
-				: 'Detect the nerve canal between the two placed markers? They will be replaced by the detected path.';
-		if (!confirm(msg)) return;
+		// desktop parity: with intermediate markers, offer routing through them (OK)
+		// or detecting from the endpoints alone (Cancel on the second prompt aborts)
+		let useVia = false;
+		if (nVia > 0) {
+			useVia = confirm(
+				`Additionally route the detection through the ${nVia} intermediate marker${nVia === 1 ? '' : 's'}?\n\nOK — use all markers as waypoints.\nCancel — detect from the start and end markers only.`
+			);
+			if (!useVia && !confirm('Detect the canal between the start and end markers only? The markers will be replaced by the detected path.'))
+				return;
+		} else if (!confirm('Detect the nerve canal between the two placed markers? They will be replaced by the detected path.')) {
+			return;
+		}
 		nerveDetecting = true;
 		try {
 			const res = await fetch(`/api/datasets/${ps.ds.id}/nerve-detect`, {
@@ -2663,7 +2670,7 @@
 				body: JSON.stringify({
 					start: n.points[0],
 					end: n.points[n.points.length - 1],
-					via: n.points.slice(1, -1).map((p) => ({ x: p.x, y: p.y, z: p.z }))
+					via: useVia ? n.points.slice(1, -1).map((p) => ({ x: p.x, y: p.y, z: p.z })) : []
 				})
 			});
 			if (!res.ok) {
