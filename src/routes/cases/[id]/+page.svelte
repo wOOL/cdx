@@ -2971,6 +2971,20 @@
 					>
 				{/if}
 				<button class="plan-menu-item" onclick={renamePlanAction}>Rename…</button>
+				<button
+					class="plan-menu-item"
+					onclick={() => {
+						planMenuOpen = false;
+						if (!ps || !ps.implants.length) return;
+						const lock = !ps.implants.every((i) => i.locked);
+						for (const i of ps.implants) {
+							i.locked = lock;
+							ps.saveImplant(i.id);
+						}
+					}}
+				>
+					{ps?.implants.every((i) => i.locked) && ps?.implants.length ? 'Unlock implants' : 'Lock implants'}
+				</button>
 				<button class="plan-menu-item" onclick={() => togglePlanFlag('locked')}>
 					{data.plan.locked ? 'Unlock plan' : 'Lock plan'}
 				</button>
@@ -3427,7 +3441,9 @@
 					>
 						<span class="dot" style="background:{im.color}"></span>
 						<span class="tree-item-label"
-							>{im.tooth ? `${toothLabel(im.tooth, notation)} — ` : ''}⌀{im.diameter}×{im.length}</span
+							>{im.tooth ? `${toothLabel(im.tooth, notation)} — ` : ''}⌀{im.diameter}×{im.length}{im.locked
+								? ' 🔒'
+								: ''}</span
 						>
 						<button
 							class="tree-eye"

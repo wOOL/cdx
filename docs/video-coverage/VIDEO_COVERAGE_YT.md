@@ -71,8 +71,8 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 34 | Deleting Patient Data *(12)* | verifying | (two-pane delete dialog → GAPS; inline deletes are the equivalent) |
 | 35 | Distance Measurements *(17)* | verifying | 3D measurements in cross view; armed-tool cursor |
 | 36 | Exporting a Plan *(10)* | verifying | (OS file association → GAPS; plan export/import present) |
-| 37 | Hotkeys *(–)* | pending | |
-| 38 | Inserting Logo in Printouts *(–)* | pending | |
+| 37 | Hotkeys *(8)* | verifying | ⌨ hotkeys button (mouse path to the list) |
+| 38 | Inserting Logo in Printouts *(13)* | verifying | logo accepts PNG/JPEG/BMP/WebP |
 | 39 | Locking implant positions *(–)* | pending | |
 | 40 | Moving implants *(–)* | pending | |
 | 41 | Surgical Guide Visualization *(–)* | pending | |
