@@ -76,7 +76,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Alignment methods: Copy alignment (same coordinate system) and Do-not-align (exclamation mark, deferred matching by double-click) — partial: deferred matching only; no copy-alignment
 - [ ] [P2] Registration object choice: volume segmentation or previously imported scan; "Edit segmentations" shortcut
 - [~] [P2] Multiple scans per plan (situ + separate wax-up); matching congruency caution displayed in wizard — partial: no congruency caution
-- [ ] [P2] Scan visualization: color palette assignment + Edit palettes dialog
+- [~] [P2] Scan visualization: color palette assignment + Edit palettes dialog — partial: free color picker per model
 - [ ] [P3] Replace Mesh (swap geometry keeping alignment)
 - [ ] [P3] 3D model import without matching (Object > Add > 3D Model) with manual positioning
 - [ ] [P3] Dual-scan workflow: import segmentation from second dataset of same patient + marker-based matching; flows into guide "Use bottom side of dual scan"
@@ -140,9 +140,9 @@ Cross-references point to `docs/SPEC.md` sections.
 
 ## 6. Segmentation & 3D Models (SPEC §5)
 
-- [~] [P1] Threshold segmentation: High/Low window slider + numeric boxes; live 3D surface rebuild (slot 1 "Default") — partial: numeric threshold, manual mesh rebuild
+- [~] [P1] Threshold segmentation: High/Low window slider + numeric boxes; live 3D surface rebuild (slot 1 "Default") — partial: numeric threshold, editable in place; no dual slider
 - [x] [P1] Surface extraction pipeline (marching cubes, worker-based, cached per threshold)
-- [~] [P1] Segmentation slots (max 8): name (Enter-commit, predefined list), color (cycle/palette dialog), transparency, visibility — partial: visibility/delete only; no name/color/transparency UI
+- [~] [P1] Segmentation slots (max 8): name (Enter-commit, predefined list), color (cycle/palette dialog), transparency, visibility — partial: multiple named segmentations w/ color/opacity; no slot semantics
 - [x] [P1] Segmentations listed in object tree with visibility checkboxes
 - [ ] [P2] Segmentation mode UI (Scanview): main view + 4 reference views (axial/coronal/sagittal/3D), left parameter pane, auto-save on exit/slot change
 - [ ] [P2] Target/Source/Exclude slot semantics (source constrains tools, "None" = free, "Source visible in 3D", exclude column)
