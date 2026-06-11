@@ -15,7 +15,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
-| 1 | Basic Training 1 *(61)* | verifying | nerve delete-point; (toolbar customization pending verdict) |
+| 1 | Basic Training 1 *(61)* | closed¹ | nerve delete-point; toolbar quick actions |
 | 2 | Basic Training 2 *(94)* | verifying | measurement rename; annotation/measure colors + label size; implant color picker; tooth-number tags; implant-axis length; line thickness; per-implant lock; plan-copy element selection; nerve rename; fine positioning; free 3D model import; sidebar collapse (F9) |
 | 3 | Mesh Editor — Opportunities and new tools *(42)* | verifying | Combine Subtract mode; Mesh-Editor delta batch (ctrl-wheel radius, pivot, drag-paint, view types, margin spline edit, partial fill, remesh params, area smooth, combine preview, reduce guidance) |
 | 4 | Predictable surgical guide design (webinar) *(35)* | verifying | import-time mesh-optimize offer |
@@ -24,8 +24,8 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 7 | coDiagnostiX EASY — A Simplified Implant Planning Solution *(42)* | closed | — (already complete) |
 | 8 | Enjoy fast and easy drill guide design (Dental Wings) *(29)* | verifying | elongated inspection windows (stadium length+angle) |
 | 9 | Transformations in Dentistry *(14)* | closed | — (marketing; already complete) |
-| 10 | Teaser — clinicians *(–)* | analyzing | |
-| 11 | Teaser — labs *(–)* | analyzing | |
+| 10 | Teaser — clinicians *(9)* | closed | — (marketing) |
+| 11 | Teaser — labs *(13)* | closed | — (marketing) |
 
 ## AI Assistant playlist
 
@@ -76,7 +76,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 39 | Locking implant positions *(7)* | verifying | per-implant lock + bulk Lock implants + tree padlocks |
 | 40 | Moving implants *(11)* | verifying | 0.1° fine-rotation step; (right-drag gestures → GAPS, handle drags equivalent) |
 | 41 | Surgical Guide Visualization *(14)* | verifying | metallic/wireframe/x-ray looks; properties readout (tris/points/area/volume) |
-| 42 | Transparent Segmentation *(–)* | pending | |
+| 42 | Transparent Segmentation *(14)* | closed¹ | (model opacity/color = the transparency; setup-dialog style → GAPS) |
 
 ## Verification
 
