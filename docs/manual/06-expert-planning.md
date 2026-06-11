@@ -142,7 +142,9 @@ position, e.g. *AI — Tooth 36*), the **left/right inferior alveolar canals**, 
 **soft-tissue envelope** is added by the application itself (a tissue-vs-air threshold) — it
 is the one class a model isn't needed for. Empty results are shown struck-through and cannot
 be imported. Imported objects appear in the object tree like any other model and can be made
-the base of a guide, used as nerve references, or hidden.
+the base of a guide, used as nerve references, or hidden:
+
+![Imported AI segmentation — per-tooth, jaws, canals and sinuses](img/ai-segmentation-result.png)
 
 > ⚠️ **Caution**
 > AI segmentation is a planning aid, not a diagnosis. Verify every imported object against
