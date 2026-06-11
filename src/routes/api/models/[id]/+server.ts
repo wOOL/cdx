@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { unlink } from 'node:fs/promises';
-import { db } from '$lib/server/db';
+import { db, resolveData } from '$lib/server/db';
 import type { Model } from '$lib/types';
 
 function getModel(id: number): Model | null {
@@ -31,7 +31,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 	const id = Number(params.id);
 	const m = getModel(id);
 	if (m?.file_path) {
-		await unlink(m.file_path).catch(() => {});
+		await unlink(resolveData(m.file_path)).catch(() => {});
 	}
 	db.query('DELETE FROM models WHERE id = ?1').run(id);
 	return json({ ok: true });

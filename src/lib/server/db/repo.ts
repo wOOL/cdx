@@ -1,6 +1,6 @@
 import { unlinkSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { DATA_DIR, db } from './index';
+import { DATA_DIR, db, resolveData } from './index';
 import { evictVolume } from '$lib/server/volumeCache';
 import type { Case, Dataset, Implant, Measurement, Model, Nerve, Patient, Plan } from '$lib/types';
 
@@ -118,7 +118,7 @@ export function deleteCase(id: number): void {
 	}
 	for (const f of files) {
 		try {
-			unlinkSync(f);
+			unlinkSync(resolveData(f));
 		} catch {
 			// already gone
 		}
@@ -296,7 +296,7 @@ export function deletePlan(planId: number): boolean {
 	for (const g of guides) {
 		if (g.file_path) {
 			try {
-				unlinkSync(g.file_path);
+				unlinkSync(resolveData(g.file_path));
 			} catch {
 				// already gone
 			}

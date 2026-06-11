@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { join } from 'node:path';
 import { unlink } from 'node:fs/promises';
-import { caseDir, db } from '$lib/server/db';
+import { caseRel, db, resolveData } from '$lib/server/db';
 import { getDataset } from '$lib/server/db/repo';
 import { evictVolume, loadVolume } from '$lib/server/volumeCache';
 import { rotateVolume, rotationMatrix } from '$lib/server/resample';
@@ -57,12 +57,12 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		seriesDescription: ds.series_description
 	});
 
-	const dir = caseDir(ds.case_id);
+	const rel = caseRel(ds.case_id);
 	const stamp = crypto.randomUUID().slice(0, 8);
-	const volPath = join(dir, `vol_${stamp}.i16`);
-	const prevPath = join(dir, `vol_${stamp}_preview.u8`);
-	await Bun.write(volPath, new Uint8Array(rotated.buffer, 0, rotated.byteLength));
-	await Bun.write(prevPath, preview.data);
+	const volPath = join(rel, `vol_${stamp}.i16`);
+	const prevPath = join(rel, `vol_${stamp}_preview.u8`);
+	await Bun.write(resolveData(volPath), new Uint8Array(rotated.buffer, 0, rotated.byteLength));
+	await Bun.write(resolveData(prevPath), preview.data);
 
 	db.query(
 		`UPDATE datasets SET
@@ -72,8 +72,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	).run(ds.id, volPath, prevPath, preview.cols, preview.rows, preview.slices);
 
 	evictVolume(ds.id);
-	await unlink(ds.volume_path).catch(() => {});
-	await unlink(ds.preview_path).catch(() => {});
+	await unlink(resolveData(ds.volume_path)).catch(() => {});
+	await unlink(resolveData(ds.preview_path)).catch(() => {});
 
 	// rotate every planned object of this case the same way the anatomy moved:
 	// p' = c + R·(p − c), axes v' = R·v

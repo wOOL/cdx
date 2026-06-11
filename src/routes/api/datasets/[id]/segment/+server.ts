@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { join } from 'node:path';
-import { caseDir, db } from '$lib/server/db';
+import { caseRel, db, resolveData } from '$lib/server/db';
 import { getDataset } from '$lib/server/db/repo';
 import { loadVolume } from '$lib/server/volumeCache';
 import { marchingCubes } from '$lib/server/marchingCubes';
@@ -30,9 +30,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	if (mesh.positions.length === 0) error(400, 'No surface at this threshold');
 
 	const stl = meshToStlBinary(mesh.positions, `bone_${threshold}HU`);
-	const dir = caseDir(ds.case_id);
-	const path = join(dir, `seg_${crypto.randomUUID().slice(0, 8)}.stl`);
-	await Bun.write(path, stl);
+	const path = join(caseRel(ds.case_id), `seg_${crypto.randomUUID().slice(0, 8)}.stl`);
+	await Bun.write(resolveData(path), stl);
 
 	const model = db
 		.query(

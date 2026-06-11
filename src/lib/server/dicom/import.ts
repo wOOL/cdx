@@ -1,6 +1,6 @@
 import dicomParser from 'dicom-parser';
 import { join } from 'node:path';
-import { caseDir } from '$lib/server/db';
+import { caseRel, resolveData } from '$lib/server/db';
 import { createDataset, getCase, getPatient, updateCase, updatePatient } from '$lib/server/db/repo';
 import type { Dataset } from '$lib/types';
 
@@ -242,12 +242,12 @@ export async function importDicomToCase(caseId: number, buffers: Uint8Array[]): 
 	const vol = buildVolume(buffers);
 	const preview = buildPreview(vol);
 
-	const dir = caseDir(caseId);
+	const rel = caseRel(caseId);
 	const stamp = crypto.randomUUID().slice(0, 8);
-	const volPath = join(dir, `vol_${stamp}.i16`);
-	const prevPath = join(dir, `vol_${stamp}_preview.u8`);
-	await Bun.write(volPath, new Uint8Array(vol.volume.buffer, 0, vol.volume.byteLength));
-	await Bun.write(prevPath, preview.data);
+	const volPath = join(rel, `vol_${stamp}.i16`);
+	const prevPath = join(rel, `vol_${stamp}_preview.u8`);
+	await Bun.write(resolveData(volPath), new Uint8Array(vol.volume.buffer, 0, vol.volume.byteLength));
+	await Bun.write(resolveData(prevPath), preview.data);
 
 	const dataset = createDataset({
 		case_id: caseId,

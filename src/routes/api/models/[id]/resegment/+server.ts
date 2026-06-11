@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { join } from 'node:path';
 import { unlink } from 'node:fs/promises';
-import { caseDir, db } from '$lib/server/db';
+import { caseRel, db, resolveData } from '$lib/server/db';
 import { getDataset } from '$lib/server/db/repo';
 import { loadVolume } from '$lib/server/volumeCache';
 import { marchingCubes } from '$lib/server/marchingCubes';
@@ -49,9 +49,9 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	);
 	if (mesh.positions.length === 0) error(400, 'No surface at this threshold');
 
-	const path = join(caseDir(model.case_id), `seg_${crypto.randomUUID().slice(0, 8)}.stl`);
-	await Bun.write(path, meshToStlBinary(mesh.positions, `bone_${threshold}HU`));
-	if (model.file_path) await unlink(model.file_path).catch(() => {});
+	const path = join(caseRel(model.case_id), `seg_${crypto.randomUUID().slice(0, 8)}.stl`);
+	await Bun.write(resolveData(path), meshToStlBinary(mesh.positions, `bone_${threshold}HU`));
+	if (model.file_path) await unlink(resolveData(model.file_path)).catch(() => {});
 
 	db.query(`UPDATE models SET file_path = ?2, name = ?3, params = ?4 WHERE id = ?1`).run(
 		model.id,

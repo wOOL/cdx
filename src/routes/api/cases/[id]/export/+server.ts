@@ -12,6 +12,7 @@ import {
 	listNerves,
 	listPlans
 } from '$lib/server/db/repo';
+import { resolveData } from '$lib/server/db';
 
 /** Full case archive: case.json + volume/preview/model files. */
 export const GET: RequestHandler = async ({ params }) => {
@@ -49,13 +50,13 @@ export const GET: RequestHandler = async ({ params }) => {
 	for (const d of datasets) {
 		for (const p of [d.volume_path, d.preview_path]) {
 			if (!p) continue;
-			const f = Bun.file(p);
+			const f = Bun.file(resolveData(p));
 			if (await f.exists()) entries[`files/${basename(p)}`] = new Uint8Array(await f.arrayBuffer());
 		}
 	}
 	for (const m of models) {
 		if (!m.file_path) continue;
-		const f = Bun.file(m.file_path);
+		const f = Bun.file(resolveData(m.file_path));
 		if (await f.exists())
 			entries[`files/${basename(m.file_path)}`] = new Uint8Array(await f.arrayBuffer());
 	}

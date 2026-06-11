@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { join } from 'node:path';
-import { caseDir, db } from '$lib/server/db';
+import { caseRel, db, resolveData } from '$lib/server/db';
 import { getCase } from '$lib/server/db/repo';
 import { LIMITS, assertSize } from '$lib/server/uploadLimits';
 
@@ -17,8 +17,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	assertSize(file, LIMITS.image);
 	const name = String(form.get('name') || 'Snapshot').slice(0, 80);
 
-	const path = join(caseDir(caseId), `img_${crypto.randomUUID().slice(0, 8)}.png`);
-	await Bun.write(path, await file.arrayBuffer());
+	const path = join(caseRel(caseId), `img_${crypto.randomUUID().slice(0, 8)}.png`);
+	await Bun.write(resolveData(path), await file.arrayBuffer());
 
 	const image = db
 		.query(

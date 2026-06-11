@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { join } from 'node:path';
 import { unlink } from 'node:fs/promises';
-import { caseDir, db } from '$lib/server/db';
+import { caseRel, db, resolveData } from '$lib/server/db';
 import { getCase, getPlan, listImplants, logAudit } from '$lib/server/db/repo';
 import { generateGuide, type GuideImplant } from '$lib/server/guideGen';
 import { meshToStlBinary, parsePly, parseStl } from '$lib/server/stl';
@@ -48,7 +48,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		error(400, 'No implants with sleeves — assign sleeves before generating a guide');
 	}
 
-	const bytes = new Uint8Array(await Bun.file(model.file_path).arrayBuffer());
+	const bytes = new Uint8Array(await Bun.file(resolveData(model.file_path)).arrayBuffer());
 	const mesh = model.file_path.endsWith('.ply') ? parsePly(bytes) : parseStl(bytes);
 	if (!mesh) error(400, 'Could not parse base model file');
 
@@ -126,15 +126,15 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	}
 
 	const stl = meshToStlBinary(guide.positions, 'surgical_guide');
-	const path = join(caseDir(caseId), `guide_${crypto.randomUUID().slice(0, 8)}.stl`);
-	await Bun.write(path, stl);
+	const path = join(caseRel(caseId), `guide_${crypto.randomUUID().slice(0, 8)}.stl`);
+	await Bun.write(resolveData(path), stl);
 
 	// regenerating replaces this plan's previous guide
 	const old = db
 		.query(`SELECT * FROM models WHERE case_id = ?1 AND kind = 'guide' AND plan_id = ?2`)
 		.all(caseId, plan.id) as Model[];
 	for (const o of old) {
-		if (o.file_path) await unlink(o.file_path).catch(() => {});
+		if (o.file_path) await unlink(resolveData(o.file_path)).catch(() => {});
 		db.query('DELETE FROM models WHERE id = ?1').run(o.id);
 	}
 

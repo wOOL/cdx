@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { unlink } from 'node:fs/promises';
-import { db } from '$lib/server/db';
+import { db, resolveData } from '$lib/server/db';
 
 interface ImageRow {
 	id: number;
@@ -12,7 +12,7 @@ interface ImageRow {
 export const GET: RequestHandler = async ({ params, url }) => {
 	const img = db.query('SELECT * FROM images WHERE id = ?1').get(Number(params.id)) as ImageRow | null;
 	if (!img) error(404, 'Image not found');
-	const file = Bun.file(img.file_path);
+	const file = Bun.file(resolveData(img.file_path));
 	if (!(await file.exists())) error(404, 'Image file missing');
 	const headers: Record<string, string> = {
 		'Content-Type': 'image/png',
@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 export const DELETE: RequestHandler = async ({ params }) => {
 	const img = db.query('SELECT * FROM images WHERE id = ?1').get(Number(params.id)) as ImageRow | null;
-	if (img?.file_path) await unlink(img.file_path).catch(() => {});
+	if (img?.file_path) await unlink(resolveData(img.file_path)).catch(() => {});
 	db.query('DELETE FROM images WHERE id = ?1').run(Number(params.id));
 	return json({ ok: true });
 };

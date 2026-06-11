@@ -2,8 +2,9 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { LIMITS, assertSize, unzipGuarded } from '$lib/server/uploadLimits';
 import { basename, join } from 'node:path';
-import { caseDir, db } from '$lib/server/db';
-import { createPatient } from '$lib/server/db/repo';
+import { unlink } from 'node:fs/promises';
+import { caseRel, db, resolveData } from '$lib/server/db';
+import { createPatient, deletePatient } from '$lib/server/db/repo';
 import type { Case, Dataset, Model, Plan } from '$lib/types';
 
 /** Import a case archive produced by /api/cases/[id]/export. */
@@ -38,16 +39,20 @@ export const POST: RequestHandler = async ({ request }) => {
 	const newCase = db
 		.query(`INSERT INTO cases (patient_id, title, status, notes) VALUES (?1, ?2, ?3, ?4) RETURNING *`)
 		.get(patient.id, `${src.title} (imported)`, src.status, src.notes ?? '') as Case;
-	const dir = caseDir(newCase.id);
+	const rel = caseRel(newCase.id);
 
+	const written: string[] = [];
 	const writeEntry = async (oldPath: string): Promise<string> => {
 		const name = basename(oldPath);
 		const data = entries[`files/${name}`];
 		if (!data) return '';
-		const newPath = join(dir, name);
-		await Bun.write(newPath, data);
+		const newPath = join(rel, name);
+		await Bun.write(resolveData(newPath), data);
+		written.push(newPath);
 		return newPath;
 	};
+
+	try {
 
 	// datasets (numeric fields coerced — manifest values are untrusted)
 	const dnum = (v: unknown, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -132,6 +137,17 @@ export const POST: RequestHandler = async ({ request }) => {
 				`INSERT INTO measurements (plan_id, type, points, value, label) VALUES (?1,?2,?3,?4,?5)`
 			).run(newPlan.id, me.type, me.points, num(me.value), me.label);
 		}
+	}
+
+	} catch (e) {
+		// roll back: deleting the patient cascades through case/plans/rows and
+		// removes the written files via deletePatient's cleanup
+		try {
+			deletePatient(patient.id);
+		} catch {
+			for (const f of written) await unlink(resolveData(f)).catch(() => {});
+		}
+		error(500, e instanceof Error ? `Import failed: ${e.message}` : 'Import failed');
 	}
 
 	return json({ caseId: newCase.id, patientId: patient.id });

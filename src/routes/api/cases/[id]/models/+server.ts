@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { join } from 'node:path';
-import { caseDir } from '$lib/server/db';
+import { caseRel, resolveData } from '$lib/server/db';
 import { db } from '$lib/server/db';
 import { getCase } from '$lib/server/db/repo';
 import type { Model } from '$lib/types';
@@ -27,9 +27,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		error(400, `Unsupported model format .${ext} — use STL or PLY`);
 	}
 
-	const dir = caseDir(caseId);
-	const path = join(dir, `model_${crypto.randomUUID().slice(0, 8)}.${ext}`);
-	await Bun.write(path, await file.arrayBuffer());
+	const path = join(caseRel(caseId), `model_${crypto.randomUUID().slice(0, 8)}.${ext}`);
+	await Bun.write(resolveData(path), await file.arrayBuffer());
 
 	const model = db
 		.query(

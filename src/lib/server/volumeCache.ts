@@ -1,4 +1,5 @@
 import type { Dataset } from '$lib/types';
+import { resolveData } from '$lib/server/db';
 
 /** In-memory LRU of loaded HU volumes (Int16, x fastest, then y, then z). */
 const cache = new Map<number, Int16Array>();
@@ -12,7 +13,7 @@ export async function loadVolume(ds: Dataset): Promise<Int16Array> {
 		cache.set(ds.id, hit);
 		return hit;
 	}
-	const buf = await Bun.file(ds.volume_path).arrayBuffer();
+	const buf = await Bun.file(resolveData(ds.volume_path)).arrayBuffer();
 	const vol = new Int16Array(buf);
 	if (vol.length !== ds.cols * ds.rows * ds.slices) {
 		throw new Error(`Volume file size mismatch for dataset ${ds.id}`);
