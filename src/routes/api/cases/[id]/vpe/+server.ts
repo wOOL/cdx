@@ -84,6 +84,35 @@ function transformed(positions: Float32Array, m: Model): Float32Array {
 	return out;
 }
 
+/** rigid inverse of a column-major mat4 (R → Rᵀ, t → −Rᵀ·t) */
+function rigidInverse(t: number[]): number[] {
+	const tx = t[12];
+	const ty = t[13];
+	const tz = t[14];
+	return [
+		t[0], t[4], t[8], 0,
+		t[1], t[5], t[9], 0,
+		t[2], t[6], t[10], 0,
+		-(t[0] * tx + t[1] * ty + t[2] * tz),
+		-(t[4] * tx + t[5] * ty + t[6] * tz),
+		-(t[8] * tx + t[9] * ty + t[10] * tz),
+		1
+	];
+}
+
+function applyMat(positions: Float32Array, t: number[]): Float32Array {
+	const out = new Float32Array(positions.length);
+	for (let i = 0; i < positions.length; i += 3) {
+		const x = positions[i];
+		const y = positions[i + 1];
+		const z = positions[i + 2];
+		out[i] = t[0] * x + t[4] * y + t[8] * z + t[12];
+		out[i + 1] = t[1] * x + t[5] * y + t[9] * z + t[13];
+		out[i + 2] = t[2] * x + t[6] * y + t[10] * z + t[14];
+	}
+	return out;
+}
+
 /** Virtual Planning Export: preview JSON or the .stl/.zip download (see VpeRequest). */
 export const POST: RequestHandler = async ({ params, request }) => {
 	const caseId = Number(params.id);
@@ -133,6 +162,26 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		implants,
 		items
 	);
+
+	// optional export coordinate system: re-express everything in a chosen
+	// scan's local frame (inverse of its registration); no transform on the
+	// frame model means it already IS the volume frame — nothing to do
+	const frameId = Number((body as { frameModelId?: unknown }).frameModelId);
+	if (Number.isFinite(frameId) && frameId > 0) {
+		const fm = listModels(caseId).find((m) => m.id === frameId);
+		if (!fm) error(400, 'frameModelId is not a model of this case');
+		let ft: number[] | null = null;
+		try {
+			const p = fm.transform ? JSON.parse(fm.transform) : null;
+			if (Array.isArray(p) && p.length === 16) ft = p;
+		} catch {
+			ft = null;
+		}
+		if (ft) {
+			const inv = rigidInverse(ft);
+			for (const part of parts) part.positions = applyMat(part.positions, inv);
+		}
+	}
 
 	if (body.preview === true) return json(vpePreview(parts));
 

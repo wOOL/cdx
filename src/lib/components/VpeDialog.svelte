@@ -89,6 +89,9 @@
 		}
 	});
 
+	/** export coordinate system: null = patient/volume frame, else a scan's local frame */
+	let frameModelId = $state<number | null>(null);
+
 	function payload(forPreview: boolean) {
 		const src = models.find((m) => m.id === sourceId);
 		return {
@@ -102,6 +105,7 @@
 				include: r.state !== 'exclude'
 			})),
 			single,
+			...(frameModelId != null && !forPreview ? { frameModelId } : {}),
 			...(planId ? { planId } : {}),
 			...(forPreview ? { preview: true } : {})
 		};
@@ -367,6 +371,20 @@
 						{/if}
 					</div>
 					<div class="vpe-export-opts">
+						<div class="vpe-group-title">Export coordinate system</div>
+						<select
+							value={frameModelId ?? ''}
+							onchange={(e) => {
+								const v = e.currentTarget.value;
+								frameModelId = v === '' ? null : Number(v);
+							}}
+							title="Re-express the exported geometry in a scan's own coordinate system (inverse of its registration) for CAD/CAM software expecting the scan frame"
+						>
+							<option value="">Patient / volume coordinates</option>
+							{#each scanModels as m (m.id)}
+								<option value={m.id}>Frame of: {m.name}</option>
+							{/each}
+						</select>
 						<div class="vpe-group-title">Export granularity</div>
 						<label class="vpe-radio">
 							<input type="radio" name="vpe-single" value={false} bind:group={single} />

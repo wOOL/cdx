@@ -1177,6 +1177,30 @@
 		matching.lastRms = null;
 	}
 
+	/** reuse the registration of an already-aligned scan (same situation scanned twice) */
+	function copyAlignment() {
+		if (!ps) return;
+		const targetId = matching.modelId ?? scanModels[0]?.id ?? null;
+		const target = ps.models.find((m) => m.id === targetId);
+		if (!target) return;
+		const sources = ps.models.filter(
+			(m) => m.kind === 'scan' && m.id !== target.id && m.transform
+		);
+		if (!sources.length) return;
+		const pick = prompt(
+			`Copy alignment to "${target.name}" from which scan?\n${sources
+				.map((s, i) => `${i + 1}. ${s.name}`)
+				.join('\n')}\n\nEnter the number:`,
+			'1'
+		);
+		const idx = Number(pick) - 1;
+		if (!Number.isInteger(idx) || !sources[idx]) return;
+		ps.markEdit();
+		target.transform = [...sources[idx].transform!];
+		ps.saveModel(target.id);
+		matching.lastRms = null;
+	}
+
 	async function refineICP() {
 		if (!ps || matching.modelId == null || !alignVolView) return;
 		const m = ps.models.find((m) => m.id === matching.modelId);
@@ -3098,6 +3122,14 @@
 							{matching.busy || 'Refine fit (ICP)'}
 						</button>
 						<button class="btn" onclick={resetMatching}>Reset</button>
+						<button
+							class="btn"
+							disabled={!ps.models.some((m) => m.kind === 'scan' && m.id !== (matching.modelId ?? scanModels[0]?.id) && m.transform)}
+							title="Copy the registration of an already-aligned scan of the same situation to this one"
+							onclick={copyAlignment}
+						>
+							Copy alignment…
+						</button>
 						<button
 							class="btn"
 							class:primary={scanDragMode}
