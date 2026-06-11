@@ -7,6 +7,7 @@
 	import ReportCross from '$lib/components/viewers/ReportCross.svelte';
 	import {
 		abutmentLabel,
+		boneClassLabel,
 		drillLength,
 		drillSequence,
 		toothLabel,
@@ -168,6 +169,7 @@
 									<th>Drill</th>
 									<th>⌀</th>
 									<th>Handle</th>
+									<th>Bone classes</th>
 									<th>Guided drill length (stop)</th>
 								</tr>
 							</thead>
@@ -178,6 +180,7 @@
 										<td>{step.name}</td>
 										<td>⌀{step.diameter.toFixed(1)} mm</td>
 										<td><span class="handle-dot" style="background:{step.color}"></span> {step.color}</td>
+										<td>{boneClassLabel(step)}</td>
 										<td>{drillLength(im.length, sleeve).toFixed(1)} mm</td>
 									</tr>
 								{/each}
@@ -186,6 +189,7 @@
 									<td><strong>Implant insertion</strong></td>
 									<td>⌀{im.diameter.toFixed(1)} mm</td>
 									<td>—</td>
+									<td>all</td>
 									<td>seat to sleeve stop ({(sleeve.offset + sleeve.height).toFixed(1)} mm above shoulder)</td>
 								</tr>
 							</tbody>

@@ -38,6 +38,15 @@
 	import { composeMat4, icp, kabsch } from '$lib/registration';
 	import { extractSurfacePoints } from '$lib/client/icpTargets';
 	import { axialContours, primeModel } from '$lib/client/meshContours';
+	import {
+		drawMaskOverlay,
+		fetchMaskSlice,
+		flushPaintOps,
+		invalidateMaskSlice,
+		paintLocal,
+		peekMaskSlice,
+		queuePaintOp
+	} from '$lib/client/maskLayer';
 	import type { Vec3 } from '$lib/geometry';
 
 	let { data } = $props();
@@ -313,6 +322,7 @@
 	}
 
 	function axialOverlay(ctx: CanvasRenderingContext2D, t: ViewTransform) {
+		maskOverlay(ctx, t);
 		curveOverlay(ctx, t);
 		if (ps) {
 			drawScanContours(ctx, t);
@@ -826,6 +836,7 @@
 	}
 
 	function alignAxialTool(e: ToolPointerEvent): boolean {
+		if (segTool(e)) return true;
 		if (scanAlignTool(e)) return true;
 		return axialTool(e);
 	}
@@ -941,6 +952,116 @@
 		} finally {
 			pcsBusy = false;
 		}
+	}
+
+	// ---------- voxel mask editor (Scanview-style segmentation editing) ----------
+	let segEdit = $state({
+		active: false,
+		tool: 'brush' as 'brush' | 'fill',
+		mode: 'add' as 'add' | 'erase',
+		brushMM: 2,
+		rangeLo: 300,
+		busy: ''
+	});
+	let maskTick = $state(0);
+
+	async function maskInit() {
+		if (!ps) return;
+		segEdit.busy = 'Initializing…';
+		try {
+			await fetch(`/api/datasets/${ps.ds.id}/mask/init`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ threshold: segEdit.rangeLo })
+			});
+			invalidateMaskSlice(ps.ds.id);
+			maskTick++;
+		} finally {
+			segEdit.busy = '';
+		}
+	}
+
+	async function maskBuildModel() {
+		if (!ps) return;
+		segEdit.busy = 'Building model…';
+		try {
+			await flushPaintOps();
+			const res = await fetch(`/api/datasets/${ps.ds.id}/mask/build-model`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name: 'Custom segmentation' })
+			});
+			if (res.ok) {
+				const { model } = await res.json();
+				ps.models.push({
+					id: model.id,
+					name: model.name,
+					kind: 'segmentation',
+					color: model.color,
+					opacity: model.opacity ?? 1,
+					visible: true,
+					transform: null,
+					threshold: null
+				});
+			} else {
+				const body = await res.json().catch(() => null);
+				alert(body?.message ?? 'Model build failed');
+			}
+		} finally {
+			segEdit.busy = '';
+		}
+	}
+
+	function maskOverlay(ctx: CanvasRenderingContext2D, t: ViewTransform) {
+		if (!ps || !segEdit.active) return;
+		const slice = peekMaskSlice(ps.ds.id, ps.cursor.z);
+		if (slice) {
+			drawMaskOverlay(ctx, t, slice, ctx.canvas.width);
+		} else {
+			fetchMaskSlice(ps.ds.id, ps.cursor.z).then(() => maskTick++);
+		}
+	}
+
+	function segTool(e: ToolPointerEvent): boolean {
+		if (!ps || !segEdit.active || ps.locked) return false;
+		const dsId = ps.ds.id;
+		const index = ps.cursor.z;
+		if (segEdit.tool === 'fill') {
+			if (e.type === 'down') {
+				segEdit.busy = 'Filling…';
+				fetch(`/api/datasets/${dsId}/mask/fill`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						index,
+						x: Math.round(e.px),
+						y: Math.round(e.py),
+						lo: segEdit.rangeLo,
+						mode: segEdit.mode
+					})
+				})
+					.then(() => {
+						invalidateMaskSlice(dsId, index);
+						maskTick++;
+					})
+					.finally(() => (segEdit.busy = ''));
+			}
+			return true;
+		}
+		// brush
+		if (e.type === 'down' || e.type === 'move') {
+			const r = Math.max(1, segEdit.brushMM / ps.ds.spacing_x);
+			const value = segEdit.mode === 'add' ? 1 : 0;
+			paintLocal(dsId, index, e.px, e.py, r, value);
+			queuePaintOp(dsId, index, { x: e.px, y: e.py, r, mode: segEdit.mode });
+			maskTick++;
+			return true;
+		}
+		if (e.type === 'up') {
+			flushPaintOps();
+			return true;
+		}
+		return false;
 	}
 
 	// ---------- bone segmentation ----------
@@ -1762,6 +1883,50 @@
 						<Icon name="rotate" size={14} /> Align patient axes…
 					</button>
 					<div class="tool-sep"></div>
+					<button
+						class="btn"
+						class:primary={segEdit.active}
+						title="Voxel segmentation editor: paint/fill on the axial view"
+						onclick={() => (segEdit.active = !segEdit.active)}
+					>
+						<Icon name="edit" size={14} /> {segEdit.active ? 'Editing mask' : 'Edit segmentation'}
+					</button>
+					{#if segEdit.active}
+						<button class="btn" disabled={!!segEdit.busy} title="Initialize the mask from a HU threshold" onclick={maskInit}>
+							Init ≥
+						</button>
+						<input
+							type="number"
+							step="50"
+							bind:value={segEdit.rangeLo}
+							title="Threshold / fill range lower bound (HU)"
+							style="width:64px"
+						/>
+						<select bind:value={segEdit.tool} title="Tool">
+							<option value="brush">Brush</option>
+							<option value="fill">Flood fill</option>
+						</select>
+						<select bind:value={segEdit.mode} title="Add or erase">
+							<option value="add">Add</option>
+							<option value="erase">Erase</option>
+						</select>
+						{#if segEdit.tool === 'brush'}
+							<input
+								type="range"
+								min="0.5"
+								max="8"
+								step="0.5"
+								bind:value={segEdit.brushMM}
+								title="Brush radius (mm)"
+								style="width:80px"
+							/>
+							<span class="muted">{segEdit.brushMM.toFixed(1)} mm</span>
+						{/if}
+						<button class="btn primary" disabled={!!segEdit.busy} onclick={maskBuildModel}>
+							{segEdit.busy || 'Build 3D model'}
+						</button>
+					{/if}
+					<div class="tool-sep"></div>
 					<label class="inline-label" for="seg-th">Bone HU</label>
 					<input id="seg-th" type="number" step="50" bind:value={segThreshold} style="width:70px" />
 					<button class="btn" disabled={segBusy} onclick={createBoneModel}>
@@ -2132,7 +2297,7 @@
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={alignAxialTool}
-							overlayDeps={[JSON.stringify(ps.curveControl), ps.crossU, objectsVersion, contourTick, modelsVersion]}
+							overlayDeps={[JSON.stringify(ps.curveControl), ps.crossU, objectsVersion, contourTick, modelsVersion, maskTick, segEdit.active]}
 						/>
 						{@render maxBtn('aax')}
 					</div>

@@ -175,6 +175,13 @@ export interface DrillStep {
 	color: string;
 	/** only used when the implant diameter is at least this value */
 	minImplantDiameter?: number;
+	/** bone classes this step applies to (default: all) — soft ≈ D4/D5, medium ≈ D3, hard ≈ D1/D2 */
+	bone?: ('soft' | 'medium' | 'hard')[];
+}
+
+export function boneClassLabel(step: DrillStep): string {
+	if (!step.bone || step.bone.length === 3) return 'all';
+	return step.bone.join(' / ');
 }
 
 /**
@@ -187,14 +194,17 @@ export const DRILL_PROTOCOLS: Record<string, DrillStep[]> = {
 		{ name: 'Pilot drill', diameter: 2.2, color: 'yellow' },
 		{ name: 'Drill ⌀2.8', diameter: 2.8, color: 'red', minImplantDiameter: 3.3 },
 		{ name: 'Drill ⌀3.5', diameter: 3.5, color: 'blue', minImplantDiameter: 4.1 },
-		{ name: 'Drill ⌀4.2', diameter: 4.2, color: 'green', minImplantDiameter: 4.8 }
+		{ name: 'Drill ⌀4.2', diameter: 4.2, color: 'green', minImplantDiameter: 4.8 },
+		{ name: 'Profile drill', diameter: 4.2, color: 'gray', bone: ['medium', 'hard'] },
+		{ name: 'Bone tap', diameter: 4.1, color: 'gray', bone: ['hard'] }
 	],
 	'Generic sleeve': [
 		{ name: 'Pilot drill', diameter: 2.0, color: 'yellow' },
 		{ name: 'Twist drill ⌀2.8', diameter: 2.8, color: 'red', minImplantDiameter: 3.3 },
 		{ name: 'Twist drill ⌀3.4', diameter: 3.4, color: 'blue', minImplantDiameter: 4.0 },
-		{ name: 'Twist drill ⌀4.1', diameter: 4.1, color: 'green', minImplantDiameter: 4.8 },
-		{ name: 'Twist drill ⌀4.7', diameter: 4.7, color: 'black', minImplantDiameter: 5.4 }
+		{ name: 'Twist drill ⌀4.1', diameter: 4.1, color: 'green', minImplantDiameter: 4.8, bone: ['medium', 'hard'] },
+		{ name: 'Twist drill ⌀4.7', diameter: 4.7, color: 'black', minImplantDiameter: 5.4, bone: ['medium', 'hard'] },
+		{ name: 'Cortical tap', diameter: 4.0, color: 'gray', bone: ['hard'] }
 	],
 	'Pilot drill sleeve': [{ name: 'Pilot drill', diameter: 2.0, color: 'yellow' }]
 };
