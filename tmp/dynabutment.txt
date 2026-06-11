@@ -1,0 +1,203 @@
+INSTRUCTIONS FOR USE
+ DYNAMIC ABUTMENT SOLUTIONS LIBRARY
+                                      INST_CODIAGNOSTIX_2023_01_EN
+1.     CASE DESCRIPTION
+
+
+To plan a case in coDiagnostiX, the software offers two work modes: Expert and
+Easy. The easy mode works as a Wizard taking you step by step. The following
+instructions show a case created in the Expert mode.
+
+To start a case, select “new”. The software then asks for a path where it can find the
+DICOM files for transfer.
+
+
+
+
+In the next step, define the patient and the case.
+
+
+
+
+                                                                                         1
+    Once you have defined the case, the general software interface appears with all the
+    available planning options. In the upper part (shown in red) you can see all the flow
+    stages of the project you need to follow.
+
+
+
+
+    2. STEP 1. ALIGNING THE PATIENT
+    COORDINATES SYSTEM
+
+
+
+
+                          Click on Align the patient coordinates system in the tool bar.
+
+
+
+
+    The green plane must coincide with the patient’s occlusal plane and the red plane with
+    the patient’s saggital plane. Move the patient coordinates system (PCS) with the left
+    button on the mouse. Turn the PCS with the right button on the mouse.
+
+    Accept to save the configuration.
+
+
+
+
+2
+STEP 2. PANORAMIC CURVE
+
+
+
+
+          Click on the Panoramic curve icon in the tool bar. Take the
+          points left clicking on the mouse and move the curve to suit
+          the patient’s anatomy.
+
+
+
+
+STEP 3. DETECT THE NERVE CANAL
+
+
+
+        Click on the Nerve canal icon in the tool bar and add the
+        objects of the nerve canal. Establish the entry point on the
+        mental hole and the exit point on the mandible hole by clicking
+        directly on the views. coDiagnostiX is able to automatically
+        detect the nerve canal. Click on “Detect”.
+
+
+
+
+                                                                          3
+    STEP 4. IMPORT AND COMBINE THE
+    MODEL SCAN DATA
+
+
+
+                       Click on Add model scan in the tool bar. Select the source for
+                       the model scan file (CAD file, segmentation, DWOS Connect
+                       order).
+
+
+
+    Choose the alignment method for the model scan. The standard method is alignment
+    with another object. For other alignment options, see the coDiagnostiX Help section.
+
+
+
+
+    Set the pairs of corresponding regions by clicking on the affected area, both on the
+    scanned model and the registered object.
+
+
+
+
+4
+End to complete the alignment.
+
+
+
+
+STEP 5. PLANNING AN IMPLANT
+
+
+
+                   Click on the Add implant icon the tool bar. The master database
+                   opens. Choose the implant and the tooth positions where you
+                   want to place the implants.
+
+
+
+
+                                                                                     5
+    Adjust the position of the implant as desired. Move the implant by left clicking on the
+    mouse. Turn the implant by clicking on the right button.
+
+
+
+
+6
+If your case requires, you can add anchor pins. coDiagnostiX deals with this item as
+if it were an implant. Therefore, we can elect the Dynamic Abutment Solutions anchor
+pins in the same way we selected an implant.
+
+
+
+
+STEP 6. CHOOSING THE SLEEVES
+
+
+
+                    To create the surgical guide using sleeves, click on edit
+                    sleeves on the tool bar -> Generic sleeves system.
+
+
+
+
+Choose the DAS sleeve you want and the offset for the sleeve.
+
+
+
+
+                                                                                       7
+    Important: By default, offsets from 9 mm to 13 mm, each 0.5 mm apart, are available.
+    The offsets permitted for each implant are established in the PDF Work Offsets by
+    Compatibility. It important to choose an offset suitable for each procedure.
+
+
+
+    STEP 7. SURGICAL GUIDE DESIGN
+
+
+
+
+                         Click on the Add surgical guide icon in the tool bar to open the
+                         wizard. Choose whether you want to create a completely new
+                         surgical guide or use an existing guide as a template.
+
+
+
+
+8
+Then choose the insertion direction for the surgical guide and define the contact
+surfaces.
+
+
+
+
+The software opens a new window and allows you to change the parameters such as
+minimum thickness of the guide, connector thickness, etc.
+
+
+
+
+                                                                                    9
+     7.1 USING THE INSPECTION WINDOWS
+     AS AN OPENING FOR THE CUT SLEEVE
+
+
+     As the software creates an interface for the cylindrical sleeve and we need an opening
+     for the cut sleeve, you can make use of the inspection windows to generate a window
+     which allows the lateral insertion of the tools if necessary.
+
+
+
+
+     STEP 8. PRINT PROTOCOLS
+
+
+                           Choose the print icon on the tool bar to see the menu.
+                           The software offers different protocols with different case
+                           information.
+
+
+
+
+10
+11
+

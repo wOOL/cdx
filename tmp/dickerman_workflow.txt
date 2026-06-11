@@ -1,0 +1,41 @@
+                  coDiagnostiX Workflow
+
+
+    The workflow in coDiagnostiX can be found on the top tool bar in the
+   software. The workflow is a step by step sequence for case planning. If
+    your software looks different, right click on the tool bar, select adjust,
+      and drag the icons around until they match the above example
+       Step 1: Setup gonyX Registration. This operation registers the 3 reference
+       pins from the scan appliance and allows for the surgical guide fabrication.
+       If your intention is for treatment planning only then this step is not required
+       Step 2: Setting the Panoramic Curve. When setting the curve, use the
+       mouse wheel to scroll through the axial slices until the crest of the ridge is
+       present. Drag the handles until the Incisal Point is between the centrals,
+       the unlabeled 2 points should be placed on the first bicuspids, and the
+       numbered points should be placed where the third molars are or would be
+       present.
+       Step 3: Nerve Detection. When working on the mandible, the software give
+       the user the ability to plot the nerve canal. If necessary multiple canals
+       can be plotted for additional branches of the canal.
+       Step 4: The Implant library can be found by clicking on the implant icon in
+       the workflow. In the implant library all of the different manufacturers and
+       model series can be found and selected. Click on the desired implant,
+       select the tooth position on the bottom of the library and click OK
+
+       Step 5: The Abutment tool is purely for diagnostic purposes. This allows the
+       user to place stock abutments or design an angled abutment virtually to
+       see if the desired implant position is prosthetically ideal or acceptable
+
+       Step 6: Placing the sleeves in the plan is important in the guide fabrication
+       process. There are a variety of sleeve offsets which will allow for flapless
+       surgical technique to be implemented if desired, or a lower sleeve offset
+       for a more restricted surgical site in the posterior of the mouth. This step is
+       not required if there is not going to be a surgical guide fabricated
+       Step 7: The Printer will allow you to print out a variety of different printouts
+       including details sheets for each implant, gonyX sheets for sleeve
+       placement, and the surgical protocol to guide you through the guided
+       surgical kit
+
+Any questions please contact Brandon Dickerman
+   781.828.2808 www.dickermandental.com
+

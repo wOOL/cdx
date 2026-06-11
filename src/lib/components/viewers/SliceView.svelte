@@ -1,0 +1,361 @@
+<script lang="ts">
+	import type { PlanningState } from '$lib/client/planning.svelte';
+	import type { Plane, Slice } from '$lib/client/sliceCache';
+
+	let {
+		state: ps,
+		plane,
+		label = ''
+	}: { state: PlanningState; plane: Plane; label?: string } = $props();
+
+	let canvas: HTMLCanvasElement | undefined = $state();
+	let container: HTMLDivElement | undefined = $state();
+
+	// local view transform
+	let zoom = $state(1);
+	let panX = $state(0);
+	let panY = $state(0);
+
+	let hoverHU: number | null = $state(null);
+	let hoverPos: { px: number; py: number } | null = null;
+
+	// slice geometry per plane
+	let sliceIndex = $derived(
+		plane === 'axial' ? ps.cursor.z : plane === 'coronal' ? ps.cursor.y : ps.cursor.x
+	);
+	let maxIndex = $derived(
+		plane === 'axial' ? ps.ds.slices - 1 : plane === 'coronal' ? ps.ds.rows - 1 : ps.ds.cols - 1
+	);
+	let spacingW = $derived(plane === 'sagittal' ? ps.ds.spacing_y : ps.ds.spacing_x);
+	let spacingH = $derived(plane === 'axial' ? ps.ds.spacing_y : ps.ds.spacing_z);
+
+	let offscreen: HTMLCanvasElement | null = null;
+	let lastSlice: Slice | null = null;
+	let lastImageKey = '';
+	let raf = 0;
+
+	function setIndex(i: number) {
+		const idx = Math.max(0, Math.min(maxIndex, Math.round(i)));
+		if (plane === 'axial') ps.cursor.z = idx;
+		else if (plane === 'coronal') ps.cursor.y = idx;
+		else ps.cursor.x = idx;
+	}
+
+	// crosshair position in slice pixel coords
+	function crosshairPx(): { px: number; py: number } {
+		const S = ps.ds.slices;
+		if (plane === 'axial') return { px: ps.cursor.x, py: ps.cursor.y };
+		if (plane === 'coronal') return { px: ps.cursor.x, py: S - 1 - ps.cursor.z };
+		return { px: ps.cursor.y, py: S - 1 - ps.cursor.z };
+	}
+
+	function setCursorFromSlicePx(px: number, py: number) {
+		const S = ps.ds.slices;
+		if (plane === 'axial') {
+			ps.cursor.x = px;
+			ps.cursor.y = py;
+		} else if (plane === 'coronal') {
+			ps.cursor.x = px;
+			ps.cursor.z = S - 1 - py;
+		} else {
+			ps.cursor.y = px;
+			ps.cursor.z = S - 1 - py;
+		}
+		ps.clampCursor();
+	}
+
+	/** canvas px → slice px (float) */
+	function canvasToSlice(cx: number, cy: number): { px: number; py: number } | null {
+		if (!canvas || !lastSlice) return null;
+		const t = fitTransform(lastSlice);
+		return { px: (cx - t.ox) / t.scaleX, py: (cy - t.oy) / t.scaleY };
+	}
+
+	function fitTransform(slice: Slice) {
+		const cw = canvas!.width;
+		const ch = canvas!.height;
+		const wmm = slice.width * spacingW;
+		const hmm = slice.height * spacingH;
+		const fit = Math.min(cw / wmm, ch / hmm) * 0.95 * zoom;
+		const scaleX = fit * spacingW;
+		const scaleY = fit * spacingH;
+		const ox = (cw - slice.width * scaleX) / 2 + panX;
+		const oy = (ch - slice.height * scaleY) / 2 + panY;
+		return { scaleX, scaleY, ox, oy };
+	}
+
+	function render(slice: Slice) {
+		if (!canvas) return;
+		const ctx = canvas.getContext('2d')!;
+		const cw = canvas.width;
+		const ch = canvas.height;
+		ctx.fillStyle = '#000';
+		ctx.fillRect(0, 0, cw, ch);
+
+		// window/level into offscreen canvas (cache per slice+wl)
+		const key = `${plane}:${sliceIndex}:${ps.wc}:${ps.ww}`;
+		if (key !== lastImageKey || !offscreen) {
+			if (!offscreen || offscreen.width !== slice.width || offscreen.height !== slice.height) {
+				offscreen = document.createElement('canvas');
+				offscreen.width = slice.width;
+				offscreen.height = slice.height;
+			}
+			const octx = offscreen.getContext('2d')!;
+			const img = octx.createImageData(slice.width, slice.height);
+			const lo = ps.wc - ps.ww / 2;
+			const scale = 255 / ps.ww;
+			const d = img.data;
+			const src = slice.data;
+			for (let i = 0; i < src.length; i++) {
+				let v = (src[i] - lo) * scale;
+				if (v < 0) v = 0;
+				else if (v > 255) v = 255;
+				const o = i * 4;
+				d[o] = d[o + 1] = d[o + 2] = v;
+				d[o + 3] = 255;
+			}
+			octx.putImageData(img, 0, 0);
+			lastImageKey = key;
+		}
+
+		const t = fitTransform(slice);
+		ctx.imageSmoothingEnabled = true;
+		ctx.imageSmoothingQuality = 'high';
+		ctx.drawImage(
+			offscreen,
+			t.ox,
+			t.oy,
+			slice.width * t.scaleX,
+			slice.height * t.scaleY
+		);
+
+		// crosshair
+		if (ps.crosshairVisible) {
+			const { px, py } = crosshairPx();
+			const cx = t.ox + (px + 0.5) * t.scaleX;
+			const cy = t.oy + (py + 0.5) * t.scaleY;
+			ctx.strokeStyle = 'rgba(69, 184, 224, 0.55)';
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(0, cy);
+			ctx.lineTo(cx - 12, cy);
+			ctx.moveTo(cx + 12, cy);
+			ctx.lineTo(cw, cy);
+			ctx.moveTo(cx, 0);
+			ctx.lineTo(cx, cy - 12);
+			ctx.moveTo(cx, cy + 12);
+			ctx.lineTo(cx, ch);
+			ctx.stroke();
+		}
+
+		// overlays
+		ctx.fillStyle = 'rgba(216, 220, 228, 0.85)';
+		ctx.font = '11px Inter, sans-serif';
+		ctx.fillText(`${sliceIndex + 1} / ${maxIndex + 1}`, 8, ch - 8);
+		const wlText = `C ${Math.round(ps.wc)}  W ${Math.round(ps.ww)}`;
+		ctx.fillText(wlText, cw - ctx.measureText(wlText).width - 8, ch - 8);
+		if (hoverHU !== null) {
+			ctx.fillText(`${hoverHU} HU`, 8, ch - 22);
+		}
+
+		// orientation labels
+		ctx.fillStyle = 'rgba(138, 145, 160, 0.9)';
+		ctx.font = '10px Inter, sans-serif';
+		const labels =
+			plane === 'axial'
+				? { top: 'A', bottom: 'P', left: 'R', right: 'L' }
+				: plane === 'coronal'
+					? { top: 'S', bottom: 'I', left: 'R', right: 'L' }
+					: { top: 'S', bottom: 'I', left: 'A', right: 'P' };
+		ctx.fillText(labels.top, cw / 2 - 3, 14);
+		ctx.fillText(labels.bottom, cw / 2 - 3, ch - 18);
+		ctx.fillText(labels.left, 6, ch / 2 + 3);
+		ctx.fillText(labels.right, cw - 14, ch / 2 + 3);
+	}
+
+	function scheduleDraw() {
+		cancelAnimationFrame(raf);
+		raf = requestAnimationFrame(async () => {
+			const idx = sliceIndex;
+			const cached = ps.slices.peek(plane, idx);
+			if (cached) {
+				lastSlice = cached;
+				render(cached);
+			} else {
+				if (lastSlice) render(lastSlice); // keep previous while loading
+				try {
+					const slice = await ps.slices.get(plane, idx);
+					if (idx === sliceIndex) {
+						lastSlice = slice;
+						render(slice);
+					}
+				} catch {
+					// dataset gone or network error — leave last frame
+				}
+			}
+			// prefetch neighbours
+			ps.slices.get(plane, Math.min(maxIndex, idx + 1)).catch(() => {});
+			ps.slices.get(plane, Math.max(0, idx - 1)).catch(() => {});
+		});
+	}
+
+	$effect(() => {
+		// dependencies: cursor, window, transform, hover
+		void ps.cursor.x;
+		void ps.cursor.y;
+		void ps.cursor.z;
+		void ps.wc;
+		void ps.ww;
+		void zoom;
+		void panX;
+		void panY;
+		void hoverHU;
+		void ps.crosshairVisible;
+		scheduleDraw();
+	});
+
+	$effect(() => {
+		if (!container || !canvas) return;
+		const ro = new ResizeObserver(() => {
+			if (!canvas || !container) return;
+			canvas.width = container.clientWidth;
+			canvas.height = container.clientHeight;
+			scheduleDraw();
+		});
+		ro.observe(container);
+		return () => ro.disconnect();
+	});
+
+	// ---------- mouse interaction ----------
+	let dragMode: 'none' | 'cursor' | 'wl' | 'pan' = 'none';
+	let lastMouse = { x: 0, y: 0 };
+
+	function onPointerDown(e: PointerEvent) {
+		canvas?.setPointerCapture(e.pointerId);
+		lastMouse = { x: e.offsetX, y: e.offsetY };
+		if (e.button === 0) {
+			dragMode = 'cursor';
+			applyCursor(e);
+		} else if (e.button === 2) {
+			dragMode = 'wl';
+		} else if (e.button === 1) {
+			dragMode = 'pan';
+		}
+	}
+
+	function applyCursor(e: PointerEvent) {
+		const p = canvasToSlice(e.offsetX, e.offsetY);
+		if (!p || !lastSlice) return;
+		const px = Math.max(0, Math.min(lastSlice.width - 1, Math.round(p.px)));
+		const py = Math.max(0, Math.min(lastSlice.height - 1, Math.round(p.py)));
+		setCursorFromSlicePx(px, py);
+	}
+
+	function onPointerMove(e: PointerEvent) {
+		const dx = e.offsetX - lastMouse.x;
+		const dy = e.offsetY - lastMouse.y;
+		if (dragMode === 'cursor') {
+			applyCursor(e);
+		} else if (dragMode === 'wl') {
+			ps.ww = Math.max(10, ps.ww + dx * 8);
+			ps.wc = ps.wc + dy * 4;
+		} else if (dragMode === 'pan') {
+			panX += dx;
+			panY += dy;
+		}
+		lastMouse = { x: e.offsetX, y: e.offsetY };
+
+		// HU readout
+		const p = canvasToSlice(e.offsetX, e.offsetY);
+		if (p && lastSlice) {
+			const px = Math.round(p.px);
+			const py = Math.round(p.py);
+			if (px >= 0 && px < lastSlice.width && py >= 0 && py < lastSlice.height) {
+				hoverHU = lastSlice.data[py * lastSlice.width + px];
+				hoverPos = { px, py };
+			} else {
+				hoverHU = null;
+				hoverPos = null;
+			}
+		}
+	}
+
+	function onPointerUp() {
+		dragMode = 'none';
+	}
+
+	function onWheel(e: WheelEvent) {
+		e.preventDefault();
+		if (e.ctrlKey) {
+			zoom = Math.max(0.2, Math.min(10, zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
+		} else {
+			setIndex(sliceIndex + (e.deltaY > 0 ? 1 : -1));
+		}
+	}
+
+	function resetView() {
+		zoom = 1;
+		panX = 0;
+		panY = 0;
+	}
+</script>
+
+<div class="slice-view" bind:this={container}>
+	<canvas
+		bind:this={canvas}
+		onpointerdown={onPointerDown}
+		onpointermove={onPointerMove}
+		onpointerup={onPointerUp}
+		onwheel={onWheel}
+		oncontextmenu={(e) => e.preventDefault()}
+		ondblclick={resetView}
+	></canvas>
+	<div class="view-label">{label || plane}</div>
+	<input
+		class="slice-slider"
+		type="range"
+		min="0"
+		max={maxIndex}
+		value={sliceIndex}
+		oninput={(e) => setIndex(Number(e.currentTarget.value))}
+	/>
+</div>
+
+<style>
+	.slice-view {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		background: #000;
+		overflow: hidden;
+	}
+	canvas {
+		position: absolute;
+		inset: 0;
+		cursor: crosshair;
+		touch-action: none;
+	}
+	.view-label {
+		position: absolute;
+		top: 6px;
+		left: 8px;
+		font-size: 11px;
+		color: var(--accent-bright);
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		pointer-events: none;
+	}
+	.slice-slider {
+		position: absolute;
+		right: 4px;
+		top: 50%;
+		width: 120px;
+		transform: rotate(90deg) translateX(-50%);
+		transform-origin: left center;
+		opacity: 0;
+		transition: opacity 0.15s;
+	}
+	.slice-view:hover .slice-slider {
+		opacity: 0.7;
+	}
+</style>
