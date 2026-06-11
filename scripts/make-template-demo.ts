@@ -12,6 +12,7 @@ import { mkdirSync } from 'node:fs';
 import { db, DATA_DIR } from '../src/lib/server/db';
 import { createCase, createDataset, deleteCase } from '../src/lib/server/db/repo';
 import { applyMat4, type Mat4, type Point3 } from '../src/lib/registration';
+import { buildPreview } from '../src/lib/server/dicom/import';
 
 const N = 160; // 160³ voxels
 const SP = 0.4; // mm
@@ -130,6 +131,19 @@ mkdirSync(join(DATA_DIR, rel), { recursive: true });
 await Bun.write(join(DATA_DIR, rel, 'template_a.i16'), new Uint8Array(A.buffer));
 await Bun.write(join(DATA_DIR, rel, 'template_b.i16'), new Uint8Array(B.buffer));
 
+// 3D-view previews (the planner's volume view 404s without them)
+const previewOf = (vol: Int16Array) =>
+	buildPreview(
+		{ volume: vol, cols: N, rows: N, slices: N, spacing: [SP, SP, SP] } as Parameters<
+			typeof buildPreview
+		>[0],
+		256
+	);
+const prevA = previewOf(A);
+const prevB = previewOf(B);
+await Bun.write(join(DATA_DIR, rel, 'template_a_preview.u8'), prevA.data);
+await Bun.write(join(DATA_DIR, rel, 'template_b_preview.u8'), prevB.data);
+
 const common = { kind: 'ct' as const, spacing_x: SP, spacing_y: SP, spacing_z: SP, modality: 'CT' };
 const dsA = createDataset({
 	...common,
@@ -138,7 +152,11 @@ const dsA = createDataset({
 	cols: N,
 	rows: N,
 	slices: N,
-	volume_path: join(rel, 'template_a.i16')
+	volume_path: join(rel, 'template_a.i16'),
+	preview_path: join(rel, 'template_a_preview.u8'),
+	preview_cols: prevA.cols,
+	preview_rows: prevA.rows,
+	preview_slices: prevA.slices
 });
 const dsB = createDataset({
 	...common,
@@ -147,6 +165,10 @@ const dsB = createDataset({
 	cols: N,
 	rows: N,
 	slices: N,
-	volume_path: join(rel, 'template_b.i16')
+	volume_path: join(rel, 'template_b.i16'),
+	preview_path: join(rel, 'template_b_preview.u8'),
+	preview_cols: prevB.cols,
+	preview_rows: prevB.rows,
+	preview_slices: prevB.slices
 });
 console.log(`Template demo case ${c.id} created (datasets ${dsA.id} patient / ${dsB.id} template)`);
