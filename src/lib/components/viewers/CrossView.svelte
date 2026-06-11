@@ -1,18 +1,32 @@
 <script lang="ts">
 	import type { PlanningState } from '$lib/client/planning.svelte';
 	import { indexAtLength } from '$lib/curve';
-	import { fitTransform, windowInto, type RawImage, type ViewTransform } from '$lib/client/render2d';
+	import {
+		fitTransform,
+		windowInto,
+		type RawImage,
+		type ReconInfo,
+		type ViewTransform
+	} from '$lib/client/render2d';
 
 	let {
 		state: ps,
 		halfWidth = 15,
 		overlayDraw,
-		overlayDeps
+		overlayDeps,
+		onToolPointer
 	}: {
 		state: PlanningState;
 		halfWidth?: number;
-		overlayDraw?: (ctx: CanvasRenderingContext2D, t: ViewTransform, stepMM: number) => void;
+		overlayDraw?: (ctx: CanvasRenderingContext2D, t: ViewTransform, info: ReconInfo) => void;
 		overlayDeps?: unknown;
+		/** domain coords: w = signed mm offset from the curve along its normal, zmm = height in mm */
+		onToolPointer?: (e: {
+			type: 'down' | 'move' | 'up';
+			w: number;
+			zmm: number;
+			native: PointerEvent;
+		}) => boolean;
 	} = $props();
 
 	let canvas: HTMLCanvasElement | undefined = $state();
@@ -90,7 +104,7 @@
 		ctx.stroke();
 		ctx.setLineDash([]);
 
-		overlayDraw?.(ctx, t, stepMM);
+		overlayDraw?.(ctx, t, { stepMM, width: img.width, height: img.height });
 
 		ctx.fillStyle = 'rgba(216, 220, 228, 0.85)';
 		ctx.font = '11px Inter, sans-serif';
@@ -130,10 +144,48 @@
 		const delta = e.deltaY > 0 ? 1 : -1;
 		ps.crossU = Math.max(0, Math.min(c.length, ps.crossU + delta));
 	}
+
+	// ---------- tool interaction ----------
+	let toolDragging = false;
+
+	function domainCoords(e: PointerEvent): { w: number; zmm: number } | null {
+		if (!canvas || !img) return null;
+		const t = fitTransform(canvas.width, canvas.height, img, stepMM, ps.ds.spacing_z);
+		const px = (e.offsetX - t.ox) / t.scaleX - 0.5;
+		const py = (e.offsetY - t.oy) / t.scaleY - 0.5;
+		return { w: (px - (img.width - 1) / 2) * stepMM, zmm: (img.height - 1 - py) * ps.ds.spacing_z };
+	}
+
+	function toolEvent(type: 'down' | 'move' | 'up', e: PointerEvent): boolean {
+		if (!onToolPointer) return false;
+		const d = domainCoords(e);
+		if (!d) return false;
+		return onToolPointer({ type, w: d.w, zmm: d.zmm, native: e });
+	}
+
+	function onPointerDown(e: PointerEvent) {
+		if (e.button !== 0) return;
+		canvas?.setPointerCapture(e.pointerId);
+		if (toolEvent('down', e)) toolDragging = true;
+	}
+	function onPointerMove(e: PointerEvent) {
+		if (toolDragging) toolEvent('move', e);
+	}
+	function onPointerUp(e: PointerEvent) {
+		if (toolDragging) toolEvent('up', e);
+		toolDragging = false;
+	}
 </script>
 
 <div class="cross-view" bind:this={container}>
-	<canvas bind:this={canvas} onwheel={onWheel} oncontextmenu={(e) => e.preventDefault()}></canvas>
+	<canvas
+		bind:this={canvas}
+		onwheel={onWheel}
+		onpointerdown={onPointerDown}
+		onpointermove={onPointerMove}
+		onpointerup={onPointerUp}
+		oncontextmenu={(e) => e.preventDefault()}
+	></canvas>
 	<div class="view-label">Cross section</div>
 	{#if !ps.curve}
 		<div class="cross-hint muted">Requires a panoramic curve.</div>

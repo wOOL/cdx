@@ -13,6 +13,13 @@ export interface ViewTransform {
 	oy: number;
 }
 
+/** Metadata for reconstructed images (pano / cross-section). */
+export interface ReconInfo {
+	stepMM: number;
+	width: number;
+	height: number;
+}
+
 export interface ToolPointerEvent {
 	type: 'down' | 'move' | 'up';
 	/** image/slice pixel coords (float) */

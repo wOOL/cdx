@@ -8,6 +8,20 @@
 	import { PlanningState, WINDOW_PRESETS } from '$lib/client/planning.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
+	import {
+		crossTool,
+		drawAxialObjects,
+		drawCrossOverlay,
+		drawPanoOverlay,
+		panoTool
+	} from '$lib/client/planTools';
+	import {
+		FDI_LOWER,
+		FDI_UPPER,
+		IMPLANT_LIBRARY,
+		articleName,
+		implantColor
+	} from '$lib/implantLibrary';
 
 	let { data } = $props();
 
@@ -26,16 +40,35 @@
 
 	let hasVolume = $derived(data.datasets.length > 0);
 	let stage = $state<StageKey>('data');
-	let ps = $derived(data.datasets[0] ? new PlanningState(data.datasets[0], data.plan) : null);
+	let ps = $derived(
+		data.datasets[0]
+			? new PlanningState(data.datasets[0], data.plan, data.nerves, data.implants)
+			: null
+	);
+
+	// deep snapshot so canvas overlays redraw on any object change
+	let objectsVersion = $derived(
+		ps
+			? JSON.stringify([
+					ps.nerves,
+					ps.implants,
+					ps.selectedImplantId,
+					ps.activeNerveId,
+					ps.nerveEditMode,
+					ps.warnings.length
+				])
+			: ''
+	);
 
 	// move off the data stage automatically once a volume exists
 	$effect(() => {
 		if (hasVolume && stage === 'data') stage = 'pano';
 	});
 
-	// curve drawing only makes sense on the pano stage
+	// stage-bound edit modes
 	$effect(() => {
 		if (stage !== 'pano' && ps) ps.curveEditMode = false;
+		if (stage !== 'nerve' && ps) ps.nerveEditMode = false;
 	});
 
 	// ---------- panoramic curve editing on the axial view ----------
@@ -133,6 +166,72 @@
 		ps.curveControl.length = 0;
 		ps.saveCurve();
 	}
+
+	// ---------- combined overlays ----------
+	function axialOverlay(ctx: CanvasRenderingContext2D, t: ViewTransform) {
+		curveOverlay(ctx, t);
+		if (ps) drawAxialObjects(ps, ctx, t);
+	}
+
+	// ---------- nerve tools ----------
+	async function addNerve(side: 'left' | 'right') {
+		if (!ps) return;
+		const existing = ps.nerves.length;
+		await ps.addNerve(
+			`N. alveolaris inf. ${side}`,
+			existing % 2 === 0 ? '#e8d44d' : '#d4a24d'
+		);
+	}
+
+	// ---------- implant tools ----------
+	let implantDialog: HTMLDialogElement | undefined = $state();
+	let newImplant = $state({
+		tooth: '36',
+		lineIndex: 0,
+		diameter: IMPLANT_LIBRARY[0].diameters[3] ?? 4.1,
+		length: IMPLANT_LIBRARY[0].lengths[2] ?? 10
+	});
+
+	function openImplantDialog() {
+		if (!ps) return;
+		implantDialog?.showModal();
+	}
+
+	async function confirmAddImplant() {
+		if (!ps) return;
+		const line = IMPLANT_LIBRARY[newImplant.lineIndex];
+		const c = ps.curve;
+		let head = {
+			x: (ps.ds.cols * ps.ds.spacing_x) / 2,
+			y: (ps.ds.rows * ps.ds.spacing_y) / 2,
+			z: ps.cursor.z * ps.ds.spacing_z
+		};
+		if (c) {
+			const i = indexAtLength(c, ps.crossU);
+			head = { x: c.points[i].x, y: c.points[i].y, z: ps.cursor.z * ps.ds.spacing_z };
+		}
+		await ps.addImplant({
+			tooth: newImplant.tooth,
+			manufacturer: line.manufacturer,
+			line: line.line,
+			article: articleName(line, newImplant.diameter, newImplant.length),
+			diameter: newImplant.diameter,
+			length: newImplant.length,
+			color: implantColor(ps.implants.length),
+			head
+		});
+		implantDialog?.close();
+	}
+
+	function deleteSelectedImplant() {
+		if (!ps?.selectedImplantId) return;
+		const im = ps.implants.find((i) => i.id === ps?.selectedImplantId);
+		if (im && confirm(`Remove implant ${im.tooth ? `at ${im.tooth}` : ''} (${im.article})?`)) {
+			ps.deleteImplant(im.id);
+		}
+	}
+
+	let selectedImplant = $derived(ps?.implants.find((i) => i.id === ps?.selectedImplantId) ?? null);
 
 	// ---------- DICOM upload ----------
 	let uploading = $state(false);
@@ -233,10 +332,30 @@
 			</div>
 			<div class="tree-group">
 				<div class="tree-group-label">Implants</div>
-				{#each data.implants as im (im.id)}
-					<div class="tree-item">
-						<Icon name="implant" size={14} />
-						<span>{im.tooth ? `${im.tooth} — ` : ''}{im.manufacturer} ⌀{im.diameter}×{im.length}</span>
+				{#each ps?.implants ?? [] as im (im.id)}
+					<div
+						class="tree-item tree-clickable"
+						class:tree-selected={ps?.selectedImplantId === im.id}
+						role="button"
+						tabindex="0"
+						onclick={() => ps && (ps.selectedImplantId = im.id)}
+						onkeydown={(e) => e.key === 'Enter' && ps && (ps.selectedImplantId = im.id)}
+					>
+						<span class="dot" style="background:{im.color}"></span>
+						<span class="tree-item-label"
+							>{im.tooth ? `${im.tooth} — ` : ''}⌀{im.diameter}×{im.length}</span
+						>
+						<button
+							class="tree-eye"
+							title="Toggle visibility"
+							onclick={(e) => {
+								e.stopPropagation();
+								im.visible = !im.visible;
+								ps?.saveImplant(im.id);
+							}}
+						>
+							<Icon name={im.visible ? 'eye' : 'eye-off'} size={13} />
+						</button>
 					</div>
 				{:else}
 					<div class="tree-empty">none</div>
@@ -244,8 +363,21 @@
 			</div>
 			<div class="tree-group">
 				<div class="tree-group-label">Nerves</div>
-				{#each data.nerves as n (n.id)}
-					<div class="tree-item"><Icon name="nerve" size={14} /><span>{n.name}</span></div>
+				{#each ps?.nerves ?? [] as n (n.id)}
+					<div class="tree-item">
+						<span class="dot" style="background:{n.color}"></span>
+						<span class="tree-item-label">{n.name}</span>
+						<button
+							class="tree-eye"
+							title="Toggle visibility"
+							onclick={() => {
+								n.visible = !n.visible;
+								ps?.saveNerve(n.id);
+							}}
+						>
+							<Icon name={n.visible ? 'eye' : 'eye-off'} size={13} />
+						</button>
+					</div>
 				{:else}
 					<div class="tree-empty">none</div>
 				{/each}
@@ -379,6 +511,69 @@
 					<span class="muted">{ps.panoThickness.toFixed(1)} mm</span>
 				{:else if stage === 'align'}
 					<span class="muted">Multiplanar review — left-click to navigate, right-drag for window/level, wheel to scroll</span>
+				{:else if stage === 'nerve'}
+					<button class="btn" onclick={() => addNerve('right')}>
+						<Icon name="nerve" size={14} /> Add right nerve
+					</button>
+					<button class="btn" onclick={() => addNerve('left')}>
+						<Icon name="nerve" size={14} /> Add left nerve
+					</button>
+					<div class="tool-sep"></div>
+					{#each ps.nerves as n (n.id)}
+						<div class="chip" class:chip-active={ps.activeNerveId === n.id && ps.nerveEditMode}>
+							<span class="dot" style="background:{n.color}"></span>
+							<button
+								class="chip-label"
+								title="Edit nerve points"
+								onclick={() => {
+									if (!ps) return;
+									if (ps.activeNerveId === n.id) {
+										ps.nerveEditMode = !ps.nerveEditMode;
+									} else {
+										ps.activeNerveId = n.id;
+										ps.nerveEditMode = true;
+									}
+								}}>{n.name}</button
+							>
+							<input
+								class="chip-num"
+								type="number"
+								min="1"
+								max="5"
+								step="0.5"
+								value={n.diameter}
+								title="Diameter (mm)"
+								onchange={(e) => {
+									n.diameter = Number(e.currentTarget.value) || 2;
+									ps?.saveNerve(n.id);
+								}}
+							/>
+							<button
+								class="chip-x"
+								title="Delete nerve"
+								onclick={() => confirm(`Delete ${n.name}?`) && ps?.deleteNerve(n.id)}>×</button
+							>
+						</div>
+					{/each}
+					{#if ps.nerveEditMode}
+						<span class="muted">Click in the panoramic or cross-section view to add nerve points</span>
+					{/if}
+				{:else if stage === 'implant'}
+					<button class="btn primary" onclick={openImplantDialog}>
+						<Icon name="implant" size={14} /> Add implant
+					</button>
+					{#if selectedImplant}
+						<div class="tool-sep"></div>
+						<span>
+							<strong>{selectedImplant.tooth ? `Tooth ${selectedImplant.tooth} — ` : ''}</strong>
+							{selectedImplant.manufacturer} {selectedImplant.article}
+						</span>
+						<button class="btn danger" onclick={deleteSelectedImplant}>
+							<Icon name="trash" size={14} /> Remove
+						</button>
+					{:else if ps.implants.length}
+						<span class="muted">Click an implant in any view to select and drag it; handles tilt the axis</span>
+					{/if}
 				{:else}
 					<span class="muted">{stages.find((s) => s.key === stage)?.label} tools coming soon</span>
 				{/if}
@@ -412,20 +607,114 @@
 						<SliceView
 							state={ps}
 							plane="axial"
-							overlayDraw={curveOverlay}
-							overlayDeps={[ps.curveControl, ps.crossU]}
+							overlayDraw={axialOverlay}
+							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion]}
 						/>
 					</div>
-					<div class="view panel"><PanoView state={ps} /></div>
-					<div class="view panel"><CrossView state={ps} /></div>
+					<div class="view panel">
+						<PanoView
+							state={ps}
+							overlayDraw={(ctx, t, info) => ps && drawPanoOverlay(ps, ctx, t, info)}
+							onToolPointer={(e) => (ps ? panoTool(ps, e) : false)}
+							overlayDeps={[objectsVersion]}
+						/>
+					</div>
+					<div class="view panel">
+						<CrossView
+							state={ps}
+							overlayDraw={(ctx, t, info) => ps && drawCrossOverlay(ps, ctx, t, info)}
+							onToolPointer={(e) => (ps ? crossTool(ps, e) : false)}
+							overlayDeps={[objectsVersion]}
+						/>
+					</div>
 				</div>
 			{/if}
 		{/if}
 	</main>
 </div>
 
+<!-- add implant dialog -->
+<dialog bind:this={implantDialog}>
+	<div class="dialog-title">Add implant</div>
+	<div class="dialog-body">
+		<div>
+			<label for="im-tooth">Tooth position (FDI)</label>
+			<div class="fdi-grid">
+				{#each [FDI_UPPER, FDI_LOWER] as row, ri (ri)}
+					<div class="fdi-row">
+						{#each row as tooth (tooth)}
+							<button
+								type="button"
+								class="fdi-tooth"
+								class:fdi-active={newImplant.tooth === String(tooth)}
+								class:fdi-placed={ps?.implants.some((i) => i.tooth === String(tooth))}
+								onclick={() => (newImplant.tooth = String(tooth))}
+							>
+								{tooth}
+							</button>
+						{/each}
+					</div>
+				{/each}
+			</div>
+		</div>
+		<div class="field-row">
+			<div>
+				<label for="im-line">Implant system</label>
+				<select
+					id="im-line"
+					bind:value={newImplant.lineIndex}
+					onchange={() => {
+						const line = IMPLANT_LIBRARY[newImplant.lineIndex];
+						if (!line.diameters.includes(newImplant.diameter))
+							newImplant.diameter = line.diameters[Math.floor(line.diameters.length / 2)];
+						if (!line.lengths.includes(newImplant.length))
+							newImplant.length = line.lengths[Math.floor(line.lengths.length / 2)];
+					}}
+					style="width:100%"
+				>
+					{#each IMPLANT_LIBRARY as line, i (i)}
+						<option value={i}>{line.manufacturer} — {line.line}</option>
+					{/each}
+				</select>
+			</div>
+		</div>
+		<div class="field-row">
+			<div>
+				<label for="im-d">Diameter</label>
+				<select id="im-d" bind:value={newImplant.diameter} style="width:100%">
+					{#each IMPLANT_LIBRARY[newImplant.lineIndex].diameters as d (d)}
+						<option value={d}>⌀ {d.toFixed(1)} mm</option>
+					{/each}
+				</select>
+			</div>
+			<div>
+				<label for="im-l">Length</label>
+				<select id="im-l" bind:value={newImplant.length} style="width:100%">
+					{#each IMPLANT_LIBRARY[newImplant.lineIndex].lengths as l (l)}
+						<option value={l}>{l.toFixed(1)} mm</option>
+					{/each}
+				</select>
+			</div>
+		</div>
+		<p class="faint">
+			The implant is placed at the current cross-section position; drag it in the views to refine.
+		</p>
+	</div>
+	<div class="dialog-actions">
+		<button type="button" class="btn" onclick={() => implantDialog?.close()}>Cancel</button>
+		<button type="button" class="btn primary" onclick={confirmAddImplant}>Place implant</button>
+	</div>
+</dialog>
+
 <footer class="status-bar">
 	<span class="faint">coDiagnostiX Web — planning workspace</span>
+	{#if ps && ps.warnings.length}
+		<span class="warn-text">
+			<Icon name="warning" size={13} />
+			{ps.warnings.length} safety distance warning{ps.warnings.length === 1 ? '' : 's'}
+			({ps.warnings.map((w) => `${w.kind} ${w.distance.toFixed(1)}mm`).join(', ')})
+		</span>
+	{/if}
 	<div class="spacer"></div>
 	{#if ps}
 		<span class="faint">
@@ -520,6 +809,98 @@
 		font-size: 11px;
 		color: var(--text-faint);
 		font-style: italic;
+	}
+	.tree-clickable {
+		cursor: pointer;
+	}
+	.tree-selected {
+		background: var(--accent-dim);
+	}
+	.tree-item-label {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.tree-eye {
+		color: var(--text-dim);
+		display: flex;
+	}
+	.tree-eye:hover {
+		color: var(--text);
+	}
+	.dot {
+		width: 9px;
+		height: 9px;
+		border-radius: 50%;
+		flex: none;
+		display: inline-block;
+	}
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		padding: 2px 8px;
+		background: var(--bg-2);
+	}
+	.chip-active {
+		border-color: var(--accent);
+		background: var(--accent-dim);
+	}
+	.chip-label {
+		font-size: 12px;
+	}
+	.chip-num {
+		width: 44px;
+		padding: 1px 4px;
+		font-size: 11px;
+	}
+	.chip-x {
+		color: var(--text-dim);
+		font-size: 14px;
+		padding: 0 2px;
+	}
+	.chip-x:hover {
+		color: var(--red);
+	}
+	.fdi-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.fdi-row {
+		display: flex;
+		gap: 2px;
+	}
+	.fdi-tooth {
+		flex: 1;
+		padding: 4px 0;
+		font-size: 11px;
+		border: 1px solid var(--border);
+		border-radius: 3px;
+		background: var(--bg-1);
+		color: var(--text-dim);
+		min-width: 26px;
+	}
+	.fdi-tooth:hover {
+		border-color: var(--accent-dim);
+		color: var(--text);
+	}
+	.fdi-active {
+		background: var(--accent-dim);
+		color: #fff;
+		border-color: var(--accent);
+	}
+	.fdi-placed {
+		color: var(--accent-2);
+	}
+	.warn-text {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		color: var(--red);
 	}
 	.view-controls-body {
 		padding: 10px;

@@ -1,15 +1,29 @@
 <script lang="ts">
 	import type { PlanningState } from '$lib/client/planning.svelte';
-	import { fitTransform, windowInto, type RawImage, type ViewTransform } from '$lib/client/render2d';
+	import {
+		fitTransform,
+		windowInto,
+		type RawImage,
+		type ReconInfo,
+		type ViewTransform
+	} from '$lib/client/render2d';
 
 	let {
 		state: ps,
 		overlayDraw,
-		overlayDeps
+		overlayDeps,
+		onToolPointer
 	}: {
 		state: PlanningState;
-		overlayDraw?: (ctx: CanvasRenderingContext2D, t: ViewTransform, stepMM: number) => void;
+		overlayDraw?: (ctx: CanvasRenderingContext2D, t: ViewTransform, info: ReconInfo) => void;
 		overlayDeps?: unknown;
+		/** domain coords: u = mm along curve, zmm = height in mm. Return true to consume. */
+		onToolPointer?: (e: {
+			type: 'down' | 'move' | 'up';
+			u: number;
+			zmm: number;
+			native: PointerEvent;
+		}) => boolean;
 	} = $props();
 
 	let canvas: HTMLCanvasElement | undefined = $state();
@@ -96,7 +110,7 @@
 		ctx.closePath();
 		ctx.fill();
 
-		overlayDraw?.(ctx, t, stepMM);
+		overlayDraw?.(ctx, t, { stepMM, width: img.width, height: img.height });
 
 		ctx.fillStyle = 'rgba(216, 220, 228, 0.85)';
 		ctx.font = '11px Inter, sans-serif';
@@ -124,8 +138,23 @@
 		return () => ro.disconnect();
 	});
 
-	// ---------- interaction: drag/click moves the cross-section position ----------
-	let dragging = false;
+	// ---------- interaction ----------
+	let dragging: 'scrub' | 'tool' | false = false;
+
+	function domainCoords(e: PointerEvent): { u: number; zmm: number } | null {
+		const t = transform();
+		if (!t || !img) return null;
+		const px = (e.offsetX - t.ox) / t.scaleX - 0.5;
+		const py = (e.offsetY - t.oy) / t.scaleY - 0.5;
+		return { u: px * stepMM, zmm: (img.height - 1 - py) * ps.ds.spacing_z };
+	}
+
+	function toolEvent(type: 'down' | 'move' | 'up', e: PointerEvent): boolean {
+		if (!onToolPointer) return false;
+		const d = domainCoords(e);
+		if (!d) return false;
+		return onToolPointer({ type, u: d.u, zmm: d.zmm, native: e });
+	}
 
 	function setUFromCanvas(cx: number) {
 		const t = transform();
@@ -138,13 +167,19 @@
 	function onPointerDown(e: PointerEvent) {
 		if (e.button !== 0) return;
 		canvas?.setPointerCapture(e.pointerId);
-		dragging = true;
+		if (toolEvent('down', e)) {
+			dragging = 'tool';
+			return;
+		}
+		dragging = 'scrub';
 		setUFromCanvas(e.offsetX);
 	}
 	function onPointerMove(e: PointerEvent) {
-		if (dragging) setUFromCanvas(e.offsetX);
+		if (dragging === 'tool') toolEvent('move', e);
+		else if (dragging === 'scrub') setUFromCanvas(e.offsetX);
 	}
-	function onPointerUp() {
+	function onPointerUp(e: PointerEvent) {
+		if (dragging === 'tool') toolEvent('up', e);
 		dragging = false;
 	}
 	function onWheel(e: WheelEvent) {

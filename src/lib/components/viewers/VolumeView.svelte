@@ -22,6 +22,79 @@
 
 	let material: THREE.ShaderMaterial | null = null;
 	let redraw: (() => void) | null = null;
+	let objGroup: THREE.Group | null = null;
+	let sceneReady = $state(false);
+	let volHalfExtent = { x: 0, y: 0, z: 0 };
+
+	function rebuildObjects() {
+		if (!objGroup) return;
+		// dispose previous
+		for (const child of [...objGroup.children]) {
+			objGroup.remove(child);
+			if (child instanceof THREE.Mesh) {
+				child.geometry.dispose();
+				(child.material as THREE.Material).dispose();
+			}
+		}
+
+		const off = new THREE.Vector3(volHalfExtent.x, volHalfExtent.y, volHalfExtent.z);
+		const warnIds = new Set(ps.warnings.map((w) => w.implantId));
+		for (const w of ps.warnings) if (w.kind === 'implant') warnIds.add(w.otherId);
+
+		for (const im of ps.implants) {
+			if (!im.visible) continue;
+			const axis = new THREE.Vector3(im.ax, im.ay, im.az).normalize();
+			const head = new THREE.Vector3(im.x, im.y, im.z).sub(off);
+			const center = head.clone().addScaledVector(axis, im.length / 2);
+			const geo = new THREE.CylinderGeometry(im.diameter / 2, im.diameter / 2.6, im.length, 24);
+			const selected = ps.selectedImplantId === im.id;
+			const warning = warnIds.has(im.id);
+			const mat = new THREE.MeshStandardMaterial({
+				color: warning ? '#d05050' : im.color,
+				emissive: selected ? '#306080' : '#000000',
+				roughness: 0.35,
+				metalness: 0.55
+			});
+			const mesh = new THREE.Mesh(geo, mat);
+			// cylinder +Y → head direction (opposite of axis)
+			mesh.quaternion.setFromUnitVectors(
+				new THREE.Vector3(0, 1, 0),
+				axis.clone().multiplyScalar(-1)
+			);
+			mesh.position.copy(center);
+			objGroup.add(mesh);
+		}
+
+		for (const n of ps.nerves) {
+			if (!n.visible || n.points.length === 0) continue;
+			const mat = new THREE.MeshStandardMaterial({
+				color: n.color,
+				roughness: 0.6,
+				metalness: 0.05
+			});
+			if (n.points.length === 1) {
+				const s = new THREE.Mesh(new THREE.SphereGeometry(n.diameter / 2, 12, 12), mat);
+				const p = n.points[0];
+				s.position.set(p.x - off.x, p.y - off.y, p.z - off.z);
+				objGroup.add(s);
+			} else {
+				const pts = n.points.map((p) => new THREE.Vector3(p.x - off.x, p.y - off.y, p.z - off.z));
+				const curve = new THREE.CatmullRomCurve3(pts);
+				const geo = new THREE.TubeGeometry(curve, Math.max(8, pts.length * 6), n.diameter / 2, 10);
+				objGroup.add(new THREE.Mesh(geo, mat));
+			}
+		}
+		redraw?.();
+	}
+
+	$effect(() => {
+		// rebuild 3D objects when planning objects change
+		void ps.implants.map((i) => [i.x, i.y, i.z, i.ax, i.ay, i.az, i.length, i.diameter, i.visible, i.color]);
+		void ps.nerves.map((n) => [n.points.length, n.diameter, n.visible, n.color, n.points.map((p) => p.x + p.y + p.z)]);
+		void ps.selectedImplantId;
+		void ps.warnings;
+		if (sceneReady) rebuildObjects();
+	});
 
 	$effect(() => {
 		const p = PRESETS.find((p) => p.name === preset);
@@ -187,6 +260,15 @@
 				group.rotation.x = -Math.PI / 2;
 				scene.add(group);
 
+				// objects layer (implants, nerves) in volume-local mm (centered)
+				volHalfExtent = { x: ex, y: ey, z: ez };
+				objGroup = new THREE.Group();
+				group.add(objGroup);
+				scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+				const dir = new THREE.DirectionalLight(0xffffff, 1.1);
+				dir.position.set(120, 200, 160);
+				scene.add(dir);
+
 				renderer = new THREE.WebGLRenderer({ antialias: true });
 				renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 				container.appendChild(renderer.domElement);
@@ -236,6 +318,8 @@
 				const cancelTick = () => cancelAnimationFrame(rafId);
 
 				loading = false;
+				sceneReady = true;
+				rebuildObjects();
 
 				return () => cancelTick();
 			} catch (e) {
