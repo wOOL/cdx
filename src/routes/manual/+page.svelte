@@ -214,8 +214,55 @@
 		.manual-chapter {
 			break-inside: avoid-page;
 			background: #fff;
-			color: #000;
+			color: #1a1a1a;
 			border: none;
+			max-width: none;
+		}
+		/* light-theme overrides so the dark app chrome prints legibly */
+		.manual-chapter :global(h1) {
+			color: #14506b;
+			border-bottom-color: #14506b;
+		}
+		.manual-chapter :global(h2),
+		.manual-chapter :global(h3) {
+			color: #14506b;
+		}
+		.manual-chapter :global(a) {
+			color: #14506b;
+		}
+		.manual-chapter :global(blockquote) {
+			background: #f4f6f8;
+			color: #1a1a1a;
+			border-left: 3px solid #d98c24;
+		}
+		.manual-chapter :global(blockquote p) {
+			color: #1a1a1a;
+		}
+		.manual-chapter :global(code) {
+			background: #eef1f4;
+			color: #b03a00;
+			border: 1px solid #d4dae0;
+		}
+		.manual-chapter :global(pre) {
+			background: #f4f6f8;
+			color: #1a1a1a;
+			border: 1px solid #d4dae0;
+		}
+		.manual-chapter :global(pre code) {
+			background: none;
+			border: none;
+			color: #1a1a1a;
+		}
+		.manual-chapter :global(th) {
+			background: #e7ebef;
+			color: #1a1a1a;
+		}
+		.manual-chapter :global(th),
+		.manual-chapter :global(td) {
+			border-color: #c5ccd3;
+		}
+		.manual-chapter :global(img) {
+			border-color: #c5ccd3;
 		}
 	}
 </style>
