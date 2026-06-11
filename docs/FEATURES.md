@@ -11,7 +11,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] SvelteKit app shell with auth guard and route layout (start screen / dataset planning screen) — partial: no auth guard
 - [~] [P1] Start screen: Create New dataset, Open dataset, Management, Support/Help buttons — partial: no Support/Help entry
 - [~] [P1] Start screen dataset list: patient name, DOB, ID, modified date, plan count; sort + search — partial: no modified date, plan count, or sort
-- [ ] [P1] Work Mode selector (EXPERT / EASY) on start screen, persisted per user, applied on dataset open
+- [x] [P1] Work Mode selector (EXPERT / EASY) on start screen, persisted per user, applied on dataset open
 - [ ] [P2] Subscription tier record per account with feature flags + guide-export credit counter (data-driven gating)
 - [ ] [P2] Read-only "viewer mode" when tier lacks edit rights
 - [ ] [P2] WebGL2 capability detection with unsupported-browser page
@@ -36,7 +36,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P2] Implant update mode per plan (3 options) + outdated-object prompt (keep vs replace + recheck notice)
 - [~] [P2] Plan autosave (debounced + on navigation) with last-editor/timestamp tracking — partial: no last-editor tracking (no accounts)
 - [ ] [P2] Anonymize dataset (toggleable pseudonymization of name/DOB/ID)
-- [ ] [P2] Undo/Redo framework for plan edits (Ctrl+Z / Ctrl+Shift+Z) + "undo last position change" toolbar action
+- [~] [P2] Undo/Redo framework for plan edits (Ctrl+Z / Ctrl+Shift+Z) + "undo last position change" toolbar action — partial: position/shape edits only, no create/delete undo
 - [ ] [P3] Dataset lock state (sent for production) + admin "remove lock" + lock audit entry
 - [ ] [P3] Plan status icons: "sent and locked", "copy of transferred plan"
 - [ ] [P4] Verify Patient Data dialog post-import with don't-overwrite-DICOM warning
@@ -172,7 +172,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] Pink tube rendering in 3D + slice intersections in 2D + curve in panoramic; endpoint highlighting
 - [~] [P1] Manual tracing: click-to-add in any 2D view (current slice), drag-move points, delete point / delete all — partial: pano/cross only; no per-point delete
 - [x] [P1] Point Diameter dialog (text box + slider + "Apply to all points")
-- [~] [P1] Safety distance engine: implant↔implant (incl. sleeves) 3 mm, implant↔nerve 2 mm, sleeve↔sleeve collision 0 mm; live recompute on drag; advisory only — partial: no sleeve↔sleeve collision
+- [x] [P1] Safety distance engine: implant↔implant (incl. sleeves) 3 mm, implant↔nerve 2 mm, sleeve↔sleeve collision 0 mm; live recompute on drag; advisory only
 - [~] [P1] Warning surfacing: status-bar chips red/green + object-tree warning icons — partial: no object-tree icons
 - [x] [P1] Distance measurement (2 points, mm, 1 decimal, view-local display, value in tree)
 - [x] [P1] Angle measurement (3 points, degrees)
@@ -228,7 +228,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] Remove sleeve (trash / "No sleeve system")
 - [~] [P2] Group sleeve assignment (systems supported by all selected implants) — partial: bulk default assignment only
 - [x] [P2] Sleeve tab in Tooth Position panel (system combo + editable values)
-- [ ] [P2] Sleeve↔sleeve collision detection feeding status bar + EASY banner
+- [~] [P2] Sleeve↔sleeve collision detection feeding status bar + EASY banner — partial: status-bar warning, no EASY banner
 - [ ] [P2] Custom sleeve system wizard: geometry (manual params or STL with top-side/rotation definition) → position modes (crestal / top of implant / complete length) → sleeve holes (auto / segment designer / none) → summary + preset save
 - [ ] [P2] Negative-geometry segment editor (height, upper/lower Ø, distance-to-zero-level; auto 3-segment proposal)
 - [ ] [P3] Custom sleeve preset import/export/delete (no in-place edit)
@@ -271,20 +271,20 @@ Cross-references point to `docs/SPEC.md` sections.
 
 ## 11. Wizards & Work Modes (SPEC §10)
 
-- [~] [P1] Shared wizard component framework (modal steps, per-step toolbar, embedded views, inline help) — partial: stage workflow; no modal wizard component
+- [~] [P1] Shared wizard component framework (modal steps, per-step toolbar, embedded views, inline help) — partial: step rail maps to expert stage tools
 - [x] [P1] EXPERT workflow toolbar: numbered step buttons in SOP order with green done-state
-- [~] [P1] EASY shell: step-overview tree (4 steps + sub-steps, blue current, one-click jump), bottom nav (Home auto-save, Back/Forward, Help, Plan Management) — partial: single mode; stage bar, no bottom nav
-- [~] [P1] EASY Step 1: Jaw Selection & Alignment (jaw selector, PCS drag, threshold slider, Edit source data) — partial: threshold/source data only; no jaw or PCS
+- [x] [P1] EASY shell: step-overview tree (4 steps + sub-steps, blue current, one-click jump), bottom nav (Home auto-save, Back/Forward, Help, Plan Management)
+- [~] [P1] EASY Step 1: Jaw Selection & Alignment (jaw selector, PCS drag, threshold slider, Edit source data) — partial: maps to expert align tools; jaw in plan menu
 - [x] [P1] EASY Step 1: Panoramic curve sub-step (pre-aligned views, point editing)
-- [~] [P1] EASY Step 1: Nerve canals sub-step (View|Right|Left selector, foramen point placement, Auto detect footer button) — partial: no auto-detect
-- [~] [P1] EASY Step 2: Place implants (Add/Change/Remove implant buttons, chart color coding, length/diameter ± steppers) — partial: no Change button or ± steppers
+- [~] [P1] EASY Step 1: Nerve canals sub-step (View|Right|Left selector, foramen point placement, Auto detect footer button) — partial: no View|Right|Left selector or auto-detect
+- [~] [P1] EASY Step 2: Place implants (Add/Change/Remove implant buttons, chart color coding, length/diameter ± steppers) — partial: uses expert implant tools incl. steppers
 - [~] [P1] EASY forced distance warnings: yellow in-view banner + implant-selector marking — partial: status-bar text + red glyphs; no banner
 - [x] [P2] EASY Step 1/3: Model scans sub-step (Add/Edit/Remove → shared wizard)
 - [~] [P2] EASY Step 2: Select sleeve / Select abutment per implant + Overview node all-at-once assignment — partial: sleeves only; no abutments
 - [~] [P2] EASY Step 3: Surgical guide (Create/Edit surgical guide, object-visibility segment control, stale warning) — partial: no stale-design warning
 - [~] [P2] EASY Step 4: Finish (protocol selector, page arrows, Print + Save to PDF) — partial: single protocol; browser print
 - [~] [P2] EASY contextual help panel per step (collapsible, content authored per step) — partial: one-line status hints only
-- [ ] [P2] Mode switching: EASY ↔ EXPERT on same dataset without data loss
+- [x] [P2] Mode switching: EASY ↔ EXPERT on same dataset without data loss
 - [ ] [P2] EASY temporary measurements mode in implant step
 - [ ] [P3] EASY zoom hotkeys (Ctrl +/−/0) + Ctrl-click recent dataset opens in EASY
 - [ ] [P3] Toolbar customization (right-click Adjust, drag in/out, preset reset)
@@ -329,7 +329,7 @@ Cross-references point to `docs/SPEC.md` sections.
 
 - [~] [P1] Settings dialog framework (tabs, per-user persistence, defaults per Appendix A) — partial: single global page; no tabs or per-user
 - [~] [P1] Safety distance tab (2 enable checkboxes + mm spin boxes, 0–10 ranges, sleeve note) — partial: spin boxes only; no enable checkboxes
-- [ ] [P1] Implants tab: dental notation FDI/Universal (drives chart, labels, reports), axes options, visible-through-segmentations, selection box, rotation-pivot setting, 2D color
+- [~] [P1] Implants tab: dental notation FDI/Universal (drives chart, labels, reports), axes options, visible-through-segmentations, selection box, rotation-pivot setting, 2D color — partial: notation switch only; axes/pivot options missing
 - [ ] [P2] Views tab: smooth transitions, orientation model, outline width adapt, auxiliary/annotation/measurement colors, text size, joint cross-sectional move/zoom, rotate-on-align (×2), cross-sectional distance
 - [ ] [P2] Common tab: measurement decimal places
 - [ ] [P2] Printout tab: plan comment on material list, logo upload + enable
