@@ -84,6 +84,11 @@ A matched surface scan is the basis for tooth-supported guides.
    **Fill holes**, and **Replace…** (swap the mesh file, keeping the alignment — e.g. when
    the lab delivers a corrected scan).
 
+> 💡 **Hint — edentulous patients**
+> When no stable teeth are available as landmarks, place temporary reference objects
+> (fixation pins or temporary implants from the library) before scanning and use them as the
+> point-pair landmarks for registration.
+
 > ⚠️ **Caution**
 > After matching, check the congruency of the scan and volume contours in **all** 2D views
 > (the scan is drawn as an outline over the slices). The fit RMS is an aid — only visual
@@ -103,6 +108,11 @@ in the axial view):
   drills), region; star entries as favorites:
 
 ![Implant library picker](img/implant-picker.png)
+
+> ⚠️ **Caution — endodontic drills**
+> A guide supports an endodontic drill only on a **straight path to the canal entry point**;
+> the root-canal treatment itself is not guide-supported. Plan the access trajectory
+> accordingly (the endodontic entries in the library carry the same note).
 
 - The implant is placed at the cross-section position. **Drag** the body to move it, drag
   the **head/apex handles** to angle it, ▲/▼ to step the depth; the toolbar shows the bone
@@ -149,7 +159,9 @@ Open the **Guide stage**:
    apicoectomy, sinus lift, stacked, transplant evaluation), embossed **label**, **bone
    support regions**, free-hand **contact polygons**, **bone reduction bars**, large
    connectors and the sleeve-mount hole shape (cylindrical or press-fit). **Windows** places
-   inspection openings by clicking the guide in the 3D view.
+   inspection openings by clicking the guide in the 3D view — keep them small and away from
+   sleeve mounts: an opening must never compromise the stability of the guide or the
+   accuracy of drilling (the design rules warn when a window overlaps a mount).
 4. **Generate guide** builds the body and lists **design-rule warnings** (thin walls,
    sleeves too close, label outside the footprint, bars crossing drill channels…). Resolve
    or consciously accept each warning.
@@ -159,6 +171,66 @@ Open the **Guide stage**:
    applies a printer calibration profile from `/sleeves`:
 
 ![Producer export dialog](img/producer-export.png)
+
+### Bone reduction profile
+
+For cases that require levelling the alveolar ridge before implant placement, the guide can
+carry a **bone reduction profile**:
+
+1. **Prerequisites:** a bone model (Align stage → *Create bone model*; for an edentulous
+   reduction guide, segment the jaw without teeth using the segmentation editor's boundary
+   tools) and the planned implants.
+2. Click **Bars from implants** in the Guide toolbar — the software proposes one reduction
+   bar between each pair of neighbouring implants at platform level (the reference points
+   are derived from the implant bases).
+3. Refine in **Design options… → Bone reduction bars**: every bar is editable (start/end
+   position, width, height and the *zTop* cut level that marks the reduction plane); add or
+   remove bars freely. The bar undersides mark the bone level to be reduced to.
+4. **Generate guide** — the bars are merged into the guide body and checked by the design
+   rules (a bar crossing a drill channel raises a warning):
+
+![Bone reduction bars proposed from the implant positions](img/reduction-bars.png)
+
+The same profile principle serves further interventions: **apicoectomy** (cut window at the
+root apex), **sinus-lift** lateral access profiles, **gingivectomy** levels and the
+evaluation of **orthognathic** cut planes — pick the matching recipe preset and place the
+bars/windows along the planned cut.
+
+### Tooth auto-transplantation evaluation
+
+To evaluate a donor tooth at the recipient site:
+
+1. Segment the donor tooth from the matched model scan: select the scan, then
+   *extract-tooth* at the donor position (the *(extracted)* model appears in the object
+   tree).
+2. Position the extracted tooth model at the recipient site with **Fine align…**
+   (translation and rotation in patient or object frame) and judge the fit in all views:
+
+![Extracted tooth model for transplant evaluation](img/transplant-model.png)
+
+3. Use the **Transplant evaluation** recipe preset for an evaluation guide if the surgical
+   plan requires one.
+
+### Combination and stacked guides
+
+Complex cases combine several guides on one anatomy:
+
+- **Integrated guides** add evaluation features to a normal drill guide — e.g. inspection
+  windows over an augmentation site or reference pins for re-seating checks. Plan them with
+  windows + support regions in *Design options*.
+- **Stacked guides** split the surgery into a sequence that shares one fixation: typically a
+  **pin guide** (fixation pins only), a **bone-reduction guide** and the **implantation
+  guide**, each seating on the previous one. The workflow:
+  1. Generate the first-stage guide (e.g. pins only) and approve/produce it.
+  2. **→ model** converts the generated guide into a plain 3D model.
+  3. Select that converted model as the **base** of the next guide and pick the **Stacked
+     guide** recipe (it enables large connectors and reminds you that stacked guides must be
+     pin-supported, never purely bone-supported):
+
+![Stacked guide generated on a converted guide base](img/stacked-guide.png)
+
+  4. Repeat for the final implantation guide. After pin drilling, the pin guide is removed
+     and the subsequent guides are fixed through the same pin holes.
 
 > 💡 **Convert guide → model** turns a generated guide into a plain 3D model — the base for
 > stacked-guide workflows.

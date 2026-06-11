@@ -25,13 +25,13 @@ original's content images (excluding the page-header logo) and names our counter
 | 49 | Align PCS | 06-expert-planning.md §6.1 | pcs-dialog.png | done |
 | 50 | Panoramic curve | §6.2 | pano-stage.png | done |
 | 51–52 | Nerve detection | §6.3 | nerve-stage.png | done |
-| 53–55 | Model scan import/match | §6.4 | match-stage.png, fine-align.png | done |
-| 56–61 | Treatment planning (implants, library, sleeves) | §6.5 | implant-dialog.png, implant-picker.png, implant-stage.png, sleeve-stage.png | done |
-| 62–65 | Guide design | §6.6 | guide-stage.png, producer-export.png | done |
+| 53–55 | Model scan import/match (+ edentulous hint) | §6.4 | match-stage.png, fine-align.png | done |
+| 56–61 | Treatment planning incl. bone-reduction profile, transplant, endo caution | §6.5–6.6 | implant-dialog.png, implant-picker.png, implant-stage.png, sleeve-stage.png, reduction-bars.png, transplant-model.png | done |
+| 62–65 | Guide design incl. combination/stacked guides, window caution | §6.6 | guide-stage.png, producer-export.png, stacked-guide.png | done |
 | 66 | Print protocols | §6.7 | report-page.png, print-all.png | done |
 | 67–70 | coPeriodontiX | 07-optional.md §7.1 (built: PerioChart) | perio-chart.png | done |
 | 71 | DWOS Synergy | §7.2 (collaboration equivalent) | contacts.png, inbox.png | done |
-| 72 | Measurement functions | §7.3 | measure-rail.png | done |
+| 72 | Measurement functions | §7.3 | measure-rail.png, measure-examples.png | done |
 | 73–75 | Safety checks | 08-safety.md | safety-aligned-views.png, safety-statusbar.png, distance-popover.png | done |
 | 76 | Maintenance | 09-maintenance.md | — | done |
 | 77 | Distributors/service | 10-service.md | — | done |
@@ -41,5 +41,7 @@ original's content images (excluding the page-header logo) and names our counter
 | 84–85 | Licensing matrix | §11.5 (tier matrix) | — (table) | done |
 | 86–88 | Symbols | 12-symbols.md | ui symbol crops (see reconciliation) | done |
 
-Reconciliation notes are tracked in GAPS.md; figure-parity verification recorded per block
-above after the final pass.
+Reconciliation: a full page-by-page audit (every content figure of all 88 pages) was run on
+2026-06-11; the seven topic gaps and four figure gaps it found are closed (see GAPS.md
+"Closed after coverage audit"). Remaining differences are platform adaptations documented in
+GAPS.md (installer/dongle/regulatory-label material, live CAD session) or cosmetic.

@@ -64,6 +64,11 @@ choose which tools are shown:
 | T Annotation | Point + text label. |
 | ⟍ Auxiliary line | Two points, no value — a visual construction aid. |
 
+Distance and angle measurements as they appear in the axial view (zoom in before placing
+points — accuracy follows the screen resolution of the slice):
+
+![Distance and angle measurements](img/measure-examples.png)
+
 - Measured values use the decimal precision configured in Settings → Common.
 - Drag any measurement point afterwards to edit it; the value recomputes and persists.
 - Measurements appear in the object tree, where they can be deleted individually.

@@ -45,7 +45,11 @@ The four main steps are **1. Prepare data**, **2. Implants**, **3. Guide** and *
   easier to judge. **Apply rotation** resamples the volume permanently.
 - *Create bone model* builds the 3D bone surface for the threshold shown next to it.
 
-**Panoramic curve** — click **Draw curve**, then click 5–7 points along the middle of the
+**Panoramic curve** — the rail highlights the active step and ticks completed ones:
+
+![Workflow rail with the Panoramic step active](img/easy-rail-pano.png)
+
+Click **Draw curve**, then click 5–7 points along the middle of the
 dental arch in the axial view (posterior → anterior → posterior). The panoramic view builds
 live while you place points; drag points to refine. While you scroll through axial slices,
 the **axial-position popup** in the upper right shows where you are in the volume:

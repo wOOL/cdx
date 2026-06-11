@@ -18,6 +18,16 @@ adaptations (different platform, same job) or logged limitations.
 | Printed label / UDI symbols | About dialog as identification + UI-symbol legend | Ch. 11.3, 12 |
 | Training webinars / videos | Onboarding tour + manual + F1 help | Ch. 3.1 |
 
+## Closed after coverage audit (2026-06-11)
+
+A page-by-page audit against the 88-page reference identified seven topic gaps and four
+figure gaps; all were closed: bone-reduction profile workflow (§6.6 + bars-from-implants
+proposal feature + figure), combination/stacked guide procedure (§6.6 + converted-base
+support in the app + figure), endodontic straight-path caution (§6.5), inspection-window
+stability caution (§6.6), tooth-transplant steps with gingivectomy/orthognathic mentions
+(§6.6 + figure), scan-preparation details (§11.4), edentulous registration hint (§6.4),
+in-view measurement examples figure (§7.3).
+
 ## Logged limitations (not fully replicated)
 
 | Item | Status | Why / mitigation |

@@ -48,8 +48,12 @@ Import quality determines planning quality. When acquiring scans for planning:
   rejected at import.
 - Prefer **slice spacing ≤ 1 mm** and in-plane resolution ≥ 512×512 — the preflight flags
   anything below.
-- Scan with a **closed-but-separated bite** (cotton rolls) where the protocol allows, so the
+- Prepare the patient: remove loose metal objects (prostheses, jewellery), keep the tongue
+  away from the palate, and scan with a **closed-but-separated bite** (cotton rolls) so the
   arches can be segmented separately.
+- Prefer a **gantry tilt of 0°** at acquisition; exposure (kV/mA) per the device
+  manufacturer's dental protocol — higher dose does not automatically improve planning
+  accuracy.
 - Avoid motion; re-scan rather than plan on motion-blurred data.
 - Gantry-tilted series are detected and can be corrected at import (y-shear approximation;
   the wizard reports the angle).

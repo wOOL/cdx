@@ -1334,6 +1334,28 @@
 		}
 	}
 
+	/** propose bone-reduction bars between consecutive implants at platform level (editable in Design options) */
+	function proposeReductionBars() {
+		if (!ps || ps.implants.length < 2) return;
+		const pts = [...ps.implants].sort((a, b) => a.x - b.x);
+		const bars: Record<string, number>[] = [];
+		for (let i = 0; i < pts.length - 1; i++) {
+			bars.push({
+				x1: pts[i].x,
+				y1: pts[i].y,
+				x2: pts[i + 1].x,
+				y2: pts[i + 1].y,
+				width: 4,
+				height: 3,
+				zTop: (pts[i].z + pts[i + 1].z) / 2 + 1.5
+			});
+		}
+		guideAdvanced = { ...guideAdvanced, reductionBars: bars };
+		saveGuideAdvanced();
+		guideWarnings = [];
+		if (!showGuideOptions) openGuideOptions();
+	}
+
 	async function openGuideOptions() {
 		if (!guideRecipes.length) {
 			try {
@@ -1377,7 +1399,9 @@
 	}
 
 	let guideBases = $derived(
-		ps?.models.filter((m) => m.kind === 'scan' || m.kind === 'segmentation') ?? []
+		// scans, segmentations, and converted guides / augmentations ('other') — the latter
+		// serve as bases for stacked-guide workflows
+		ps?.models.filter((m) => m.kind === 'scan' || m.kind === 'segmentation' || m.kind === 'other') ?? []
 	);
 	let guideModels = $derived(ps?.models.filter((m) => m.kind === 'guide') ?? []);
 
@@ -3451,6 +3475,14 @@
 						<button class="btn" class:primary={showGuideOptions} onclick={openGuideOptions}>
 							<Icon name="settings" size={14} /> Design options…
 							{#if guideWarnings.length}<span class="warn-text">({guideWarnings.length}⚠)</span>{/if}
+						</button>
+						<button
+							class="btn"
+							disabled={ps.implants.length < 2}
+							title="Bone reduction: propose bars between consecutive implants at platform level (edit in Design options)"
+							onclick={proposeReductionBars}
+						>
+							Bars from implants
 						</button>
 						<button
 							class="btn"
