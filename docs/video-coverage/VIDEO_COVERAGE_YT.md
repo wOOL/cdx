@@ -24,8 +24,8 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 7 | coDiagnostiX EASY — A Simplified Implant Planning Solution *(42)* | closed | — (already complete) |
 | 8 | Enjoy fast and easy drill guide design (Dental Wings) *(29)* | verifying | elongated inspection windows (stadium length+angle) |
 | 9 | Transformations in Dentistry *(14)* | closed | — (marketing; already complete) |
-| 10 | Teaser — clinicians *(–)* | pending | |
-| 11 | Teaser — labs *(–)* | pending | |
+| 10 | Teaser — clinicians *(–)* | analyzing | |
+| 11 | Teaser — labs *(–)* | analyzing | |
 
 ## AI Assistant playlist
 
@@ -46,11 +46,11 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 19 | Start a new case *(–)* | pending | |
 | 20 | Segment DICOM data (Expert) *(–)* | pending | |
 | 21 | Use the coordinate system *(–)* | pending | |
-| 22 | Detect the nerve canal (Expert) *(–)* | pending | |
+| 22 | Detect the nerve canal (Expert) *(19)* | verifying | |
 | 23 | Place an implant *(–)* | pending | |
 | 24 | Place a sleeve *(–)* | pending | |
-| 25 | Design a drill guide *(–)* | pending | |
-| 26 | Export on abutment level *(–)* | pending | |
+| 25 | Design a drill guide *(40)* | verifying | label presets: Date of birth, Tooth positions |
+| 26 | Export on abutment level *(24)* | verifying | (branded abutment catalogs → GAPS; scanbody thumbnails) |
 
 ## How-to EASY mode
 
