@@ -2872,6 +2872,9 @@
 			<a class="btn ghost" href="/settings" title="Application settings (safety distances, view preferences, printout)">
 				<Icon name="settings" size={13} />
 			</a>
+			<button class="btn ghost" title="Show keyboard shortcuts (?)" onclick={() => (hotkeysOpen = !hotkeysOpen)}>
+				⌨
+			</button>
 		</div>
 	</div>
 

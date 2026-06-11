@@ -192,8 +192,8 @@
 			<div class="settings-body">
 				<div class="field-row">
 					<div>
-						<label for="s-logo">Practice logo (PNG, shown on printed reports)</label>
-						<input id="s-logo" name="logo" type="file" accept="image/png" style="width:100%" />
+						<label for="s-logo">Practice logo (PNG/JPEG/BMP/WebP, shown on printed reports)</label>
+						<input id="s-logo" name="logo" type="file" accept="image/png,image/jpeg,image/bmp,image/webp" style="width:100%" />
 					</div>
 					<div>
 						<label class="checkbox-inline" for="s-logo-en">
