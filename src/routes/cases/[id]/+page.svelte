@@ -1049,6 +1049,23 @@
 		checkAiStatus();
 	});
 
+	// after a DICOM import: offer to provide the data to the AI assistant
+	// right away (the original shows this popup after dataset creation)
+	let offerAiAfterImport = $state(false);
+	$effect(() => {
+		if (!offerAiAfterImport || !ps || aiBusy) return;
+		offerAiAfterImport = false;
+		setTimeout(() => {
+			if (
+				confirm(
+					'Provide the imported DICOM data to the AI assistant for automatic segmentation now?\n\nNote: the AI assistant is intended for CBCT scans — conventional (fan-beam) CT is not supported. You can keep planning while it processes.'
+				)
+			) {
+				runAiSegmentation();
+			}
+		}, 400);
+	});
+
 	/** resume awareness of a job started in an earlier session/page load */
 	async function checkAiStatus() {
 		if (!ps) return;
@@ -2290,6 +2307,7 @@
 						`Verify patient data: the DICOM files report "${dataset.patient_name}" but this record is "${data.patient.last_name}, ${data.patient.first_name}". The record was NOT overwritten — make sure the data was imported into the correct patient.`
 					);
 				}
+				offerAiAfterImport = true;
 			}
 			await invalidateAll();
 		} catch (e) {
@@ -4514,6 +4532,7 @@
 		onclose={() => (wizardFiles = null)}
 		ondone={async () => {
 			wizardFiles = null;
+			offerAiAfterImport = true;
 			await invalidateAll();
 		}}
 	/>
