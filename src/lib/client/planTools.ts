@@ -651,6 +651,8 @@ let crossDrag: { kind: DragKind; implantId: number; lastW: number; lastZ: number
 	lastW: 0,
 	lastZ: 0
 };
+/** active nerve-point drag in the cross-section view */
+let crossNerveDrag: { index: number; lastW: number; lastZ: number } | null = null;
 
 function crossTo3D(ps: PlanningState, w: number, zmm: number): Vec3 | null {
 	const frame = crossFrame(ps);
@@ -666,17 +668,49 @@ export function crossTool(ps: PlanningState, e: CrossToolEvent): boolean {
 	const frame = crossFrame(ps);
 	if (!frame || ps.locked) return false;
 
-	// nerve point placement
+	// nerve point placement (click or click-drag) + drag-correction of existing points
 	if (ps.nerveEditMode && ps.activeNerveId != null) {
 		const nerve = ps.nerves.find((n) => n.id === ps.activeNerveId);
 		if (!nerve) return false;
 		if (e.type === 'down') {
-			const p3 = crossTo3D(ps, e.w, e.zmm);
-			if (!p3) return false;
+			// near an existing point in this section → drag it instead of appending
+			let near = -1;
+			nerve.points.forEach((p, i) => {
+				const s = projectToSection(frame, p);
+				if (Math.abs(s.v) < 5 && Math.hypot(s.w - e.w, s.zmm - e.zmm) < 2) near = i;
+			});
 			ps.markEdit();
-			nerve.points.push(p3);
-			ps.lastNervePoint = { nerveId: nerve.id, index: nerve.points.length - 1 };
-			ps.saveNerve(nerve.id);
+			if (near < 0) {
+				const p3 = crossTo3D(ps, e.w, e.zmm);
+				if (!p3) return false;
+				nerve.points.push(p3);
+				near = nerve.points.length - 1;
+				ps.saveNerve(nerve.id);
+			}
+			crossNerveDrag = { index: near, lastW: e.w, lastZ: e.zmm };
+			ps.lastNervePoint = { nerveId: nerve.id, index: near };
+			return true;
+		}
+		if (e.type === 'move' && crossNerveDrag) {
+			const p = nerve.points[crossNerveDrag.index];
+			if (p) {
+				const dw = e.w - crossNerveDrag.lastW;
+				const dz = e.zmm - crossNerveDrag.lastZ;
+				nerve.points[crossNerveDrag.index] = {
+					...p,
+					x: p.x + frame.normal.x * dw,
+					y: p.y + frame.normal.y * dw,
+					z: p.z + dz
+				};
+				crossNerveDrag.lastW = e.w;
+				crossNerveDrag.lastZ = e.zmm;
+				ps.saveNerve(nerve.id);
+			}
+			return true;
+		}
+		if (e.type === 'up') {
+			crossNerveDrag = null;
+			return true;
 		}
 		return true;
 	}

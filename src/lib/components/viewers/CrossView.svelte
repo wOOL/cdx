@@ -71,6 +71,9 @@
 	let orientation = $state<'cross' | 'tangential'>('cross');
 	// align the section plane with the selected implant axis
 	let alignToImplant = $state(false);
+	// free in-plane rotation of the section direction about the current point
+	// (spin the plane until e.g. the nerve canal's dark path becomes visible)
+	let spinDeg = $state(0);
 
 	$effect(() => {
 		const c = ps.curve;
@@ -85,6 +88,13 @@
 		let origin: { x: number; y: number } = c.points[i];
 		let dir = orient === 'cross' ? c.normals[i] : c.tangents[i];
 		let tangent = orient === 'cross' ? c.tangents[i] : c.normals[i];
+		if (spinDeg !== 0) {
+			const a = (spinDeg * Math.PI) / 180;
+			const cos = Math.cos(a);
+			const sin = Math.sin(a);
+			dir = { x: dir.x * cos - dir.y * sin, y: dir.x * sin + dir.y * cos };
+			tangent = { x: -dir.y, y: dir.x };
+		}
 		if (alignToImplant && ps.selectedImplantId != null) {
 			const im = ps.implants.find((im) => im.id === ps.selectedImplantId);
 			if (im) {
@@ -222,8 +232,8 @@
 	}
 
 	function toolEvent(type: 'down' | 'move' | 'up', e: PointerEvent): boolean {
-		// tools operate in the curve frame at ps.crossU — disable in offset/aligned variants
-		if (!onToolPointer || uOffset !== 0 || alignToImplant) return false;
+		// tools operate in the curve frame at ps.crossU — disable in offset/aligned/spun variants
+		if (!onToolPointer || uOffset !== 0 || alignToImplant || spinDeg !== 0) return false;
 		const d = domainCoords(e);
 		if (!d) return false;
 		return onToolPointer({ type, w: d.w, zmm: d.zmm, native: e });
@@ -253,14 +263,31 @@
 		oncontextmenu={(e) => e.preventDefault()}
 	></canvas>
 	{#if !compact}
-		<div class="view-label">{orientation === 'cross' ? 'Cross section' : 'Tangential'}</div>
+		<div class="view-label">
+			{orientation === 'cross' ? 'Cross section' : 'Tangential'}{spinDeg !== 0
+				? ` (${spinDeg > 0 ? '+' : ''}${spinDeg}°)`
+				: ''}
+		</div>
 		<button
 			class="orient-toggle"
 			title="Toggle cross-section / tangential"
-			onclick={() => (orientation = orientation === 'cross' ? 'tangential' : 'cross')}
+			onclick={() => {
+				orientation = orientation === 'cross' ? 'tangential' : 'cross';
+				spinDeg = 0;
+			}}
 		>
 			{orientation === 'cross' ? '⊥' : '∥'}
 		</button>
+		<div class="spin-ctl" title="Spin the section plane around the current position (e.g. until the canal's dark path is visible)">
+			<input
+				type="range"
+				min="-90"
+				max="90"
+				step="5"
+				bind:value={spinDeg}
+				aria-label="Section plane rotation"
+			/>
+		</div>
 		<button
 			class="orient-toggle snap-pos"
 			title="Snapshot → image library (Alt+click to download)"
@@ -352,5 +379,19 @@
 		color: var(--accent-bright);
 		border-color: var(--accent);
 		opacity: 1 !important;
+	}
+	.spin-ctl {
+		position: absolute;
+		top: 30px;
+		right: 6px;
+		opacity: 0.4;
+		transition: opacity 0.15s;
+	}
+	.cross-view:hover .spin-ctl {
+		opacity: 1;
+	}
+	.spin-ctl input {
+		width: 80px;
+		accent-color: var(--accent);
 	}
 </style>
