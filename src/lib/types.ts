@@ -112,7 +112,7 @@ export interface Implant {
 export interface Measurement {
 	id: number;
 	plan_id: number;
-	type: 'distance' | 'angle' | 'density';
+	type: 'distance' | 'angle' | 'density' | 'polyline' | 'annotation';
 	points: string;
 	value: number;
 	label: string;

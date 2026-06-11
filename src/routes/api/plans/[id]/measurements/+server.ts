@@ -10,7 +10,9 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	if (!plan) error(404, 'Plan not found');
 
 	const body = await request.json().catch(() => ({}));
-	const type = ['distance', 'angle', 'density'].includes(body.type) ? body.type : 'distance';
+	const type = ['distance', 'angle', 'density', 'polyline', 'annotation'].includes(body.type)
+		? body.type
+		: 'distance';
 	const measurement = db
 		.query(
 			`INSERT INTO measurements (plan_id, type, points, value, label)

@@ -73,11 +73,11 @@ export interface ModelData {
 	transform: number[] | null;
 }
 
-export type MeasureTool = 'none' | 'distance' | 'angle' | 'density';
+export type MeasureTool = 'none' | 'distance' | 'angle' | 'density' | 'polyline' | 'annotation';
 
 export interface MeasurementData {
 	id: number;
-	type: 'distance' | 'angle' | 'density';
+	type: 'distance' | 'angle' | 'density' | 'polyline' | 'annotation';
 	points: Vec3[];
 	value: number;
 	label: string;
@@ -563,7 +563,7 @@ export class PlanningState {
 
 	// ---------- measurements ----------
 	async addMeasurement(
-		type: 'distance' | 'angle' | 'density',
+		type: MeasurementData['type'],
 		points: Vec3[],
 		value: number,
 		label: string

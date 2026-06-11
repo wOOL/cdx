@@ -677,6 +677,18 @@ export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolea
 		return true;
 	}
 
+	if (ps.measureTool === 'annotation') {
+		const text = window.prompt('Annotation text:');
+		if (text) ps.addMeasurement('annotation', [p], 0, text);
+		ps.measureTool = 'none';
+		return true;
+	}
+
+	if (ps.measureTool === 'polyline') {
+		ps.pendingMeasure.push(p);
+		return true; // finished explicitly via the toolbar button
+	}
+
 	ps.pendingMeasure.push(p);
 	if (ps.measureTool === 'distance' && ps.pendingMeasure.length === 2) {
 		const [a, b] = ps.pendingMeasure;
@@ -696,6 +708,24 @@ export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolea
 	return true;
 }
 
+/** complete a pending polyline measurement (≥2 points) */
+export function finishPolyline(ps: PlanningState): void {
+	if (ps.pendingMeasure.length >= 2) {
+		let total = 0;
+		for (let i = 1; i < ps.pendingMeasure.length; i++) {
+			total += len(sub(ps.pendingMeasure[i], ps.pendingMeasure[i - 1]));
+		}
+		ps.addMeasurement(
+			'polyline',
+			ps.pendingMeasure.map((p) => ({ ...p })),
+			total,
+			`Σ ${total.toFixed(1)} mm`
+		);
+	}
+	ps.pendingMeasure.length = 0;
+	ps.measureTool = 'none';
+}
+
 export function drawMeasurements(
 	ps: PlanningState,
 	ctx: CanvasRenderingContext2D,
@@ -709,7 +739,7 @@ export function drawMeasurements(
 		y: t.oy + (p.y / sy + 0.5) * t.scaleY
 	});
 
-	const drawSet = (points: Vec3[], label: string, faded: boolean) => {
+	const drawSet = (points: Vec3[], label: string, faded: boolean, segLabels = false) => {
 		if (!points.length) return;
 		ctx.strokeStyle = faded ? 'rgba(122, 140, 240, 0.5)' : 'rgba(122, 140, 240, 0.95)';
 		ctx.fillStyle = ctx.strokeStyle;
@@ -727,6 +757,16 @@ export function drawMeasurements(
 			ctx.arc(q.x, q.y, 3, 0, Math.PI * 2);
 			ctx.fill();
 		}
+		if (segLabels) {
+			ctx.font = '10px Inter, sans-serif';
+			ctx.fillStyle = '#bfc8ff';
+			for (let i = 1; i < points.length; i++) {
+				const a = toCanvas(points[i - 1]);
+				const b = toCanvas(points[i]);
+				const d = len(sub(points[i], points[i - 1]));
+				ctx.fillText(d.toFixed(1), (a.x + b.x) / 2 + 4, (a.y + b.y) / 2 - 4);
+			}
+		}
 		if (label) {
 			const q = toCanvas(points[points.length - 1]);
 			ctx.font = '11px Inter, sans-serif';
@@ -738,9 +778,19 @@ export function drawMeasurements(
 	for (const m of ps.measurements) {
 		// show on slices near where the measurement was taken
 		if (!m.points.every((p) => Math.abs(p.z - zmm) < 1.01)) continue;
-		drawSet(m.points, m.label, false);
+		if (m.type === 'annotation') {
+			const q = toCanvas(m.points[0]);
+			ctx.fillStyle = '#d05050';
+			ctx.beginPath();
+			ctx.arc(q.x, q.y, 3.5, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.font = '11px Inter, sans-serif';
+			ctx.fillText(m.label, q.x + 8, q.y + 4);
+			continue;
+		}
+		drawSet(m.points, m.label, false, m.type === 'polyline');
 	}
-	if (ps.pendingMeasure.length) drawSet(ps.pendingMeasure, '…', true);
+	if (ps.pendingMeasure.length) drawSet(ps.pendingMeasure, '…', true, ps.measureTool === 'polyline');
 }
 
 // ---------------- util ----------------

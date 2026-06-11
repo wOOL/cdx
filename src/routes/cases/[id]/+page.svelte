@@ -16,6 +16,7 @@
 		drawCrossOverlay,
 		drawMeasurements,
 		drawPanoOverlay,
+		finishPolyline,
 		measureAxialTool,
 		panoTool
 	} from '$lib/client/planTools';
@@ -390,6 +391,18 @@
 	}
 
 	let selectedImplant = $derived(ps?.implants.find((i) => i.id === ps?.selectedImplantId) ?? null);
+
+	// auto-recenter the cross-section on the selected implant
+	let lastRecenteredId = -1;
+	$effect(() => {
+		const id = ps?.selectedImplantId;
+		if (!ps || id == null || id === lastRecenteredId) return;
+		lastRecenteredId = id;
+		const im = ps.implants.find((i) => i.id === id);
+		if (!im) return;
+		const pc = ps.toPano({ x: im.x, y: im.y, z: im.z });
+		if (pc) ps.crossU = pc.u;
+	});
 
 	// cross-section group (3 parallel slices like coDiagnostiX)
 	let crossGroupMode = $state(false);
@@ -1254,6 +1267,34 @@
 							}}
 						>
 							HU
+						</button>
+						<button
+							class="btn"
+							class:primary={ps.measureTool === 'polyline'}
+							title="Continuous distance: click points, then Finish"
+							onclick={() => {
+								if (!ps) return;
+								if (ps.measureTool === 'polyline') {
+									finishPolyline(ps);
+								} else {
+									ps.pendingMeasure.length = 0;
+									ps.measureTool = 'polyline';
+								}
+							}}
+						>
+							{ps.measureTool === 'polyline' ? `✓ ${ps.pendingMeasure.length}` : '∿'}
+						</button>
+						<button
+							class="btn"
+							class:primary={ps.measureTool === 'annotation'}
+							title="Annotation: click a point, then enter text"
+							onclick={() => {
+								if (!ps) return;
+								ps.pendingMeasure.length = 0;
+								ps.measureTool = ps.measureTool === 'annotation' ? 'none' : 'annotation';
+							}}
+						>
+							T
 						</button>
 					</div>
 				</div>
