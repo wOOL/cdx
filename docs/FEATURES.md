@@ -7,7 +7,7 @@ Cross-references point to `docs/SPEC.md` sections.
 ## 0. Foundations & App Shell (SPEC §0, §1.2, §13.4)
 
 - [~] [P1] SQLite schema: users, teams, patients, datasets, plans, plan objects (JSON payload), file blobs (volumes/meshes by content hash), audit log — partial: no users/teams/audit/content-hash blob tables
-- [ ] [P1] User accounts: register, login (email+password), session management, logout
+- [x] [P1] User accounts: register, login (email+password), session management, logout
 - [~] [P1] SvelteKit app shell with auth guard and route layout (start screen / dataset planning screen) — partial: no auth guard
 - [~] [P1] Start screen: Create New dataset, Open dataset, Management, Support/Help buttons — partial: no Support/Help entry
 - [~] [P1] Start screen dataset list: patient name, DOB, ID, modified date, plan count; sort + search — partial: no modified date, plan count, or sort
@@ -48,8 +48,8 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Series validation: consistent orientation/pixel spacing/resolution/modality; axial-only; reject JPEG 2000 with message — partial: only dimension/transfer-syntax checks
 - [x] [P1] Volume builder: sorted slice stack → 16-bit 3D volume + metadata (spacing, origin, HU rescale)
 - [~] [P1] Quick transfer mode: auto-detect valid series, patient-info verification, auto-create dataset — partial: no patient-info verification step
-- [ ] [P1] Jaw selection at import (maxilla/mandible for the first plan)
-- [ ] [P1] Patient identity prefill from DICOM tags into patient record
+- [~] [P1] Jaw selection at import (maxilla/mandible for the first plan) — partial: jaw switch in plan menu, not at import
+- [x] [P1] Patient identity prefill from DICOM tags into patient record
 - [x] [P1] Synthetic/demo dataset generator or bundled sample CBCT for development & demos
 - [ ] [P2] Advanced transfer mode: slice selection (auto-select valid / clear), slice preview with scrollbar, warning detail panel
 - [ ] [P2] "Always start DICOM import in advanced mode" checkbox
@@ -69,7 +69,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Model scan import wizard shell: Source → Alignment method → Registration object → Corresponding regions → Auto registration → Verify/Finish — partial: toolbar flow; no method/registration-object steps
 - [x] [P1] Corresponding-regions step: alternating clicks on scan & registration object, ≥3 pairs, inline placement rules (far apart, not collinear, teeth/temporary implants)
 - [x] [P1] Coarse alignment from region pairs + ICP surface refinement; regions-only fallback with failure guidance
-- [ ] [P1] Verification stage: merged contour overlay in all views + manual drag alignment (left move / right rotate)
+- [~] [P1] Verification stage: merged contour overlay in all views + manual drag alignment (left move / right rotate) — partial: axial contours only, no drag alignment
 - [~] [P1] Model scan object in tree: visibility, color, rename, delete — partial: no rename or color editing UI
 - [~] [P2] PLY import incl. vertex colors — partial: vertex colors ignored
 - [ ] [P2] Fine Alignment dialog: nudge buttons, numeric step width (mm/°), patient-oriented vs object-oriented frame (shared with implants)
@@ -127,8 +127,8 @@ Cross-references point to `docs/SPEC.md` sections.
 
 ## 5. Alignment & Panoramic (SPEC §4)
 
-- [ ] [P1] Patient Coordinate System object (View definition category) with default pose from volume
-- [ ] [P1] Align PCS dialog: 3 sub-views (sagittal/coronal/axial), green/red/blue planes, left-drag move / right-drag rotate, OK/Cancel
+- [~] [P1] Patient Coordinate System object (View definition category) with default pose from volume — partial: bake-in resample, no persistent PCS object
+- [~] [P1] Align PCS dialog: 3 sub-views (sagittal/coronal/axial), green/red/blue planes, left-drag move / right-drag rotate, OK/Cancel — partial: numeric yaw/pitch/roll dialog
 - [ ] [P1] PCS reset-to-default button; PCS drives initial implant orientation & virtual-tooth pose
 - [~] [P1] Panoramic curve object: 5 basic points (movable, not deletable), tooth-position labels on end points (48/38, 18/28 FDI), incisal middle point — partial: free-form points; no tooth labels
 - [x] [P1] Edit Panoramic Curve dialog (axial view + layer scrollbar, Ctrl+P)
@@ -200,7 +200,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Implant rendering in all 2D views + 3D; object tree grouping under tooth positions — partial: flat tree, not grouped by tooth
 - [x] [P1] Positioning: left-drag translate / right-drag rotate with crestal/tip pivot logic; positioning-mode auto-on after add
 - [~] [P1] Tooth Position panel Implant tab: info, Change Implant, prev/next diameter & length steppers, full combination list — partial: info + depth nudge; no steppers
-- [ ] [P1] Change implant flow (current blue / previous red in dialog) + sleeve-recheck prompt
+- [~] [P1] Change implant flow (current blue / previous red in dialog) + sleeve-recheck prompt — partial: no visual before/after compare
 - [ ] [P2] Quick search + filter dialog (manufacturer/length/diameter/favorites/outdated/user-defined/region) + favorites stars
 - [ ] [P2] Thumbnail view with badges (abutment, sleeve, region globe, tech-info cogwheel hover, favorite, user icon)
 - [ ] [P2] Fixation pins as implants: XX default position, lateral auto-angled placement, pin sleeves
@@ -248,7 +248,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] Guide body CSG: inner surface offset, outer shell, sleeve hole subtraction from negative geometry
 - [~] [P1] Finish step: review render; guide becomes object-tree object; 2D cross-section rendering (white guide, green sleeve) — partial: no 2D guide cross-section rendering
 - [~] [P1] STL export of final guide (binary STL download; export records audit entry) — partial: no audit entry
-- [ ] [P1] Export gating: plan must be finalized; guide-export credit decremented with remaining-credit display
+- [~] [P1] Export gating: plan must be finalized; guide-export credit decremented with remaining-credit display — partial: approval gate, no credits
 - [ ] [P2] Start options: new vs from-template guide; "With bone support regions"; "With bone reduction (cut profile)"
 - [x] [P2] Base-object selection pre-step (model scan / 3D model / converted guide)
 - [ ] [P2] Inspection windows: click-to-place cylindrical cutouts, per-window height/diameter controls + wheel, unlimited, stability caution
