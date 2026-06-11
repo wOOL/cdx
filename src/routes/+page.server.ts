@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { unzipSync } from 'fflate';
 import {
 	createCase,
 	createPatient,
@@ -11,6 +12,7 @@ import {
 	listPatients,
 	updatePatient
 } from '$lib/server/db/repo';
+import { importDicomToCase } from '$lib/server/dicom/import';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const search = url.searchParams.get('q') ?? '';
@@ -69,6 +71,30 @@ export const actions: Actions = {
 		if (!patientId) return fail(400, { error: 'Missing patient' });
 		const title = String(form.get('title') ?? '').trim() || 'New case';
 		const c = createCase(patientId, title);
+		redirect(303, `/cases/${c.id}`);
+	},
+
+	createDemo: async () => {
+		const file = Bun.file('testdata/synthetic-cbct.zip');
+		if (!(await file.exists())) {
+			return fail(400, {
+				error: 'Demo data missing — run: bun run scripts/make-synthetic-dicom.ts'
+			});
+		}
+		const p = createPatient({
+			first_name: 'Patient',
+			last_name: 'Demo',
+			date_of_birth: '1980-05-12',
+			sex: 'F',
+			external_id: 'DEMO-1',
+			notes: 'Synthetic CBCT phantom for exploring the planning workflow.'
+		});
+		const c = createCase(p.id, 'Demo — implant 36/46');
+		const entries = unzipSync(new Uint8Array(await file.arrayBuffer()));
+		const buffers = Object.entries(entries)
+			.filter(([n, d]) => !n.endsWith('/') && d.length > 0)
+			.map(([, d]) => d);
+		await importDicomToCase(c.id, buffers);
 		redirect(303, `/cases/${c.id}`);
 	},
 

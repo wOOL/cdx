@@ -190,6 +190,12 @@
 				<button class="btn primary" onclick={openNewPatient}>
 					<Icon name="patient-add" size={16} /> New patient
 				</button>
+				<form method="POST" action="?/createDemo" use:enhance>
+					<button class="btn" type="submit">
+						<Icon name="tooth" size={16} /> Create demo case (synthetic CBCT)
+					</button>
+				</form>
+				{#if form?.error}<div class="form-error">{form.error}</div>{/if}
 			</div>
 		{/if}
 	</main>

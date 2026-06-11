@@ -1,4 +1,8 @@
 import dicomParser from 'dicom-parser';
+import { join } from 'node:path';
+import { caseDir } from '$lib/server/db';
+import { createDataset, getCase, updateCase } from '$lib/server/db/repo';
+import type { Dataset } from '$lib/types';
 
 export interface ParsedSlice {
 	seriesUid: string;
@@ -223,6 +227,46 @@ export function buildVolume(files: Uint8Array[]): VolumeResult {
 		modality: first.modality,
 		seriesDescription: first.seriesDescription
 	};
+}
+
+/** Full import: build volume + preview from DICOM buffers, write files, create the dataset row. */
+export async function importDicomToCase(caseId: number, buffers: Uint8Array[]): Promise<Dataset> {
+	const vol = buildVolume(buffers);
+	const preview = buildPreview(vol);
+
+	const dir = caseDir(caseId);
+	const stamp = crypto.randomUUID().slice(0, 8);
+	const volPath = join(dir, `vol_${stamp}.i16`);
+	const prevPath = join(dir, `vol_${stamp}_preview.u8`);
+	await Bun.write(volPath, new Uint8Array(vol.volume.buffer, 0, vol.volume.byteLength));
+	await Bun.write(prevPath, preview.data);
+
+	const dataset = createDataset({
+		case_id: caseId,
+		kind: 'ct',
+		description: `${vol.modality} ${vol.cols}×${vol.rows}×${vol.slices}`,
+		cols: vol.cols,
+		rows: vol.rows,
+		slices: vol.slices,
+		spacing_x: vol.spacing[0],
+		spacing_y: vol.spacing[1],
+		spacing_z: vol.spacing[2],
+		window_center: vol.windowCenter,
+		window_width: vol.windowWidth,
+		patient_name: vol.patientName,
+		study_date: vol.studyDate,
+		modality: vol.modality,
+		series_description: vol.seriesDescription,
+		volume_path: volPath,
+		preview_path: prevPath,
+		preview_cols: preview.cols,
+		preview_rows: preview.rows,
+		preview_slices: preview.slices
+	});
+
+	const c = getCase(caseId);
+	if (c && c.status === 'new') updateCase(caseId, { status: 'planning' });
+	return dataset;
 }
 
 /**

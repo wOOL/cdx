@@ -90,6 +90,29 @@
 		if (stage !== 'nerve' && ps) ps.nerveEditMode = false;
 	});
 
+	// EASY-mode-style progress: which stages have their artifact
+	let stageDone = $derived<Record<StageKey, boolean>>({
+		data: hasVolume,
+		align: !!ps && ps.models.some((m) => m.kind === 'segmentation' || (m.kind === 'scan' && m.transform)),
+		pano: !!ps && ps.curveControl.length >= 3,
+		nerve: !!ps && ps.nerves.some((n) => n.points.length >= 2),
+		implant: !!ps && ps.implants.length > 0,
+		sleeve: !!ps && ps.implants.length > 0 && ps.implants.every((i) => i.sleeve),
+		guide: !!ps && ps.models.some((m) => m.kind === 'guide'),
+		report: !!data.plan.approved
+	});
+
+	let nextHint = $derived.by(() => {
+		if (!hasVolume) return 'Import DICOM data to begin';
+		if (!stageDone.pano) return 'Draw the panoramic curve (Panoramic stage)';
+		if (!stageDone.nerve) return 'Mark the mandibular nerve (Nerve stage)';
+		if (!stageDone.implant) return 'Place implants (Implants stage)';
+		if (!stageDone.sleeve) return 'Assign sleeves (Sleeves stage)';
+		if (!stageDone.guide) return 'Generate the surgical guide (Guide stage)';
+		if (!stageDone.report) return 'Review and approve the plan, then print the report';
+		return 'Plan complete';
+	});
+
 	// ---------- panoramic curve editing on the axial view ----------
 	let dragPointIndex = -1;
 
@@ -565,6 +588,7 @@
 		{#each stages as s (s.key)}
 			{#if s.key === 'report'}
 				<a class="tool-btn" class:disabled={!hasVolume} href="/cases/{data.caseData.id}/report">
+					{#if stageDone[s.key]}<span class="stage-check"><Icon name="check" size={10} /></span>{/if}
 					<Icon name={s.icon} size={20} />
 					<span>{s.label}</span>
 				</a>
@@ -575,6 +599,7 @@
 					disabled={s.key !== 'data' && !hasVolume}
 					onclick={() => (stage = s.key)}
 				>
+					{#if stageDone[s.key]}<span class="stage-check"><Icon name="check" size={10} /></span>{/if}
 					<Icon name={s.icon} size={20} />
 					<span>{s.label}</span>
 				</button>
@@ -1300,6 +1325,7 @@
 
 <footer class="status-bar">
 	<span class="faint">coDiagnostiX Web — planning workspace</span>
+	<span class="hint-text"><Icon name="chevron" size={11} /> {nextHint}</span>
 	{#if ps && ps.warnings.length}
 		<span class="warn-text">
 			<Icon name="warning" size={13} />
@@ -1539,6 +1565,31 @@
 		align-items: center;
 		gap: 5px;
 		color: var(--red);
+	}
+	.hint-text {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		color: var(--accent-bright);
+	}
+	.stage-bar .tool-btn {
+		position: relative;
+	}
+	.stage-check {
+		position: absolute;
+		top: 3px;
+		right: 6px;
+		width: 13px;
+		height: 13px;
+		border-radius: 50%;
+		background: var(--green);
+		color: #fff;
+		display: grid;
+		place-items: center;
+	}
+	.tool-btn.disabled {
+		opacity: 0.35;
+		pointer-events: none;
 	}
 	.view-controls-body {
 		padding: 10px;
