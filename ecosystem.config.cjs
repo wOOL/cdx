@@ -11,13 +11,16 @@
 
 const { join } = require('node:path');
 
-const aiseg = process.env.CDX_AISEG_EMAIL
-	? {
-			CDX_AISEG_URL: process.env.CDX_AISEG_URL || 'https://pbapi.becertain.ai',
-			CDX_AISEG_EMAIL: process.env.CDX_AISEG_EMAIL,
-			CDX_AISEG_PASSWORD: process.env.CDX_AISEG_PASSWORD
-		}
-	: {};
+// Vendor AI segmentation backend. These are TEST-STAGE credentials (a disposable
+// demo account, in a private repo) so the deployment runs the real model out of
+// the box — replace with a real account after testing, or override via the
+// environment (env takes precedence). Without these the app falls back to the
+// local heuristic.
+const aiseg = {
+	CDX_AISEG_URL: process.env.CDX_AISEG_URL || 'https://pbapi.becertain.ai',
+	CDX_AISEG_EMAIL: process.env.CDX_AISEG_EMAIL || 'demo@becertain.ai',
+	CDX_AISEG_PASSWORD: process.env.CDX_AISEG_PASSWORD || 'DemoPass123!'
+};
 
 module.exports = {
 	apps: [
