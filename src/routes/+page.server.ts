@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { unzipSync } from 'fflate';
+import { db } from '$lib/server/db';
 import {
 	createCase,
 	createPatient,
@@ -74,6 +75,39 @@ export const actions: Actions = {
 		const title = String(form.get('title') ?? '').trim() || 'New case';
 		const c = createCase(patientId, title);
 		redirect(303, `/cases/${c.id}`);
+	},
+
+	toggleAnonymize: async ({ request }) => {
+		const form = await request.formData();
+		const id = Number(form.get('id'));
+		const p = getPatient(id);
+		if (!p) return fail(404, { error: 'Patient not found' });
+
+		if (!p.real_data) {
+			// anonymize: stash the identity, replace with a pseudonym
+			const stash = JSON.stringify({
+				external_id: p.external_id,
+				first_name: p.first_name,
+				last_name: p.last_name,
+				date_of_birth: p.date_of_birth
+			});
+			db.query(
+				`UPDATE patients SET external_id = ?2, first_name = ?3, last_name = ?4,
+				 date_of_birth = '', real_data = ?5, updated_at = datetime('now') WHERE id = ?1`
+			).run(id, `ANON-${id}`, `P-${id}`, 'Anonymous', stash);
+		} else {
+			// restore the original identity
+			try {
+				const orig = JSON.parse(p.real_data);
+				db.query(
+					`UPDATE patients SET external_id = ?2, first_name = ?3, last_name = ?4,
+					 date_of_birth = ?5, real_data = '', updated_at = datetime('now') WHERE id = ?1`
+				).run(id, orig.external_id ?? '', orig.first_name ?? '', orig.last_name ?? '', orig.date_of_birth ?? '');
+			} catch {
+				return fail(500, { error: 'Stored identity is corrupt — cannot de-anonymize' });
+			}
+		}
+		redirect(303, `/?sel=${id}`);
 	},
 
 	createDemo: async () => {

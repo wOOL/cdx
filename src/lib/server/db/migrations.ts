@@ -189,6 +189,10 @@ const MIGRATIONS: string[] = [
 		revoked INTEGER NOT NULL DEFAULT 0,
 		created_at TEXT NOT NULL DEFAULT (datetime('now'))
 	);
+	`,
+	// 9 — reversible patient anonymization (original identity stashed while anonymized)
+	`
+	ALTER TABLE patients ADD COLUMN real_data TEXT NOT NULL DEFAULT '';
 	`
 ];
 

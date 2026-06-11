@@ -611,6 +611,22 @@
 
 	// ---------- plan management ----------
 	let planMenuOpen = $state(false);
+	let planImportInput: HTMLInputElement | undefined = $state();
+
+	async function importPlanFile(file: File) {
+		const form = new FormData();
+		form.append('file', file);
+		const res = await fetch(`/api/cases/${data.caseData.id}/import-plan`, {
+			method: 'POST',
+			body: form
+		});
+		const body = await res.json().catch(() => null);
+		if (!res.ok) {
+			alert(body?.message ?? 'Plan import failed');
+			return;
+		}
+		await goto(`/cases/${data.caseData.id}?plan=${body.planId}`, { invalidateAll: true });
+	}
 
 	async function duplicatePlanAction() {
 		planMenuOpen = false;
@@ -1016,6 +1032,14 @@
 
 <svelte:window onkeydown={onKeydown} />
 
+<input
+	type="file"
+	accept=".json,.cdxplan.json"
+	hidden
+	bind:this={planImportInput}
+	onchange={(e) => e.currentTarget.files?.[0] && importPlanFile(e.currentTarget.files[0])}
+/>
+
 {#snippet maxBtn(key: string)}
 	<button
 		class="max-btn"
@@ -1147,6 +1171,18 @@
 							prompt('Read-only share link (copy with Ctrl+C):', url);
 						}
 					}}>Share read-only link…</button
+				>
+				<a
+					class="plan-menu-item"
+					href="/api/plans/{data.plan.id}/export"
+					onclick={() => (planMenuOpen = false)}>Export plan (.cdxplan)</a
+				>
+				<button
+					class="plan-menu-item"
+					onclick={() => {
+						planMenuOpen = false;
+						planImportInput?.click();
+					}}>Import plan…</button
 				>
 				{#if !data.plan.is_master}
 					<button class="plan-menu-item danger-item" onclick={deletePlanAction}>Delete plan</button>

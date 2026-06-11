@@ -6,6 +6,8 @@ export interface Patient {
 	date_of_birth: string;
 	sex: string;
 	notes: string;
+	/** JSON stash of the original identity while the patient is anonymized; '' = not anonymized */
+	real_data: string;
 	created_at: string;
 	updated_at: string;
 }

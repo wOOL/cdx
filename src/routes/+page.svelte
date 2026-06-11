@@ -200,6 +200,15 @@
 				{#if data.selected.notes}
 					<div class="patient-notes muted">{data.selected.notes}</div>
 				{/if}
+				<form method="POST" action="?/toggleAnonymize" class="anon-row" use:enhance>
+					<input type="hidden" name="id" value={data.selected.id} />
+					<button class="btn ghost" type="submit" title="Reversibly replace the identity with a pseudonym">
+						{data.selected.real_data ? '🔓 De-anonymize patient' : '🕶 Anonymize patient'}
+					</button>
+					{#if data.selected.real_data}
+						<span class="badge planning">anonymized</span>
+					{/if}
+				</form>
 			</div>
 
 			<div class="cases-head">
@@ -521,6 +530,12 @@
 		padding-top: 10px;
 		border-top: 1px solid var(--border-soft);
 		white-space: pre-wrap;
+	}
+	.anon-row {
+		margin-top: 10px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
 	.cases-head {
 		display: flex;
