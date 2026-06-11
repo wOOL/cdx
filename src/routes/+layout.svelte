@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import WebGLGate from '$lib/components/WebGLGate.svelte';
 
 	let { children } = $props();
 </script>
@@ -10,9 +11,11 @@
 	<title>coDiagnostiX Web</title>
 </svelte:head>
 
-<div class="app">
-	{@render children()}
-</div>
+<WebGLGate>
+	<div class="app">
+		{@render children()}
+	</div>
+</WebGLGate>
 
 <style>
 	.app {

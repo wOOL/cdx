@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import Icon from '$lib/components/Icon.svelte';
+	import AboutDialog from '$lib/components/AboutDialog.svelte';
+	import OnboardingTour from '$lib/components/OnboardingTour.svelte';
 	import ImagesLink from '$lib/components/ImagesLink.svelte';
 	import type { Patient } from '$lib/types';
 
@@ -11,6 +13,11 @@
 	let editingPatient: Patient | null = $state(null);
 	let caseDialog: HTMLDialogElement | undefined = $state();
 	let searchValue = $state(data.search);
+	let showAbout = $state(false);
+	let showTour = $state(false);
+	$effect(() => {
+		if (!localStorage.getItem('cdx_tour_done')) showTour = true;
+	});
 
 	function openNewPatient() {
 		editingPatient = null;
@@ -102,6 +109,9 @@
 	</a>
 	<a class="btn ghost" href="/contacts" title="Contacts"><Icon name="patient-add" size={16} /></a>
 	<a class="btn ghost" href="/account" title="Account"><Icon name="patient" size={16} /></a>
+	<button class="btn ghost" title="About coDiagnostiX Web" onclick={() => (showAbout = true)}>
+		?
+	</button>
 	<a class="btn ghost" href="/settings" title="Settings"><Icon name="settings" /></a>
 	<form method="POST" action="/logout">
 		<button class="btn ghost" title="Sign out"><Icon name="export" size={16} /></button>
@@ -384,6 +394,13 @@
 		</div>
 	</form>
 </dialog>
+
+{#if showAbout}
+	<AboutDialog onclose={() => (showAbout = false)} />
+{/if}
+{#if showTour}
+	<OnboardingTour onclose={() => (showTour = false)} />
+{/if}
 
 <style>
 	.appbar {

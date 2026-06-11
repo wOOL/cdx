@@ -296,21 +296,22 @@ export async function importDicomToCase(caseId: number, buffers: Uint8Array[]): 
 }
 
 /**
- * Downsample an HU volume to a uint8 volume (linear window [-1000, 3000])
- * whose largest dimension is maxDim — used as a 3D texture for volume rendering.
+ * Downsample an HU volume to a uint8 volume (linear window [lo, hi],
+ * default [-1000, 3000]) whose largest dimension is maxDim — used as a
+ * 3D texture for volume rendering.
  */
 export function buildPreview(
 	vol: VolumeResult,
-	maxDim = 256
+	maxDim = 256,
+	lo = -1000,
+	hi = 3000
 ): { data: Uint8Array; cols: number; rows: number; slices: number } {
 	const scale = Math.min(1, maxDim / Math.max(vol.cols, vol.rows, vol.slices));
 	const pc = Math.max(1, Math.round(vol.cols * scale));
 	const pr = Math.max(1, Math.round(vol.rows * scale));
 	const psl = Math.max(1, Math.round(vol.slices * scale));
 	const out = new Uint8Array(pc * pr * psl);
-	const LO = -1000;
-	const HI = 3000;
-	const range = HI - LO;
+	const range = hi - lo || 1;
 	for (let z = 0; z < psl; z++) {
 		const sz = Math.min(vol.slices - 1, Math.round((z * vol.slices) / psl));
 		const srcZ = sz * vol.cols * vol.rows;
@@ -320,7 +321,7 @@ export function buildPreview(
 			const dstY = z * pc * pr + y * pc;
 			for (let x = 0; x < pc; x++) {
 				const sx = Math.min(vol.cols - 1, Math.round((x * vol.cols) / pc));
-				let v = (vol.volume[srcY + sx] - LO) / range;
+				let v = (vol.volume[srcY + sx] - lo) / range;
 				if (v < 0) v = 0;
 				else if (v > 1) v = 1;
 				out[dstY + x] = (v * 255) | 0;

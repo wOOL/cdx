@@ -18,5 +18,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 		redirect(303, `/login?next=${encodeURIComponent(path)}`);
 	}
 
+	// viewer accounts are read-only: every mutating API call is rejected server-side.
+	// (/logout is a POST but lives outside /api/, so signing out keeps working.)
+	if (user?.tier === 'viewer') {
+		const method = event.request.method;
+		if (method !== 'GET' && method !== 'HEAD' && path.startsWith('/api/')) {
+			error(403, 'Viewer accounts are read-only');
+		}
+	}
+
 	return resolve(event);
 };
