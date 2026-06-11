@@ -1,5 +1,6 @@
 /** Measure tool smoke test: distance between two points on the axial view. */
 import { chromium } from 'playwright';
+import { ensureLoggedIn } from './pwlogin';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
@@ -8,6 +9,10 @@ page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 page.on('pageerror', (e) => errors.push(e.message));
 
 await page.goto('http://localhost:5173/cases/1', { waitUntil: 'networkidle' });
+await ensureLoggedIn(page);
+if (!page.url().includes('/cases/1')) {
+	await page.goto('http://localhost:5173/cases/1', { waitUntil: 'networkidle' });
+}
 await page.waitForTimeout(2500);
 
 // distance tool (ruler button in the View panel)

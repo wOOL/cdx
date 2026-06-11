@@ -4,6 +4,7 @@
  * Clicks each button containing the given text (in order), waits, screenshots.
  */
 import { chromium } from 'playwright';
+import { ensureLoggedIn } from './pwlogin';
 
 const [url, out, ...clicks] = process.argv.slice(2);
 if (!url || !out) {
@@ -19,6 +20,8 @@ page.on('console', (msg) => {
 page.on('pageerror', (err) => console.error('[pageerror]', err.message));
 
 await page.goto(url, { waitUntil: 'networkidle' });
+await ensureLoggedIn(page);
+if (!page.url().startsWith(url)) await page.goto(url, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 
 for (const text of clicks) {

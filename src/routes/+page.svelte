@@ -72,7 +72,16 @@
 	</div>
 	<div class="appbar-sub">Patient database</div>
 	<div class="spacer"></div>
+	{#if data.user}
+		<span class="muted user-chip" title={data.user.email}>
+			<Icon name="patient" size={14} />
+			{data.user.name || data.user.email}
+		</span>
+	{/if}
 	<a class="btn ghost" href="/settings" title="Settings"><Icon name="settings" /></a>
+	<form method="POST" action="/logout">
+		<button class="btn ghost" title="Sign out"><Icon name="export" size={16} /></button>
+	</form>
 </header>
 
 <div class="db-layout">
@@ -347,6 +356,12 @@
 	}
 	.spacer {
 		flex: 1;
+	}
+	.user-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 12px;
 	}
 
 	.db-layout {

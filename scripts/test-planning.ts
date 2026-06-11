@@ -4,6 +4,7 @@
  *   bun run scripts/test-planning.ts [caseUrl]
  */
 import { chromium } from 'playwright';
+import { ensureLoggedIn } from './pwlogin';
 
 const url = process.argv[2] ?? 'http://localhost:5173/cases/1';
 
@@ -14,6 +15,8 @@ page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 page.on('pageerror', (e) => errors.push(e.message));
 
 await page.goto(url, { waitUntil: 'networkidle' });
+await ensureLoggedIn(page);
+if (!page.url().startsWith(url)) await page.goto(url, { waitUntil: 'networkidle' });
 await page.waitForTimeout(2000);
 
 // ---- nerve stage ----

@@ -142,6 +142,24 @@ const MIGRATIONS: string[] = [
 	`
 	ALTER TABLE plans ADD COLUMN jaw TEXT NOT NULL DEFAULT 'mandible';
 	ALTER TABLE models ADD COLUMN plan_id INTEGER;
+	`,
+	// 4 — user accounts + sessions
+	`
+	CREATE TABLE users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		email TEXT NOT NULL UNIQUE,
+		password_hash TEXT NOT NULL,
+		name TEXT NOT NULL DEFAULT '',
+		work_mode TEXT NOT NULL DEFAULT 'expert',
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
+	CREATE TABLE sessions (
+		token TEXT PRIMARY KEY,
+		user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		expires_at TEXT NOT NULL,
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
+	CREATE INDEX idx_sessions_user ON sessions(user_id);
 	`
 ];
 
