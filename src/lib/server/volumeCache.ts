@@ -25,6 +25,11 @@ export async function loadVolume(ds: Dataset): Promise<Int16Array> {
 	return vol;
 }
 
+/** Drop a dataset's cached volume (e.g. after its volume file is replaced). */
+export function evictVolume(id: number): void {
+	cache.delete(id);
+}
+
 export type Plane = 'axial' | 'coronal' | 'sagittal';
 
 export interface SliceData {

@@ -30,6 +30,7 @@
 	} from '$lib/implantLibrary';
 	import { composeMat4, icp, kabsch } from '$lib/registration';
 	import { extractSurfacePoints } from '$lib/client/icpTargets';
+	import { axialContours, primeModel } from '$lib/client/meshContours';
 	import type { Vec3 } from '$lib/geometry';
 
 	let { data } = $props();
@@ -211,9 +212,38 @@
 	}
 
 	// ---------- combined overlays ----------
+	let contourTick = $state(0);
+
+	function drawScanContours(ctx: CanvasRenderingContext2D, t: ViewTransform) {
+		if (!ps) return;
+		const sx = ps.ds.spacing_x;
+		const sy = ps.ds.spacing_y;
+		const zmm = ps.cursor.z * ps.ds.spacing_z;
+		for (const m of ps.models) {
+			if (m.kind !== 'scan' || !m.visible) continue;
+			primeModel(m.id, () => contourTick++);
+			const segs = axialContours(m.id, m.transform, zmm);
+			if (!segs || segs.length === 0) continue;
+			ctx.strokeStyle = m.color;
+			ctx.setLineDash([5, 3]);
+			ctx.lineWidth = 1.5;
+			ctx.beginPath();
+			for (let i = 0; i < segs.length; i += 4) {
+				ctx.moveTo(t.ox + (segs[i] / sx + 0.5) * t.scaleX, t.oy + (segs[i + 1] / sy + 0.5) * t.scaleY);
+				ctx.lineTo(
+					t.ox + (segs[i + 2] / sx + 0.5) * t.scaleX,
+					t.oy + (segs[i + 3] / sy + 0.5) * t.scaleY
+				);
+			}
+			ctx.stroke();
+			ctx.setLineDash([]);
+		}
+	}
+
 	function axialOverlay(ctx: CanvasRenderingContext2D, t: ViewTransform) {
 		curveOverlay(ctx, t);
 		if (ps) {
+			drawScanContours(ctx, t);
 			drawAxialObjects(ps, ctx, t);
 			drawMeasurements(ps, ctx, t);
 		}
@@ -626,6 +656,33 @@
 			guideError = e instanceof Error ? e.message : 'Guide generation failed';
 		} finally {
 			guideBusy = false;
+		}
+	}
+
+	// ---------- patient coordinate system alignment ----------
+	let pcsDialog: HTMLDialogElement | undefined = $state();
+	let pcsAngles = $state({ yaw: 0, pitch: 0, roll: 0 });
+	let pcsBusy = $state(false);
+
+	async function applyPcs() {
+		if (!ps) return;
+		pcsBusy = true;
+		try {
+			const res = await fetch(`/api/datasets/${ps.ds.id}/align`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(pcsAngles)
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => null);
+				alert(body?.message ?? 'Alignment failed');
+				return;
+			}
+			pcsDialog?.close();
+			pcsAngles = { yaw: 0, pitch: 0, roll: 0 };
+			location.reload(); // volume replaced — full reload clears every cached slice/preview
+		} finally {
+			pcsBusy = false;
 		}
 	}
 
@@ -1140,6 +1197,10 @@
 						{/if}
 						<div class="tool-sep"></div>
 					{/if}
+					<button class="btn" onclick={() => pcsDialog?.showModal()}>
+						<Icon name="rotate" size={14} /> Align patient axes…
+					</button>
+					<div class="tool-sep"></div>
 					<label class="inline-label" for="seg-th">Bone HU</label>
 					<input id="seg-th" type="number" step="50" bind:value={segThreshold} style="width:70px" />
 					<button class="btn" disabled={segBusy} onclick={createBoneModel}>
@@ -1448,7 +1509,14 @@
 					<div class="view panel">
 						<VolumeView state={ps} bind:this={alignVolView} onMeshClick={onScanMeshClick} />
 					</div>
-					<div class="view panel"><SliceView state={ps} plane="axial" overlayDraw={curveOverlay} overlayDeps={[ps.curveControl, ps.crossU]} /></div>
+					<div class="view panel">
+						<SliceView
+							state={ps}
+							plane="axial"
+							overlayDraw={axialOverlay}
+							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion, contourTick]}
+						/>
+					</div>
 					<div class="view panel"><SliceView state={ps} plane="coronal" /></div>
 					<div class="view panel"><SliceView state={ps} plane="sagittal" /></div>
 				</div>
@@ -1460,7 +1528,7 @@
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={axialTool}
-							overlayDeps={[ps.curveControl, ps.curveEditMode, ps.crossU, objectsVersion]}
+							overlayDeps={[ps.curveControl, ps.curveEditMode, ps.crossU, objectsVersion, contourTick]}
 						/>
 					</div>
 					<div class="view panel area-3d"><VolumeView state={ps} /></div>
@@ -1475,7 +1543,7 @@
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={axialTool}
-							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion]}
+							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion, contourTick]}
 						/>
 					</div>
 					<div class="view panel">
@@ -1529,6 +1597,42 @@
 {#if grayscaleOpen && ps}
 	<AdjustGrayscale state={ps} onclose={() => (grayscaleOpen = false)} />
 {/if}
+
+<!-- align patient coordinate system dialog -->
+<dialog bind:this={pcsDialog}>
+	<div class="dialog-title">Align patient coordinate system</div>
+	<div class="dialog-body">
+		<p class="muted">
+			Rotates and resamples the volume so the occlusal plane is horizontal and the
+			sagittal midline is vertical. This is applied permanently to the dataset.
+		</p>
+		<div class="field-row">
+			<div>
+				<label for="pcs-yaw">Yaw (axial ↻, °)</label>
+				<input id="pcs-yaw" type="number" min="-45" max="45" step="1" bind:value={pcsAngles.yaw} style="width:100%" />
+			</div>
+			<div>
+				<label for="pcs-pitch">Pitch (sagittal, °)</label>
+				<input id="pcs-pitch" type="number" min="-45" max="45" step="1" bind:value={pcsAngles.pitch} style="width:100%" />
+			</div>
+			<div>
+				<label for="pcs-roll">Roll (coronal, °)</label>
+				<input id="pcs-roll" type="number" min="-45" max="45" step="1" bind:value={pcsAngles.roll} style="width:100%" />
+			</div>
+		</div>
+		<p class="faint">
+			Tip: use the coronal view to judge roll and the sagittal view for pitch before applying.
+			Panoramic curve and planned objects keep their coordinates — re-check them after large
+			corrections.
+		</p>
+	</div>
+	<div class="dialog-actions">
+		<button type="button" class="btn" onclick={() => pcsDialog?.close()}>Cancel</button>
+		<button type="button" class="btn primary" disabled={pcsBusy} onclick={applyPcs}>
+			{pcsBusy ? 'Resampling…' : 'Apply rotation'}
+		</button>
+	</div>
+</dialog>
 
 <!-- add/change implant dialog -->
 <dialog bind:this={implantDialog}>
