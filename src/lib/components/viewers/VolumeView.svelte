@@ -75,6 +75,7 @@
 	let viewDir = $state('');
 
 	let material: THREE.ShaderMaterial | null = null;
+	let volMeshRef: THREE.Mesh | null = null;
 	let redraw: (() => void) | null = null;
 	let objGroup: THREE.Group | null = null;
 	let groupRef: THREE.Group | null = null;
@@ -630,6 +631,15 @@
 	}
 
 	$effect(() => {
+		// hide/show the volume reconstruction (3D setup: 'Volume render')
+		const v = ps.volumeVisible;
+		if (volMeshRef) {
+			volMeshRef.visible = v;
+			redraw?.();
+		}
+	});
+
+	$effect(() => {
 		void ps.models.map((m) => [m.id, m.visible, m.color, m.opacity, m.transform, m.shading]);
 		if (sceneReady) syncModels();
 	});
@@ -851,6 +861,7 @@
 
 				const geometry = new THREE.BoxGeometry(ex * 2, ey * 2, ez * 2);
 				const mesh = new THREE.Mesh(geometry, material);
+				volMeshRef = mesh;
 				// orient anatomy: DICOM +z (head) → screen up, +y (posterior) → away
 				const group = new THREE.Group();
 				group.add(mesh);

@@ -135,6 +135,8 @@ export class PlanningState {
 	crosshairVisible = $state(true);
 	showImplantAxes = $state(false);
 	showImplantToothNumbers = $state(false);
+	/** 3D volume reconstruction visibility (hide to see only segmentations/models) */
+	volumeVisible = $state(true);
 	locked = $state(false);
 
 	// panoramic curve — control points in mm (volume-local), defined on axial slice curveZ

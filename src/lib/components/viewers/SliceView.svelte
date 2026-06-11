@@ -254,7 +254,11 @@
 		// overlays
 		ctx.fillStyle = 'rgba(216, 220, 228, 0.85)';
 		ctx.font = '11px Inter, sans-serif';
-		ctx.fillText(`${sliceIndex + 1} / ${maxIndex + 1}`, 8, ch - 8);
+		ctx.fillText(
+			`${sliceIndex + 1} / ${maxIndex + 1}${zoom !== 1 ? `  ·  zoom ${zoom.toFixed(2)}×` : ''}`,
+			8,
+			ch - 8
+		);
 		const wlText = `C ${Math.round(ps.wc)}  W ${Math.round(ps.ww)}`;
 		ctx.fillText(wlText, cw - ctx.measureText(wlText).width - 8, ch - 8);
 		if (hoverHU !== null) {

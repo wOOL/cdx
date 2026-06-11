@@ -43,12 +43,12 @@ listed in GAPS-VIDEO.md (stage-3 section).
 
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
-| 19 | Start a new case *(–)* | pending | |
-| 20 | Segment DICOM data (Expert) *(–)* | pending | |
-| 21 | Use the coordinate system *(–)* | pending | |
+| 19 | Start a new case *(14)* | verifying | (scan-date field → pending verdict) |
+| 20 | Segment DICOM data (Expert) *(18)* | verifying | upper HU bound in editor; zoom readout; 3D volume-render toggle |
+| 21 | Use the coordinate system *(11)* | closed | — (already complete) |
 | 22 | Detect the nerve canal (Expert) *(19)* | verifying | |
-| 23 | Place an implant *(–)* | pending | |
-| 24 | Place a sleeve *(–)* | pending | |
+| 23 | Place an implant *(19)* | verifying | |
+| 24 | Place a sleeve *(20)* | verifying | (catalog rows → GAPS) |
 | 25 | Design a drill guide *(40)* | verifying | label presets: Date of birth, Tooth positions |
 | 26 | Export on abutment level *(24)* | verifying | (branded abutment catalogs → GAPS; scanbody thumbnails) |
 

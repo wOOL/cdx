@@ -2240,6 +2240,7 @@
 		mode: 'add' as 'add' | 'erase',
 		brushMM: 2,
 		rangeLo: 300,
+		rangeHi: 32767,
 		busy: '',
 		grid: false,
 		propagateN: 5,
@@ -2302,7 +2303,7 @@
 			const res = await fetch(`/api/datasets/${ps.ds.id}/mask/propagate`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ from, to, lo: segEdit.rangeLo, hi: 32767 })
+				body: JSON.stringify({ from, to, lo: segEdit.rangeLo, hi: segEdit.rangeHi })
 			});
 			const b = await res.json().catch(() => null);
 			if (!res.ok) {
@@ -2403,6 +2404,7 @@
 					x: Math.round(p.x / ps.ds.spacing_x),
 					y: Math.round(p.y / ps.ds.spacing_y),
 					lo: segEdit.rangeLo,
+					hi: segEdit.rangeHi,
 					mode: segEdit.mode,
 					volume: true
 				})
@@ -2536,6 +2538,7 @@
 						x: Math.round(e.px),
 						y: Math.round(e.py),
 						lo: segEdit.rangeLo,
+						hi: segEdit.rangeHi,
 						mode: segEdit.mode
 					})
 				})
@@ -3503,6 +3506,10 @@
 						<input type="checkbox" bind:checked={ps.showImplantToothNumbers} />
 						Tooth numbers on implants
 					</label>
+					<label class="checkbox-row" title="Hide the CBCT volume render to see only segmentations and models">
+						<input type="checkbox" bind:checked={ps.volumeVisible} />
+						3D volume render
+					</label>
 					<label class="checkbox-row">
 						<input type="checkbox" bind:checked={ps.showCrestalPlanes} />
 						<span>Crestal planes</span>
@@ -3960,6 +3967,13 @@
 							step="50"
 							bind:value={segEdit.rangeLo}
 							title="Threshold / fill range lower bound (HU)"
+							style="width:64px"
+						/>
+						<input
+							type="number"
+							step="50"
+							bind:value={segEdit.rangeHi}
+							title="Fill range upper bound (HU) — keep at 32767 for no upper limit"
 							style="width:64px"
 						/>
 						<select bind:value={segEdit.tool} title="Tool">
