@@ -523,8 +523,10 @@ carry a **bone reduction profile**:
 
 ![Bone reduction bars proposed from the implant positions](img/reduction-bars.png)
 
-5. **Simulate reduction** previews the surgical outcome before any guide is produced: the
-   bone model is cut at the reduction-bar profile height and the post-reduction situation
+5. **Simulate reduction** previews the surgical outcome before any guide is produced: you
+   are asked for the **gingiva height** above the cut profile (default 2 mm, minimum
+   0.5 mm — the soft tissue keeps this space), then the bone model is cut at the offset
+   profile height and the post-reduction situation
    is saved as a new **"(reduced)"** model in the object tree. Inspect it in the 3D view to
    judge the planned bone level — the original bone model is untouched, and the simulated
    model can be deleted like any other (if the cut leaves an open rim, close it with the

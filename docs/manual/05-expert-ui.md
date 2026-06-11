@@ -155,7 +155,8 @@ Plans can be:
 - **Created, renamed, duplicated** — *Duplicate this plan* opens the **Copy plan** dialog:
   name the copy and choose what to copy into the new plan — *Implants (incl. sleeves &
   abutments)*, *Nerve canals* and *Measurements & annotations* (all selected by default;
-  e.g. uncheck the implants to restart the placement on the same nerve marking). The
+  e.g. uncheck the implants to restart the placement on the same nerve marking). A name
+  that is already used by another plan is flagged and cannot be confirmed. The
   master plan is marked.
 - **Compared** — *Compare plans…* shows two plans side by side.
 - **Locked** — *Lock plan* write-protects it (reversible). A plan that was **sent** to a
