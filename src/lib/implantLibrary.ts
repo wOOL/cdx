@@ -65,6 +65,24 @@ export const IMPLANT_LIBRARY: ImplantLine[] = [
 export const FDI_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
 export const FDI_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
+export type Notation = 'fdi' | 'universal';
+
+/** Universal (US) numbering: 1–16 across the maxilla (right→left), 17–32 across the mandible (left→right). */
+const FDI_TO_UNIVERSAL = new Map<number, number>([
+	...FDI_UPPER.map((fdi, i) => [fdi, i + 1] as [number, number]),
+	...[38, 37, 36, 35, 34, 33, 32, 31, 41, 42, 43, 44, 45, 46, 47, 48].map(
+		(fdi, i) => [fdi, i + 17] as [number, number]
+	)
+]);
+
+/** Display label for a tooth position stored in FDI. */
+export function toothLabel(fdi: string | number, notation: Notation): string {
+	const n = Number(fdi);
+	if (!n) return String(fdi || '—');
+	if (notation === 'universal') return String(FDI_TO_UNIVERSAL.get(n) ?? fdi);
+	return String(fdi);
+}
+
 const IMPLANT_COLORS = [
 	'#3aa757',
 	'#2f9ec7',

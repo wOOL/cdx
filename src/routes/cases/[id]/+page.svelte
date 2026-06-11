@@ -26,7 +26,9 @@
 		articleName,
 		defaultSleeve,
 		drillLength,
-		implantColor
+		implantColor,
+		toothLabel,
+		type Notation
 	} from '$lib/implantLibrary';
 	import { composeMat4, icp, kabsch } from '$lib/registration';
 	import { extractSurfacePoints } from '$lib/client/icpTargets';
@@ -50,6 +52,7 @@
 
 	let hasVolume = $derived(data.datasets.length > 0);
 	let stage = $state<StageKey>('data');
+	let notation = $derived((data.settings.notation === 'universal' ? 'universal' : 'fdi') as Notation);
 	let ps = $derived(
 		data.datasets[0]
 			? new PlanningState(
@@ -176,6 +179,7 @@
 		if (!ps || !ps.curveEditMode || ps.locked) return false;
 		const mm = { x: e.px * ps.ds.spacing_x, y: e.py * ps.ds.spacing_y };
 		if (e.type === 'down') {
+			ps.markEdit();
 			const idx = ps.curveControl.findIndex((p) => Math.hypot(p.x - mm.x, p.y - mm.y) < 2.5);
 			if (idx >= 0) {
 				dragPointIndex = idx;
@@ -201,12 +205,14 @@
 
 	function undoCurvePoint() {
 		if (!ps) return;
+		ps.markEdit();
 		ps.curveControl.pop();
 		ps.saveCurve();
 	}
 	function clearCurve() {
 		if (!ps) return;
 		if (ps.curveControl.length && !confirm('Clear the panoramic curve?')) return;
+		ps.markEdit();
 		ps.curveControl.length = 0;
 		ps.saveCurve();
 	}
@@ -342,7 +348,7 @@
 	function deleteSelectedImplant() {
 		if (!ps?.selectedImplantId) return;
 		const im = ps.implants.find((i) => i.id === ps?.selectedImplantId);
-		if (im && confirm(`Remove implant ${im.tooth ? `at ${im.tooth}` : ''} (${im.article})?`)) {
+		if (im && confirm(`Remove implant ${im.tooth ? `at ${toothLabel(im.tooth, notation)}` : ''} (${im.article})?`)) {
 			ps.deleteImplant(im.id);
 		}
 	}
@@ -358,6 +364,7 @@
 	// ---------- implant fine controls ----------
 	function stepImplantDim(field: 'diameter' | 'length', dir: 1 | -1) {
 		if (!ps || !selectedImplant || ps.locked) return;
+		ps.markEdit();
 		const line = IMPLANT_LIBRARY.find(
 			(l) => l.manufacturer === selectedImplant?.manufacturer && l.line === selectedImplant?.line
 		);
@@ -373,6 +380,7 @@
 
 	function nudgeImplantDepth(deltaMM: number) {
 		if (!ps || !selectedImplant || ps.locked) return;
+		ps.markEdit();
 		selectedImplant.x += selectedImplant.ax * deltaMM;
 		selectedImplant.y += selectedImplant.ay * deltaMM;
 		selectedImplant.z += selectedImplant.az * deltaMM;
@@ -381,6 +389,7 @@
 
 	function parallelizeImplant() {
 		if (!ps || !selectedImplant || ps.locked) return;
+		ps.markEdit();
 		const other = ps.implants.find((i) => i.id !== selectedImplant?.id);
 		if (!other) return;
 		selectedImplant.ax = other.ax;
@@ -448,6 +457,13 @@
 			e.preventDefault();
 		} else if (e.key === 'Delete' && ps.selectedImplantId) {
 			deleteSelectedImplant();
+		} else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+			e.preventDefault();
+			if (e.shiftKey) ps.redo();
+			else ps.undo();
+		} else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+			e.preventDefault();
+			ps.redo();
 		} else if (e.key === 'Escape') {
 			ps.curveEditMode = false;
 			ps.nerveEditMode = false;
@@ -820,6 +836,14 @@
 	</nav>
 
 	<div class="spacer"></div>
+	{#if ps}
+		<button class="btn ghost" title="Undo (Ctrl+Z)" disabled={!ps.canUndo} onclick={() => ps?.undo()}>
+			↶
+		</button>
+		<button class="btn ghost" title="Redo (Ctrl+Shift+Z)" disabled={!ps.canRedo} onclick={() => ps?.redo()}>
+			↷
+		</button>
+	{/if}
 	<a
 		class="btn ghost"
 		href="/api/cases/{data.caseData.id}/export"
@@ -939,7 +963,7 @@
 					>
 						<span class="dot" style="background:{im.color}"></span>
 						<span class="tree-item-label"
-							>{im.tooth ? `${im.tooth} — ` : ''}⌀{im.diameter}×{im.length}</span
+							>{im.tooth ? `${toothLabel(im.tooth, notation)} — ` : ''}⌀{im.diameter}×{im.length}</span
 						>
 						<button
 							class="tree-eye"
@@ -1294,7 +1318,7 @@
 					{#if selectedImplant}
 						<div class="tool-sep"></div>
 						<span>
-							<strong>{selectedImplant.tooth ? `Tooth ${selectedImplant.tooth} — ` : ''}</strong>
+							<strong>{selectedImplant.tooth ? `Tooth ${toothLabel(selectedImplant.tooth, notation)} — ` : ''}</strong>
 							{selectedImplant.manufacturer} {selectedImplant.article}
 						</span>
 						<span class="stepper">
@@ -1353,7 +1377,7 @@
 						</button>
 						{#if selectedImplant}
 							<div class="tool-sep"></div>
-							<span><strong>{selectedImplant.tooth ? `Tooth ${selectedImplant.tooth}` : 'Implant'}</strong></span>
+							<span><strong>{selectedImplant.tooth ? `Tooth ${toothLabel(selectedImplant.tooth, notation)}` : 'Implant'}</strong></span>
 							<select
 								value={selectedImplant.sleeve?.system ?? ''}
 								onchange={(e) => {
@@ -1639,7 +1663,9 @@
 	<div class="dialog-title">{implantDialogMode === 'change' ? 'Change implant' : 'Add implant'}</div>
 	<div class="dialog-body">
 		<div>
-			<label for="im-tooth">Tooth position (FDI) — {data.plan.jaw}</label>
+			<label for="im-tooth">
+				Tooth position ({notation === 'universal' ? 'Universal' : 'FDI'}) — {data.plan.jaw}
+			</label>
 			<div class="fdi-grid">
 				{#each [FDI_UPPER, FDI_LOWER] as row, ri (ri)}
 					<div class="fdi-row" class:fdi-other-jaw={(ri === 0) !== (data.plan.jaw === 'maxilla')}>
@@ -1651,7 +1677,7 @@
 								class:fdi-placed={ps?.implants.some((i) => i.tooth === String(tooth))}
 								onclick={() => (newImplant.tooth = String(tooth))}
 							>
-								{tooth}
+								{toothLabel(tooth, notation)}
 							</button>
 						{/each}
 					</div>

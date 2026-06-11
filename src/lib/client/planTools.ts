@@ -235,6 +235,7 @@ export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 		const nerve = ps.nerves.find((n) => n.id === ps.activeNerveId);
 		if (!nerve) return false;
 		if (e.type === 'down') {
+			ps.markEdit();
 			// near an existing point → drag it, else append
 			let near = -1;
 			nerve.points.forEach((p, i) => {
@@ -285,16 +286,19 @@ export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 			const dApex = Math.hypot(a.u - e.u, a.zmm - e.zmm);
 			const isSelected = ps.selectedImplantId === im.id;
 			if (isSelected && dHead < 1.8) {
+				ps.markEdit();
 				panoDrag = { kind: 'implant-head', index: -1, implantId: im.id, lastU: e.u, lastZ: e.zmm };
 				return true;
 			}
 			if (isSelected && dApex < 1.8) {
+				ps.markEdit();
 				panoDrag = { kind: 'implant-apex', index: -1, implantId: im.id, lastU: e.u, lastZ: e.zmm };
 				return true;
 			}
 			// distance from point to implant body segment in pano space
 			const bodyDist = pointSegDist(e.u, e.zmm, h.u, h.zmm, a.u, a.zmm);
 			if (bodyDist < im.diameter / 2 + 1) {
+				ps.markEdit();
 				ps.selectedImplantId = im.id;
 				panoDrag = { kind: 'implant-body', index: -1, implantId: im.id, lastU: e.u, lastZ: e.zmm };
 				return true;
@@ -505,6 +509,7 @@ export function crossTool(ps: PlanningState, e: CrossToolEvent): boolean {
 		if (e.type === 'down') {
 			const p3 = crossTo3D(ps, e.w, e.zmm);
 			if (!p3) return false;
+			ps.markEdit();
 			nerve.points.push(p3);
 			ps.lastNervePoint = { nerveId: nerve.id, index: nerve.points.length - 1 };
 			ps.saveNerve(nerve.id);
@@ -522,14 +527,17 @@ export function crossTool(ps: PlanningState, e: CrossToolEvent): boolean {
 			const dApex = Math.hypot(a.w - e.w, a.zmm - e.zmm);
 			const isSelected = ps.selectedImplantId === im.id;
 			if (isSelected && dHead < 1.8) {
+				ps.markEdit();
 				crossDrag = { kind: 'implant-head', implantId: im.id, lastW: e.w, lastZ: e.zmm };
 				return true;
 			}
 			if (isSelected && dApex < 1.8) {
+				ps.markEdit();
 				crossDrag = { kind: 'implant-apex', implantId: im.id, lastW: e.w, lastZ: e.zmm };
 				return true;
 			}
 			if (pointSegDist(e.w, e.zmm, h.w, h.zmm, a.w, a.zmm) < im.diameter / 2 + 1) {
+				ps.markEdit();
 				ps.selectedImplantId = im.id;
 				crossDrag = { kind: 'implant-body', implantId: im.id, lastW: e.w, lastZ: e.zmm };
 				return true;

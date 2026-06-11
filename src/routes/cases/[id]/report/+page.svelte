@@ -5,9 +5,13 @@
 	import { PlanningState } from '$lib/client/planning.svelte';
 	import { drawPanoOverlay } from '$lib/client/planTools';
 	import ReportCross from '$lib/components/viewers/ReportCross.svelte';
-	import { drillLength, type SleeveSpec } from '$lib/implantLibrary';
+	import { drillLength, toothLabel, type Notation, type SleeveSpec } from '$lib/implantLibrary';
 
 	let { data } = $props();
+
+	let notation = $derived(
+		(data.settings.notation === 'universal' ? 'universal' : 'fdi') as Notation
+	);
 
 	let ps = $derived(
 		data.datasets[0]
@@ -106,7 +110,7 @@
 						{#each data.implants as im (im.id)}
 							{@const sleeve = parseSleeve(im.sleeve)}
 							<tr>
-								<td><strong>{im.tooth || '—'}</strong></td>
+								<td><strong>{im.tooth ? toothLabel(im.tooth, notation) : '—'}</strong></td>
 								<td>{im.manufacturer} {im.line}</td>
 								<td>⌀{im.diameter.toFixed(1)} × {im.length.toFixed(1)} mm</td>
 								<td>{sleeve?.system ?? 'none'}</td>
@@ -165,7 +169,8 @@
 						<figure class="cross-fig">
 							<ReportCross state={ps} implant={im} />
 							<figcaption>
-								<strong>{im.tooth ? `Tooth ${im.tooth}` : 'Implant'}</strong> — {im.manufacturer}
+								<strong>{im.tooth ? `Tooth ${toothLabel(im.tooth, notation)}` : 'Implant'}</strong> —
+								{im.manufacturer}
 								{im.article}
 							</figcaption>
 						</figure>

@@ -197,7 +197,8 @@ export const SETTING_DEFAULTS: Record<string, string> = {
 	practitioner: '',
 	practice_address: '',
 	nerve_safety_mm: '2.0',
-	implant_safety_mm: '3.0'
+	implant_safety_mm: '3.0',
+	notation: 'fdi'
 };
 
 export function getSettings(): Record<string, string> {

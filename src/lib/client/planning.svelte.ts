@@ -85,7 +85,7 @@ export interface MeasurementData {
 
 export interface SafetyWarning {
 	implantId: number;
-	kind: 'nerve' | 'implant';
+	kind: 'nerve' | 'implant' | 'sleeve';
 	otherId: number;
 	distance: number;
 	limit: number;
@@ -98,6 +98,18 @@ function implantSegment(im: ImplantData): { head: Vec3; apex: Vec3 } {
 	const head = { x: im.x, y: im.y, z: im.z };
 	const apex = add(head, scale({ x: im.ax, y: im.ay, z: im.az }, im.length));
 	return { head, apex };
+}
+
+/** sleeve as a segment (bottom → top, above the implant head) */
+function sleeveSegment(im: ImplantData): { a: Vec3; b: Vec3; radius: number } | null {
+	if (!im.sleeve) return null;
+	const s = im.sleeve;
+	const axis = { x: im.ax, y: im.ay, z: im.az };
+	return {
+		a: add({ x: im.x, y: im.y, z: im.z }, scale(axis, -s.offset)),
+		b: add({ x: im.x, y: im.y, z: im.z }, scale(axis, -(s.offset + s.height))),
+		radius: s.diameter / 2
+	};
 }
 
 /** Shared reactive state for one planning session (one dataset + one plan). */
@@ -160,6 +172,15 @@ export class PlanningState {
 					other.diameter / 2;
 				if (d < this.implantSafety) {
 					out.push({ implantId: im.id, kind: 'implant', otherId: other.id, distance: d, limit: this.implantSafety });
+				}
+				// sleeve↔sleeve collision (hard limit 0 mm)
+				const s1 = sleeveSegment(im);
+				const s2 = sleeveSegment(other);
+				if (s1 && s2) {
+					const ds = segPolylineDistance(s1.a, s1.b, [s2.a, s2.b]) - s1.radius - s2.radius;
+					if (ds < 0) {
+						out.push({ implantId: im.id, kind: 'sleeve', otherId: other.id, distance: ds, limit: 0 });
+					}
 				}
 			}
 		}
@@ -315,6 +336,91 @@ export class PlanningState {
 			}
 		}
 		return { u: c.cumLen[bi], zmm: p.z };
+	}
+
+	// ---------- undo/redo (position & shape edits on existing objects) ----------
+	private undoStack: string[] = [];
+	private redoStack: string[] = [];
+	private undoTimer: ReturnType<typeof setTimeout> | undefined;
+	canUndo = $state(false);
+	canRedo = $state(false);
+
+	private editSnapshot(): string {
+		return JSON.stringify({
+			curve: this.curveControl,
+			curveZ: this.curveZ,
+			nerves: this.nerves.map((n) => ({ id: n.id, points: n.points, diameter: n.diameter })),
+			implants: this.implants.map((im) => ({
+				id: im.id,
+				x: im.x,
+				y: im.y,
+				z: im.z,
+				ax: im.ax,
+				ay: im.ay,
+				az: im.az,
+				diameter: im.diameter,
+				length: im.length,
+				sleeve: im.sleeve
+			}))
+		});
+	}
+
+	/** call before mutating — debounced so a drag becomes one undo step */
+	markEdit() {
+		if (this.undoTimer) return; // already captured for this burst
+		const snap = this.editSnapshot();
+		if (this.undoStack[this.undoStack.length - 1] !== snap) {
+			this.undoStack.push(snap);
+			if (this.undoStack.length > 50) this.undoStack.shift();
+			this.redoStack.length = 0;
+			this.canUndo = true;
+			this.canRedo = false;
+		}
+		this.undoTimer = setTimeout(() => (this.undoTimer = undefined), 600);
+	}
+
+	private applySnapshot(json: string) {
+		try {
+			const s = JSON.parse(json);
+			this.curveControl = s.curve ?? [];
+			this.curveZ = s.curveZ ?? this.curveZ;
+			this.saveCurve();
+			for (const sn of s.nerves ?? []) {
+				const n = this.nerves.find((n) => n.id === sn.id);
+				if (n) {
+					n.points = sn.points;
+					n.diameter = sn.diameter;
+					this.saveNerve(n.id);
+				}
+			}
+			for (const si of s.implants ?? []) {
+				const im = this.implants.find((i) => i.id === si.id);
+				if (im) {
+					Object.assign(im, si);
+					this.saveImplant(im.id);
+				}
+			}
+		} catch {
+			// corrupt snapshot — ignore
+		}
+	}
+
+	undo() {
+		if (this.locked || this.undoStack.length === 0) return;
+		clearTimeout(this.undoTimer);
+		this.undoTimer = undefined;
+		this.redoStack.push(this.editSnapshot());
+		this.applySnapshot(this.undoStack.pop()!);
+		this.canUndo = this.undoStack.length > 0;
+		this.canRedo = true;
+	}
+
+	redo() {
+		if (this.locked || this.redoStack.length === 0) return;
+		this.undoStack.push(this.editSnapshot());
+		this.applySnapshot(this.redoStack.pop()!);
+		this.canUndo = true;
+		this.canRedo = this.redoStack.length > 0;
 	}
 
 	// ---------- persistence ----------

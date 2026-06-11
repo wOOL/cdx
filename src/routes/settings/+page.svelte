@@ -38,6 +38,19 @@
 			</div>
 		</div>
 
+		<div class="panel-header">Planning</div>
+		<div class="settings-body">
+			<div class="field-row">
+				<div>
+					<label for="s-notation">Dental notation</label>
+					<select id="s-notation" name="notation" value={data.settings.notation} style="width:100%">
+						<option value="fdi">FDI (two-digit, e.g. 36)</option>
+						<option value="universal">Universal (US, 1–32)</option>
+					</select>
+				</div>
+			</div>
+		</div>
+
 		<div class="panel-header">Safety distances</div>
 		<div class="settings-body">
 			<p class="muted">Minimum clearances before a warning is raised during implant planning.</p>
