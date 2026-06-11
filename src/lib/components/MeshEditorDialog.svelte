@@ -3,8 +3,9 @@
 	 * Mesh Editor window (desktop coDiagnostiX "Mesh Editor", see
 	 * cod_guide/video "cdx-expert-how-to-mesh-editor"): a full-screen modal
 	 * with the model centered in a 3D view, a left rail of functions meant to
-	 * be worked top-down (Part detection → Close holes → Bridge → Remesh →
-	 * Reduce → Invert → Wax knife → Eraser → Margin cut → Combine), and a
+	 * be worked top-down (Part detection → Close holes → Boundary
+	 * optimization → Bridge → Remesh → Reduce → Invert → Wax knife → Eraser →
+	 * Margin cut → Combine), and a
 	 * bottom bar with Undo/Redo, live point/triangle counts and
 	 * Save as copy / Apply / Cancel.
 	 *
@@ -44,6 +45,7 @@
 			| 'smooth'
 			| 'remesh'
 			| 'fillHoles'
+			| 'boundarySmooth'
 			| 'bridge'
 			| 'parts'
 			| 'reduce'
@@ -62,6 +64,8 @@
 		hole?: number;
 		exceptLargest?: boolean;
 		maxEdges?: number;
+		iterations?: number;
+		loop?: number;
 		targetPercent?: number;
 		deep?: boolean;
 		axis?: Vec3;
@@ -85,6 +89,7 @@
 	type Tool =
 		| 'parts'
 		| 'holes'
+		| 'boundary'
 		| 'bridge'
 		| 'remesh'
 		| 'reduce'
@@ -97,6 +102,7 @@
 	const TOOLS: { key: Tool; label: string; hint: string }[] = [
 		{ key: 'parts', label: 'Part detection', hint: 'Detect all connected parts, then delete loose debris.' },
 		{ key: 'holes', label: 'Close holes', hint: 'Close all holes, keep the largest opening, or close a selected hole.' },
+		{ key: 'boundary', label: 'Boundary optimization', hint: 'Smooths ragged open borders (scan rims) without touching interior geometry.' },
 		{ key: 'bridge', label: 'Bridge boundaries', hint: 'Click the mesh near two open boundaries, then bridge them with a strip.' },
 		{ key: 'remesh', label: 'Remesh', hint: 'Split long triangles around a picked point (or the whole mesh) and relax them.' },
 		{ key: 'reduce', label: 'Reduce', hint: 'Decimate the mesh to a target percentage of its triangles (vertex clustering).' },
@@ -133,6 +139,9 @@
 	let holesList = $state<HoleInfo[] | null>(null);
 	let openEdges = $state(0);
 	let selectedHole = $state(-1);
+	// boundary optimization (shares the boundary-loop list with Close holes)
+	let boundaryIterations = $state(3);
+	let boundaryLoop = $state(-1); // -1 = all boundaries
 	// bridge
 	let bridgeA = $state<Vec3 | null>(null);
 	let bridgeB = $state<Vec3 | null>(null);
@@ -204,6 +213,9 @@
 		if (tool === 'holes' && selectedHole >= 0 && holesList?.[selectedHole]) {
 			out.push({ points: holesList[selectedHole].loop, color: '#f06a5a', line: true, closed: true, size: 0 });
 		}
+		if (tool === 'boundary' && boundaryLoop >= 0 && holesList?.[boundaryLoop]) {
+			out.push({ points: holesList[boundaryLoop].loop, color: '#f06a5a', line: true, closed: true, size: 0 });
+		}
 		return out;
 	});
 
@@ -267,6 +279,7 @@
 		partHighlight = null;
 		selectedPart = -1;
 		selectedHole = -1;
+		boundaryLoop = -1; // loop indices shift after an edit
 		if (partsList) await fetchParts();
 		if (holesList) await fetchHoles();
 	}
@@ -337,7 +350,7 @@
 	function openTool(t: Tool): void {
 		tool = t;
 		if (t === 'parts' && !partsList) void fetchParts();
-		if (t === 'holes' && !holesList) void fetchHoles();
+		if ((t === 'holes' || t === 'boundary') && !holesList) void fetchHoles();
 	}
 
 	// ------------------------------------------------------------- tool actions
@@ -379,6 +392,15 @@
 			op.part = selectedPart;
 		}
 		await pushOp(op, 'Part detection');
+	}
+
+	async function boundaryApply(): Promise<void> {
+		const op: EditOp = {
+			op: 'boundarySmooth',
+			iterations: Math.min(10, Math.max(1, Math.round(boundaryIterations) || 3))
+		};
+		if (boundaryLoop >= 0) op.loop = boundaryLoop;
+		await pushOp(op, 'Boundary optimization');
 	}
 
 	async function bridgeApply(): Promise<void> {
@@ -577,6 +599,35 @@
 											onclick={() => pushOp({ op: 'fillHoles', hole: selectedHole }, 'Close hole')}
 										>
 											Close selected hole
+										</button>
+									{/if}
+								{/if}
+							{:else if t.key === 'boundary'}
+								<button class="btn small" disabled={!!busy} onclick={fetchHoles}>Detect boundaries</button>
+								{#if holesList}
+									<div class="me-note">{holesList.length} open boundary loop(s)</div>
+									{#if holesList.length > 0}
+										<div class="me-list">
+											<button class="me-item" class:sel={boundaryLoop === -1} onclick={() => (boundaryLoop = -1)}>
+												All boundaries
+											</button>
+											{#each holesList as h (h.index)}
+												<button
+													class="me-item"
+													class:sel={boundaryLoop === h.index}
+													onclick={() => (boundaryLoop = boundaryLoop === h.index ? -1 : h.index)}
+													onmouseenter={() => (boundaryLoop = h.index)}
+												>
+													Boundary {h.index + 1} — {h.edges} edges · {h.lengthMm} mm
+												</button>
+											{/each}
+										</div>
+										<label class="me-field">
+											Iterations
+											<input type="number" min="1" max="10" step="1" bind:value={boundaryIterations} />
+										</label>
+										<button class="btn small" disabled={!!busy} onclick={boundaryApply}>
+											Smooth {boundaryLoop >= 0 ? `boundary ${boundaryLoop + 1}` : 'all boundaries'}
 										</button>
 									{/if}
 								{/if}
@@ -873,6 +924,9 @@
 	.me-field input[type='range'] {
 		flex: 1;
 		min-width: 60px;
+	}
+	.me-field input[type='number'] {
+		width: 60px;
 	}
 	.me-check {
 		display: flex;

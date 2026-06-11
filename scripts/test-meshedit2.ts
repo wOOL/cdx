@@ -10,6 +10,8 @@
  *         the op-list replay contract: preview never writes, apply writes +
  *         keeps a one-time .orig, saveAsCopy creates a new model row, and
  *         the inspection GET.
+ * Part 3: boundary optimization (boundarySmooth) — rim-only constrained
+ *         Laplacian on noisy open borders, loop targeting, determinism.
  */
 import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -362,6 +364,73 @@ try {
 } finally {
 	db.close();
 	rmSync(DATA_DIR, { recursive: true, force: true });
+}
+
+/* ================= Part 3: boundary optimization (boundarySmooth) ================= */
+
+/** Open box whose top rim zig-zags: alternate rim vertices displaced ±1 mm in z. */
+function zigzagOpenBox(o: V3, s: number, sub: number): Float32Array {
+	const zTop = o[2] + s;
+	const step = s / sub; // rim vertices sit on a step grid; (x+y)/step alternates parity along the loop
+	const tris = cubeTris(o, s, sub, true).map((t) =>
+		t.map(([x, y, z]): V3 => (z === zTop ? [x, y, z + (((x + y) / step) % 2 === 0 ? 1 : -1)] : [x, y, z]))
+	);
+	return soup(tris);
+}
+
+/** Σ per-vertex distance from the midpoint of its two loop neighbors (rim raggedness). */
+function rimDeviation(positions: Float32Array, holeIndex: number): number {
+	const loop = listHoles(positions).holes[holeIndex]?.loop ?? [];
+	const n = loop.length;
+	let sum = 0;
+	for (let i = 0; i < n; i++) {
+		const p = loop[i];
+		const a = loop[(i - 1 + n) % n];
+		const b = loop[(i + 1) % n];
+		sum += Math.hypot(p.x - (a.x + b.x) / 2, p.y - (a.y + b.y) / 2, p.z - (a.z + b.z) / 2);
+	}
+	return sum;
+}
+
+{
+	// 16-vertex noisy rim (rim verts at z = 7 or 9; everything else at z ≤ 6)
+	const noisy = zigzagOpenBox([0, 0, 0], 8, 4);
+	const before = rimDeviation(noisy, 0);
+	const res = applyMeshEdit(noisy, { op: 'boundarySmooth', iterations: 3 });
+	const after = rimDeviation(res.positions, 0);
+	check('boundarySmooth(3) shrinks rim deviation by >60%', before > 0 && after < 0.4 * before, `${before.toFixed(3)} → ${after.toFixed(3)} mm`);
+	check('boundarySmooth reports loops touched + vertices moved', res.report.loops === 1 && res.report.vertices === 16 && res.report.iterations === 3, JSON.stringify(res.report));
+	let interiorOk = res.positions.length === noisy.length;
+	for (let i = 0; interiorOk && i + 2 < noisy.length; i += 3) {
+		if (noisy[i + 2] <= 6 && (res.positions[i] !== noisy[i] || res.positions[i + 1] !== noisy[i + 1] || res.positions[i + 2] !== noisy[i + 2])) {
+			interiorOk = false;
+		}
+	}
+	check('boundarySmooth leaves interior vertices byte-identical', interiorOk);
+
+	// loop targeting: two noisy open boxes → 16-edge rim (loop 0) and 8-edge rim (loop 1)
+	const two = Float32Array.from([...zigzagOpenBox([0, 0, 0], 8, 4), ...zigzagOpenBox([20, 0, 0], 4, 2)]);
+	const dev1 = rimDeviation(two, 1);
+	const sel = applyMeshEdit(two, { op: 'boundarySmooth', iterations: 3, loop: 1 });
+	check('boundarySmooth loop=1 smooths the chosen rim', rimDeviation(sel.positions, 1) < 0.4 * dev1, `${dev1.toFixed(3)} → ${rimDeviation(sel.positions, 1).toFixed(3)} mm`);
+	let otherOk = sel.positions.length === two.length;
+	for (let i = 0; otherOk && i + 2 < two.length; i += 3) {
+		// the first box lives at x ≤ 8 — none of its vertices may move
+		if (two[i] <= 10 && (sel.positions[i] !== two[i] || sel.positions[i + 1] !== two[i + 1] || sel.positions[i + 2] !== two[i + 2])) {
+			otherOk = false;
+		}
+	}
+	check('boundarySmooth loop targeting leaves the other loop byte-identical', otherOk);
+
+	// replay determinism
+	const ops: MeshEditOp[] = [{ op: 'boundarySmooth', iterations: 3 }];
+	const r1 = applyMeshEditOps(noisy, ops);
+	const r2 = applyMeshEditOps(noisy, ops);
+	check(
+		'boundarySmooth replay is deterministic (byte-identical output)',
+		r1.positions.length === r2.positions.length && r1.positions.every((v, i) => v === r2.positions[i]),
+		`${r1.positions.length} vs ${r2.positions.length}`
+	);
 }
 
 if (failures > 0) {

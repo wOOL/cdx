@@ -24,6 +24,7 @@ const OP_NAMES = new Set([
 	'smooth',
 	'remesh',
 	'fillHoles',
+	'boundarySmooth',
 	'bridge',
 	'parts',
 	'reduce',
@@ -91,6 +92,19 @@ function validateOps(raw: unknown): MeshEditOp[] {
 				}
 				if (o.exceptLargest != null) op.exceptLargest = Boolean(o.exceptLargest);
 				if (o.maxEdges != null) op.maxEdges = posNum(o.maxEdges, `${at}: maxEdges`);
+				break;
+			}
+			case 'boundarySmooth': {
+				if (o.iterations != null) {
+					const it = Number(o.iterations);
+					if (!Number.isInteger(it) || it < 1 || it > 10) error(400, `${at}: iterations must be 1–10`);
+					op.iterations = it;
+				}
+				if (o.loop != null) {
+					const l = Number(o.loop);
+					if (!Number.isInteger(l) || l < 0) error(400, `${at}: loop must be an index ≥ 0`);
+					op.loop = l;
+				}
 				break;
 			}
 			case 'bridge': {

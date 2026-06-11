@@ -30,6 +30,13 @@
  *               counted. `exceptLargest` keeps the biggest opening (by edge
  *               count) untouched; `hole` closes exactly one loop addressed
  *               by its index in the listHoles() ordering (largest first).
+ *   boundarySmooth — constrained Laplacian over the open boundary rims only:
+ *               each boundary-loop vertex moves toward the midpoint of its
+ *               two NEIGHBORING loop vertices (1D curve smoothing, λ = 0.5,
+ *               default 3 iterations) — never toward interior vertices,
+ *               which would shrink the rim inward. Interior geometry is
+ *               untouched. `loop` smooths a single loop addressed by its
+ *               listHoles() index (largest first); absent ⇒ all loops.
  *   bridge    — connects the two boundary loops nearest to points `a` and
  *               `b` with a triangle strip: loops are aligned at their
  *               closest vertex pair, the walk direction of the second loop
@@ -88,6 +95,7 @@ export type MeshEditOpName =
 	| 'smooth'
 	| 'remesh'
 	| 'fillHoles'
+	| 'boundarySmooth'
 	| 'bridge'
 	| 'parts'
 	| 'reduce'
@@ -114,6 +122,9 @@ export interface MeshEditOp {
 	hole?: number;
 	exceptLargest?: boolean;
 	maxEdges?: number;
+	/** boundarySmooth (iterations 1–10, default 3; loop = listHoles index, absent ⇒ all) */
+	iterations?: number;
+	loop?: number;
 	/** reduce */
 	targetPercent?: number;
 	/** erase */
@@ -595,6 +606,54 @@ function opFillHoles(positions: Float32Array, opts: FillOptions = {}): MeshEditR
 	return {
 		positions: toSoup(w),
 		report: { op: 'fillHoles', holesFilled, holesSkipped, openEdgesBefore: openEdges }
+	};
+}
+
+/**
+ * Boundary optimization: constrained Laplacian over boundary-loop vertices
+ * only. Each rim vertex moves toward the midpoint of its two loop neighbors
+ * (1D curve smoothing along the rim — averaging interior neighbors instead
+ * would pull the rim inward). Interior vertices are untouched.
+ */
+function opBoundarySmooth(
+	positions: Float32Array,
+	iterations: number,
+	loop?: number
+): MeshEditResult {
+	const w = weld(positions);
+	const { loops } = sortedLoops(w);
+	let selected = loops;
+	if (loop != null) {
+		if (!loops[loop]) throw new Error(`Boundary ${loop} not found (${loops.length} open loops)`);
+		selected = [loops[loop]];
+	}
+	const moved = new Set<number>();
+	for (const l of selected) {
+		const n = l.length;
+		for (let it = 0; it < iterations; it++) {
+			// simultaneous update from a per-iteration snapshot of the loop
+			const snap = new Float64Array(n * 3);
+			for (let i = 0; i < n; i++) {
+				snap[i * 3] = w.verts[l[i] * 3];
+				snap[i * 3 + 1] = w.verts[l[i] * 3 + 1];
+				snap[i * 3 + 2] = w.verts[l[i] * 3 + 2];
+			}
+			for (let i = 0; i < n; i++) {
+				const a = ((i - 1 + n) % n) * 3;
+				const b = ((i + 1) % n) * 3;
+				const o = l[i] * 3;
+				w.verts[o] += SMOOTH_LAMBDA * ((snap[a] + snap[b]) / 2 - snap[i * 3]);
+				w.verts[o + 1] += SMOOTH_LAMBDA * ((snap[a + 1] + snap[b + 1]) / 2 - snap[i * 3 + 1]);
+				w.verts[o + 2] += SMOOTH_LAMBDA * ((snap[a + 2] + snap[b + 2]) / 2 - snap[i * 3 + 2]);
+				moved.add(l[i]);
+			}
+		}
+	}
+	// a rim vertex may have landed on a neighbor — re-weld so the collapsed
+	// (degenerate) triangles are dropped on output like in the other ops
+	return {
+		positions: toSoup(weld(toSoup(w))),
+		report: { op: 'boundarySmooth', loops: selected.length, vertices: moved.size, iterations }
 	};
 }
 
@@ -1245,6 +1304,10 @@ export function applyMeshEdit(
 				exceptLargest: op.exceptLargest,
 				hole: op.hole
 			});
+		case 'boundarySmooth': {
+			const it = Number.isFinite(op.iterations) ? Math.round(op.iterations!) : 3;
+			return opBoundarySmooth(positions, Math.min(10, Math.max(1, it)), op.loop);
+		}
 		case 'bridge':
 			if (!op.a || !op.b) throw new Error('bridge requires points a and b');
 			return opBridge(positions, op.a, op.b);

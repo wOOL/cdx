@@ -10,7 +10,9 @@ from the tables below — direct 3D drag/wheel manipulation of support circles a
 the guide label (hover-highlight, drag along the surface, wheel resize, red centre
 dot), rotation-marker engraving on sleeve mounts (radial slot oriented by the
 abutment rotation azimuth), and PLY vertex-color rendering (colored scans now
-display their own colors in 3D). 13 items remain.
+display their own colors in 3D). A second follow-up closed three more: F2
+rename of the selected model, Boundary optimization in the Mesh Editor, and
+volumetric flood fill seeded by clicking the 3D reconstruction. 11 items remain.
 
 ## Interaction style (equivalent exists, different input gesture)
 
@@ -22,8 +24,7 @@ display their own colors in 3D). 13 items remain.
 | 3D head-icon orientation indicator + live angle readout while rotating | text direction indicator (Anterior/Left/…); pending PCS angles shown in toolbar | low |
 | View-layout preset dropdown (nerve stage) | all constituent views shown at once; cross/tangential toggle per pane | low |
 | HU readout pinned to nerve points | hover-HU readout in slice views + density measurement tool | low |
-| Flood-fill segment from a 3D-view click (expert segment) | threshold init + slice flood fill/boundary/area tools | low |
-| F2 rename / per-model comment shortcut (mesh-editor) | inline rename in the object tree; plan-level notes | low |
+| Per-model comment field (Ctrl+Shift+C) | plan-level notes; model rename (inline or F2) | low |
 | Cancel inside long mesh operations | ops are short synchronous calls with busy indicator; jobs that are actually long (AI segmentation) are async with status chip | low |
 
 ## Catalog / content deltas (deliberate)
@@ -32,7 +33,6 @@ display their own colors in 3D). 13 items remain.
 |---|---|---|
 | Branded third-party sleeve entries (Camlog/Nobel/…) | open sleeve library + custom sleeve-system editor (/sleeves) instead of licensed vendor catalogs | low |
 | CARES proprietary VPE format | STL export only; the proprietary option is shown disabled with a note | low |
-| Partial mesh repair / boundary optimization (mesh editor) | whole-mesh Repair + local smooth + bridge cover the demonstrated outcomes | low |
 | Maxilla/Mandible prompt when providing data to the AI | per-plan jaw setting; the vendor model segments both jaws regardless | low |
 
 ## Closed during this pass (for the record)

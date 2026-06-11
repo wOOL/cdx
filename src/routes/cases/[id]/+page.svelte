@@ -823,6 +823,19 @@
 			e.preventDefault();
 		} else if (e.key === 'Delete' && ps.selectedImplantId) {
 			deleteSelectedImplant();
+		} else if (e.key === 'F2') {
+			// rename the selected model (tree expansion first, then the match-scan pick)
+			const m =
+				ps.models.find((x) => x.id === expandedModelId) ??
+				ps.models.find((x) => x.id === matching.modelId);
+			if (m) {
+				e.preventDefault();
+				const name = prompt('Model name:', m.name);
+				if (name) {
+					m.name = name;
+					ps.saveModel(m.id);
+				}
+			}
 		} else if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
 			e.preventDefault();
 			zoomSig = { seq: zoomSig.seq + 1, f: 1.2 };
@@ -901,6 +914,7 @@
 		['PgUp / PgDn', '±5 axial slices'],
 		['1 … 7', 'Switch workflow stage'],
 		['Delete', 'Remove the selected implant'],
+		['F2', 'Rename the selected model'],
 		['Esc', 'Cancel tool / deselect / restore view'],
 		['Ctrl+Z / Ctrl+Shift+Z', 'Undo / redo plan edit'],
 		['Mouse wheel', 'Scroll slices (views) / cross-section position (pano)'],
@@ -2247,6 +2261,46 @@
 				body: JSON.stringify({ threshold: segEdit.rangeLo })
 			});
 			invalidateMaskSlice(ps.ds.id);
+			maskTick++;
+			refreshSegStats();
+		} finally {
+			segEdit.busy = '';
+		}
+	}
+
+	/**
+	 * 3D-view flood fill (the original's "click on the flood fill tool, move to
+	 * your 3D area, click there"): with the segmentation editor's Fill tool
+	 * active, a click on the volume render seeds a volumetric 6-connected fill.
+	 */
+	async function onVolumeFillClick(p: { x: number; y: number; z: number }) {
+		if (!ps || !segEdit.active || segEdit.tool !== 'fill' || segEdit.busy) return;
+		const dsId = ps.ds.id;
+		segEdit.busy = 'Filling volume…';
+		try {
+			const res = await fetch(`/api/datasets/${dsId}/mask/fill`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					index: Math.max(0, Math.min(ps.ds.slices - 1, Math.round(p.z / ps.ds.spacing_z))),
+					x: Math.round(p.x / ps.ds.spacing_x),
+					y: Math.round(p.y / ps.ds.spacing_y),
+					lo: segEdit.rangeLo,
+					mode: segEdit.mode,
+					volume: true
+				})
+			});
+			const b = await res.json().catch(() => null);
+			if (!res.ok) {
+				alert(b?.message ?? 'Volumetric fill failed');
+				return;
+			}
+			if (b?.capped) {
+				alert(
+					'The volumetric fill hit its safety cap — the seeded region is very large. Raise the lower HU bound and try again.'
+				);
+			}
+			invalidateMaskSlice(dsId);
 			maskTick++;
 			refreshSegStats();
 		} finally {
@@ -4378,7 +4432,13 @@
 			{#if stage === 'align'}
 				<div class="view-grid grid-2x2">
 					<div class="view panel" class:cell-max={maximized === 'a3d'} class:cell-hidden={maximized && maximized !== 'a3d'}>
-						<VolumeView state={ps} bind:this={alignVolView} onMeshClick={onScanMeshClick} forceClipAxial={pcsCut} />
+						<VolumeView
+						state={ps}
+						bind:this={alignVolView}
+						onMeshClick={onScanMeshClick}
+						onVolumeClick={onVolumeFillClick}
+						forceClipAxial={pcsCut}
+					/>
 						{@render maxBtn('a3d')}
 					</div>
 					<div class="view panel" class:cell-max={maximized === 'aax'} class:cell-hidden={maximized && maximized !== 'aax'}>

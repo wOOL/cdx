@@ -59,7 +59,9 @@ segmentation models (§6.4).
 
 Three of the originally sixteen items were closed in a same-day follow-up:
 3D drag/wheel manipulation of support circles and the guide label, rotation-marker
-engraving on sleeve mounts, and PLY vertex-color rendering (§6.4, §6.6).
+engraving on sleeve mounts, and PLY vertex-color rendering (§6.4, §6.6); a second
+follow-up closed F2 rename, Boundary optimization (§6.8) and 3D-seeded volumetric
+flood fill (§6.x segmentation).
 
 Verified residuals after the stage-2 video audit (docs/video-coverage/GAPS-VIDEO.md) — each
 has a working equivalent; none blocks a user following a video. All rated low severity.
@@ -72,10 +74,8 @@ has a working equivalent; none blocks a user following a video. All rated low se
 | 3D head-icon orientation indicator + live angle readout while rotating | open — interaction style | text direction labels (Anterior/Left/…); pending PCS angles shown in the toolbar (§6.1) |
 | View-layout preset dropdown (nerve stage) | open — interaction style | all constituent views shown at once; cross/tangential toggle per pane (§6.3) |
 | HU readout pinned to nerve points | open — interaction style | hover-HU readout in slice views + density measurement tool (§7.3) |
-| Flood-fill segment from a 3D-view click | open — interaction style | threshold init + slice flood-fill/boundary/area tools (§6.4) |
-| F2 rename / per-model comment shortcut | open — interaction style | inline rename in the object tree; plan-level notes |
+| Per-model comment field (Ctrl+Shift+C) | open — interaction style | plan-level notes cover the use case; model rename exists inline and via F2 |
 | Cancel inside long mesh operations | open — interaction style | mesh ops are short synchronous calls with a busy indicator; genuinely long jobs (AI segmentation) are async with the status chip (§6.4, §6.8) |
 | Branded third-party sleeve entries (Camlog/Nobel/…) | open — catalog content | open sleeve library + custom sleeve-system editor (`/sleeves`) instead of licensed vendor catalogs |
 | CARES proprietary VPE format | open — catalog content | STL export only; the proprietary option is shown disabled with a note (§6.9) |
-| Partial mesh repair / boundary optimization | open — catalog content | whole-mesh Repair + local smooth + bridge cover the demonstrated outcomes (§6.4, §6.8) |
 | Maxilla/Mandible prompt when providing data to the AI | open — by design | per-plan jaw setting; the vendor model segments both jaws regardless (§6.4) |

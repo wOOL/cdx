@@ -421,6 +421,85 @@ export function floodFill2D(
 	return filled;
 }
 
+const FILL3D_VISIT_CAP = 8_000_000;
+
+/**
+ * Volumetric flood fill (3D-view seeded, like the original's "click in the 3D
+ * area"): 6-connected BFS from the seed voxel through [lo, hi] HU, honoring
+ * the per-slice constraints (boundary polylines / slot roles) of every slice
+ * it enters. Does NOT write the mask — returns the voxel indices to set so
+ * the caller can snapshot the touched slices for undo first. Capped at
+ * FILL3D_VISIT_CAP voxels (a full-arch bone fill stays well below it).
+ */
+export async function floodFill3D(
+	vol: Int16Array,
+	ds: Dataset,
+	seedX: number,
+	seedY: number,
+	seedZ: number,
+	lo: number,
+	hi: number,
+	value: 0 | 1,
+	constraintFor: (k: number) => Promise<SliceConstraint | null>
+): Promise<{ voxels: number[]; capped: boolean }> {
+	const C = ds.cols;
+	const R = ds.rows;
+	const S = ds.slices;
+	const CR = C * R;
+	const sx = Math.floor(seedX);
+	const sy = Math.floor(seedY);
+	const sz = Math.floor(seedZ);
+	if (sx < 0 || sx >= C || sy < 0 || sy >= R || sz < 0 || sz >= S) {
+		return { voxels: [], capped: false };
+	}
+
+	const constraints = new Map<number, SliceConstraint | null>();
+	const constraintOf = async (k: number): Promise<SliceConstraint | null> => {
+		if (!constraints.has(k)) constraints.set(k, await constraintFor(k));
+		return constraints.get(k) ?? null;
+	};
+
+	const enterable = async (p: number): Promise<boolean> => {
+		const v = vol[p];
+		if (v < lo || v > hi) return false;
+		const k = (p / CR) | 0;
+		return allowedAt(await constraintOf(k), p - k * CR, value);
+	};
+
+	const seed = sz * CR + sy * C + sx;
+	if (!(await enterable(seed))) return { voxels: [], capped: false };
+
+	const visited = new Uint8Array(C * R * S);
+	const queue: number[] = [seed];
+	visited[seed] = 1;
+	let head = 0;
+	let capped = false;
+
+	while (head < queue.length) {
+		const p = queue[head++];
+		if (queue.length >= FILL3D_VISIT_CAP) {
+			capped = true;
+			break;
+		}
+		const x = p % C;
+		const y = ((p % CR) / C) | 0;
+		const neighbors = [
+			x > 0 ? p - 1 : -1,
+			x < C - 1 ? p + 1 : -1,
+			y > 0 ? p - C : -1,
+			y < R - 1 ? p + C : -1,
+			p >= CR ? p - CR : -1,
+			p < CR * (S - 1) ? p + CR : -1
+		];
+		for (const q of neighbors) {
+			if (q < 0 || visited[q]) continue;
+			visited[q] = 1;
+			if (await enterable(q)) queue.push(q);
+		}
+	}
+	return { voxels: queue, capped };
+}
+
 // ---------------------------------------------------------------------------
 // Slice propagation (automatic segmentation)
 // ---------------------------------------------------------------------------

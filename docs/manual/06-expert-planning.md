@@ -210,10 +210,14 @@ The Align stage also builds 3D anatomy objects from the volume:
 - **Create bone model** — thresholds the bone at the shown HU and surfaces it (the base for
   bone-supported and bone-reduction guides).
 - **Edit segmentation** — the manual mask editor: brush/fill, boundary polylines, slice
-  propagation, undo/redo, volume readout (chapter 7.3 for the auxiliary tools). **Build 3D
-  model** turns the mask into a model and asks for a **segment name** — type your own or
-  use one of the presets (*Mandible, Maxilla, Teeth, Radiographic markers, Bone*), so the
-  object tree stays readable in multi-segment cases.
+  propagation, undo/redo, volume readout (chapter 7.3 for the auxiliary tools). With the
+  **Fill** tool active, clicking directly on the **3D reconstruction** seeds a *volumetric*
+  flood fill: the segment grows through the connected HU range across all slices in one
+  click (the classic "spill some paint onto the maxilla" gesture); boundary polylines and
+  the HU bounds limit the spread, and a safety cap warns when the seeded region is
+  implausibly large. **Build 3D model** turns the mask into a model and asks for a
+  **segment name** — type your own or use one of the presets (*Mandible, Maxilla, Teeth,
+  Radiographic markers, Bone*), so the object tree stays readable in multi-segment cases.
 - **AI segmentation** — automatic multi-structure segmentation. One click sends the volume to
   the segmentation model and returns labelled 3D objects; a review dialog lists them for
   selective import:
@@ -531,6 +535,7 @@ a position are driven by clicking the mesh directly.
 |----------|--------------|
 | **Part detection** | *Detect all parts* lists every connected part with its triangle/point count; selecting an entry highlights it in 3D. *Delete selected part*, *Delete all but the selected part* or *Delete all but largest part* remove loose debris in one action. |
 | **Close holes** | *Detect holes* lists every hole with edge count and circumference. Close **all** holes, close all **without the largest** (keeps the intentional opening of an intraoral scan), or close one **selected** hole. |
+| **Boundary optimization** | Smooths the ragged open borders (scan rims) of a mesh by relaxing each boundary vertex toward its neighbors along the rim (1–10 iterations, optionally limited to one selected boundary loop); interior geometry is never modified. |
 | **Bridge boundaries** | Click the mesh near two open boundaries (A, then B), then *Bridge boundaries* connects them with a strip of triangles — e.g. to join an outer and inner rim before closing the rest. |
 | **Remesh** | Splits long triangles and relaxes the result — around a clicked center with adjustable radius, or the *whole mesh*. |
 | **Reduce** | Decimates the mesh to a target percentage of its triangles (10–95 %) — for oversized scans. |

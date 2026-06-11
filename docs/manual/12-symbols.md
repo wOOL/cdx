@@ -28,6 +28,6 @@ Symbols used throughout the application — examples as they appear in the UI:
 | ⤢ / Esc | Maximize a view / restore the grid. |
 | ① ② ③ … | Numbered callouts in this manual's annotated screenshots. |
 
-Keyboard shortcuts referenced in this manual: **F1** help · **F8** screen copy ·
-**Ctrl +/− / Ctrl 0** zoom / reset · **Ctrl Z / Ctrl Shift Z** undo / redo ·
-**Esc** restore maximized view / close dialogs.
+Keyboard shortcuts referenced in this manual: **F1** help · **F2** rename the selected
+model · **F8** screen copy · **Ctrl +/− / Ctrl 0** zoom / reset ·
+**Ctrl Z / Ctrl Shift Z** undo / redo · **Esc** restore maximized view / close dialogs.

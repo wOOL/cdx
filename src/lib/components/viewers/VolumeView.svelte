@@ -14,7 +14,8 @@
 		guideHandles = null,
 		onHandleMove,
 		onHandleResize,
-		onHandleDone
+		onHandleDone,
+		onVolumeClick
 	}: {
 		state: PlanningState;
 		/** externally force the axial clip plane (PCS dialog horizontal 3D cut) */
@@ -36,6 +37,12 @@
 		onHandleResize?: (kind: 'support' | 'label', index: number, delta: number) => void;
 		/** drag finished — persist */
 		onHandleDone?: () => void;
+		/**
+		 * click (not drag) that hits NO surface model: the ray is marched through
+		 * the volume render at the current threshold; fires with the first dense
+		 * point (volume-local mm) — the original's "click in the 3D area"
+		 */
+		onVolumeClick?: (p: { x: number; y: number; z: number }) => void;
 	} = $props();
 
 	/** read vertex positions of a loaded model (scan-local coords) */
@@ -257,6 +264,58 @@
 	// ---------- surface models (scans, segmentations, guides) ----------
 	let modelGroup: THREE.Group | null = null;
 	const modelMeshes = new Map<number, THREE.Mesh>();
+
+	// preview volume kept for CPU ray-marching (3D-click seeding)
+	let previewVol: { data: Uint8Array; cols: number; rows: number; slices: number } | null = null;
+
+	/**
+	 * March a click ray through the preview volume; returns the first sample at
+	 * or above the current render threshold as volume-local mm, or null.
+	 */
+	function marchVolume(ndc: THREE.Vector2): { x: number; y: number; z: number } | null {
+		if (!previewVol || !cameraRef || !modelGroup) return null;
+		const extX = volHalfExtent.x * 2;
+		const extY = volHalfExtent.y * 2;
+		const extZ = volHalfExtent.z * 2;
+		if (extX <= 0 || extY <= 0 || extZ <= 0) return null;
+		const ray = new THREE.Raycaster();
+		ray.setFromCamera(ndc, cameraRef);
+		// ray endpoints into volume-local mm
+		const o = modelGroup.worldToLocal(ray.ray.origin.clone());
+		const q = modelGroup.worldToLocal(ray.ray.origin.clone().add(ray.ray.direction));
+		const d = q.sub(o).normalize();
+		// clip to the volume box [0, ext]
+		let t0 = 0;
+		let t1 = Infinity;
+		for (const [oc, dc, ext] of [
+			[o.x, d.x, extX],
+			[o.y, d.y, extY],
+			[o.z, d.z, extZ]
+		] as const) {
+			if (Math.abs(dc) < 1e-9) {
+				if (oc < 0 || oc > ext) return null;
+				continue;
+			}
+			const a = (0 - oc) / dc;
+			const b = (ext - oc) / dc;
+			t0 = Math.max(t0, Math.min(a, b));
+			t1 = Math.min(t1, Math.max(a, b));
+		}
+		if (t1 <= t0) return null;
+		const { data, cols, rows, slices } = previewVol;
+		const thr = Math.max(1, Math.round(threshold * 255));
+		const step = Math.min(extX / cols, extY / rows, extZ / slices) * 0.6;
+		for (let t = t0 + step * 0.5; t <= t1; t += step) {
+			const x = o.x + d.x * t;
+			const y = o.y + d.y * t;
+			const z = o.z + d.z * t;
+			const i = Math.min(cols - 1, Math.max(0, Math.floor((x / extX) * cols)));
+			const j = Math.min(rows - 1, Math.max(0, Math.floor((y / extY) * rows)));
+			const k = Math.min(slices - 1, Math.max(0, Math.floor((z / extZ) * slices)));
+			if (data[k * cols * rows + j * cols + i] >= thr) return { x, y, z };
+		}
+		return null;
+	}
 
 	// ---------- draggable guide-design handles (supports + label) ----------
 	let handleGroup: THREE.Group | null = null;
@@ -695,6 +754,7 @@
 				const slices = Number(res.headers.get('X-Slices'));
 				const data = new Uint8Array(await res.arrayBuffer());
 				if (disposed || !container) return;
+				previewVol = { data, cols, rows, slices };
 
 				const texture = new THREE.Data3DTexture(data, cols, rows, slices);
 				texture.format = THREE.RedFormat;
@@ -834,7 +894,7 @@
 					downPos = { x: e.clientX, y: e.clientY };
 				});
 				renderer.domElement.addEventListener('pointerup', (e) => {
-					if (!downPos || !onMeshClick || !renderer || !modelGroup) return;
+					if (!downPos || (!onMeshClick && !onVolumeClick) || !renderer || !modelGroup) return;
 					const moved = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y);
 					downPos = null;
 					if (moved > 5) return;
@@ -845,9 +905,19 @@
 					);
 					const ray = new THREE.Raycaster();
 					ray.setFromCamera(ndc, camera);
-					const meshes = [...modelMeshes.values()].filter((m) => m.geometry && m.visible);
+					const meshes = onMeshClick
+						? [...modelMeshes.values()].filter((m) => m.geometry && m.visible)
+						: [];
 					const hits = ray.intersectObjects(meshes, false);
-					if (!hits.length) return;
+					if (!hits.length) {
+						// nothing solid under the cursor — march the volume render instead
+						if (onVolumeClick) {
+							const p = marchVolume(ndc);
+							if (p) onVolumeClick(p);
+						}
+						return;
+					}
+					if (!onMeshClick) return;
 					const hit = hits[0];
 					const mesh = hit.object as THREE.Mesh;
 					const sl = mesh.worldToLocal(hit.point.clone());

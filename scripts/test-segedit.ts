@@ -4,6 +4,7 @@ import { ensureLoggedIn } from './pwlogin';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+page.setDefaultTimeout(180_000); // patient under software-GL rendering on small hosts
 const errors: string[] = [];
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 page.on('pageerror', (e) => errors.push(e.message));
