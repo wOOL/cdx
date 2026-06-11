@@ -1102,6 +1102,7 @@
 	let implantFineOpen = $state(false);
 	let sidebarHidden = $state(false);
 	let freeModelInput = $state<HTMLInputElement | null>(null);
+	let modelStats = $state<{ id: number; text: string } | null>(null);
 
 	// AI-assistant job status chip (orange hourglass while running, green check
 	// when results await review — click to open, like the original's icon)
@@ -3199,6 +3200,39 @@
 							>
 								Adjust position…
 							</button>
+							<label class="mp-row">
+								<span>Look</span>
+								<select
+									value={m.shading ?? 'standard'}
+									onchange={(e) => {
+										const v = e.currentTarget.value;
+										m.shading = v === 'standard' ? undefined : (v as 'metallic' | 'wireframe');
+										ps?.saveModel(m.id);
+									}}
+								>
+									<option value="standard">Standard</option>
+									<option value="metallic">Metallic</option>
+									<option value="wireframe">Triangles</option>
+								</select>
+							</label>
+							<button
+								class="btn"
+								title="Mesh properties: triangles, volume, dimensions"
+								onclick={async () => {
+									const r = await fetch(`/api/models/${m.id}/stats`);
+									if (!r.ok) return;
+									const st = await r.json();
+									modelStats = {
+										id: m.id,
+										text: `${st.triangles.toLocaleString()} triangles · ${st.volumeMl.toFixed(1)} ml · ${st.size.x.toFixed(0)}×${st.size.y.toFixed(0)}×${st.size.z.toFixed(0)} mm`
+									};
+								}}
+							>
+								Properties
+							</button>
+							{#if modelStats?.id === m.id}
+								<div class="mp-stats">{modelStats.text}</div>
+							{/if}
 							<label class="mp-row">
 								<span>Opacity</span>
 								<input
@@ -5975,6 +6009,11 @@
 	}
 	.mp-row input[type='range'] {
 		flex: 1;
+	}
+	.mp-stats {
+		font-size: 11px;
+		opacity: 0.8;
+		padding: 2px 0 4px;
 	}
 	.mp-row .btn {
 		padding: 2px 8px;

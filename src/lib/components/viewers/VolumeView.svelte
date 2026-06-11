@@ -554,6 +554,10 @@
 			if (!mesh.userData.hasVertexColors) mesh.material.color.set(m.color);
 			mesh.material.transparent = m.opacity < 1;
 			mesh.material.opacity = m.opacity;
+			// per-model look: metallic sheen or triangle wireframe (guide visualization)
+			mesh.material.wireframe = m.shading === 'wireframe';
+			mesh.material.metalness = m.shading === 'metallic' ? 0.85 : 0.05;
+			mesh.material.roughness = m.shading === 'metallic' ? 0.25 : 0.65;
 			const arr = m.transform ?? new THREE.Matrix4().identity().toArray();
 			mesh.matrix.fromArray(arr);
 			mesh.matrixWorldNeedsUpdate = true;
@@ -572,7 +576,7 @@
 	}
 
 	$effect(() => {
-		void ps.models.map((m) => [m.id, m.visible, m.color, m.opacity, m.transform]);
+		void ps.models.map((m) => [m.id, m.visible, m.color, m.opacity, m.transform, m.shading]);
 		if (sceneReady) syncModels();
 	});
 

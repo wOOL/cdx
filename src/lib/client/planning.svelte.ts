@@ -77,6 +77,8 @@ export interface ModelData {
 	transform: number[] | null;
 	/** generation parameters (segmentation threshold etc.) */
 	threshold: number | null;
+	/** 3D look: standard (default) | metallic | wireframe */
+	shading?: 'standard' | 'metallic' | 'wireframe';
 }
 
 export type MeasureTool = 'none' | 'distance' | 'angle' | 'density' | 'polyline' | 'annotation' | 'auxline';
@@ -339,6 +341,13 @@ export class PlanningState {
 			} catch {
 				threshold = null;
 			}
+			let shading: ModelData['shading'];
+			try {
+				const p2 = m.params ? JSON.parse(m.params) : null;
+				if (p2 && ['standard', 'metallic', 'wireframe'].includes(p2.shading)) shading = p2.shading;
+			} catch {
+				shading = undefined;
+			}
 			return {
 				id: m.id,
 				name: m.name,
@@ -347,7 +356,8 @@ export class PlanningState {
 				opacity: m.opacity,
 				visible: !!m.visible,
 				transform,
-				threshold
+				threshold,
+				shading
 			};
 		});
 		this.implants = implants.map((im) => {
@@ -753,7 +763,8 @@ export class PlanningState {
 			color: m.color,
 			opacity: m.opacity,
 			visible: m.visible,
-			transform: m.transform
+			transform: m.transform,
+			shading: m.shading ?? null
 		};
 		this.debounced(`model:${id}`, () => {
 			fetch(`/api/models/${id}`, {

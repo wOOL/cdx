@@ -408,7 +408,8 @@
 
 	function onWheel(e: WheelEvent) {
 		e.preventDefault();
-		if (e.ctrlKey) {
+		// Ctrl+wheel or Shift+wheel (the desktop hotkey) zooms; plain wheel scrolls slices
+		if (e.ctrlKey || e.shiftKey) {
 			animateZoom(Math.max(0.2, Math.min(10, zoom * (e.deltaY < 0 ? 1.25 : 0.8))));
 		} else {
 			setIndex(sliceIndex + (e.deltaY > 0 ? 1 : -1));
