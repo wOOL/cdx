@@ -329,14 +329,30 @@
 											{#if pickerFor === r.im.id}
 												<div class="vpe-picker panel">
 													{#each r.options as sb (sb.id)}
+														{@const sc = 26 / Math.max(8, sb.collarHeight + sb.bodyHeight)}
+														{@const bw = Math.min(20, sb.bodyDiameter * sc)}
+														{@const bh = sb.bodyHeight * sc}
+														{@const ch = sb.collarHeight * sc}
 														<button
 															class="vpe-pick"
 															class:active={r.scanbodyId === sb.id}
+															title="Scanbody profile shown to scale"
 															onclick={() => {
 																r.scanbodyId = sb.id;
 																pickerFor = null;
 															}}
 														>
+															<svg class="vpe-sb-thumb" viewBox="0 0 24 34" aria-hidden="true">
+																<rect
+																	x={12 - bw / 2} y={32 - ch - bh} width={bw} height={bh}
+																	rx="2" fill="#9aa7c9"
+																/>
+																<rect
+																	x={12 - (bw + 4) / 2} y={32 - ch} width={bw + 4} height={ch}
+																	rx="1" fill="#6b7799"
+																/>
+																<rect x={12 - bw / 2 + 1.5} y={32 - ch - bh + 1.5} width="2.5" height={Math.max(2, bh - 3)} rx="1" fill="#c4cde8" />
+															</svg>
 															{sb.name}
 															<span class="faint">Ø{sb.bodyDiameter.toFixed(1)} × {(sb.collarHeight + sb.bodyHeight).toFixed(1)} mm</span>
 														</button>
@@ -605,5 +621,10 @@
 	.vpe-error {
 		color: #e07a7a;
 		font-size: 12px;
+	}
+	.vpe-sb-thumb {
+		width: 18px;
+		height: 26px;
+		flex: none;
 	}
 </style>
