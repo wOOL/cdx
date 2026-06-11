@@ -36,12 +36,7 @@
 	</div>
 
 	<footer class="help-foot">
-		<a
-			class="help-site"
-			href="https://codiagnostix.com/support"
-			target="_blank"
-			rel="noopener noreferrer">Help site ↗</a
-		>
+		<a class="help-site" href="/manual">Open the full manual ↗</a>
 		<span class="help-hint">F1 toggles help · Esc closes</span>
 	</footer>
 </aside>

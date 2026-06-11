@@ -19,6 +19,7 @@
 	import AbutmentEditor from '$lib/components/AbutmentEditor.svelte';
 	import VirtualToothPicker from '$lib/components/VirtualToothPicker.svelte';
 	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
+	import PerioChart, { type PerioData } from '$lib/components/PerioChart.svelte';
 	import AugmentWizard from '$lib/components/AugmentWizard.svelte';
 	import AiReviewDialog from '$lib/components/AiReviewDialog.svelte';
 	import ProstheticImportDialog from '$lib/components/ProstheticImportDialog.svelte';
@@ -858,6 +859,34 @@
 	let showVirtualTeeth = $state(false);
 	let showAbutmentDial = $state(false);
 	let helpOpen = $state(false);
+	let showPerio = $state(false);
+	let perioData = $state<PerioData>(
+		(() => {
+			try {
+				const st = data.plan.settings ? JSON.parse(data.plan.settings) : {};
+				return st.perio && typeof st.perio === 'object' ? st.perio : {};
+			} catch {
+				return {};
+			}
+		})()
+	);
+
+	function savePerio(next: PerioData) {
+		perioData = next;
+		let st: Record<string, unknown> = {};
+		try {
+			st = data.plan.settings ? JSON.parse(data.plan.settings) : {};
+		} catch {
+			st = {};
+		}
+		st.perio = next;
+		fetch(`/api/plans/${data.plan.id}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ settings: st })
+		}).catch(() => {});
+		showPerio = false;
+	}
 	let showAugment = $state(false);
 	let aiBusy = $state(false);
 	let aiReview = $state<{ id: number; name: string; ok: boolean }[] | null>(null);
@@ -2541,6 +2570,13 @@
 						</div>
 					{/if}
 					<label for="measure-tools">Measure (axial view)</label>
+					<button
+						class="btn perio-btn"
+						title="Periodontal charting: bone-loss values in six directions per tooth (calculated planning aid)"
+						onclick={() => (showPerio = true)}
+					>
+						Perio chart…
+					</button>
 					<div
 						class="measure-row"
 						id="measure-tools"
@@ -3720,6 +3756,10 @@
 	<AiReviewDialog models={aiReview} onimport={aiImport} onclose={() => aiImport([])} />
 {/if}
 
+{#if showPerio && ps}
+	<PerioChart {notation} initial={perioData} onsave={savePerio} onclose={() => (showPerio = false)} />
+{/if}
+
 {#if showPackageImport}
 	<ProstheticImportDialog
 		caseId={data.caseData.id}
@@ -4148,6 +4188,12 @@
 </footer>
 
 <style>
+	.perio-btn {
+		margin-bottom: 6px;
+		width: 100%;
+		justify-content: center;
+	}
+
 	.dial-float {
 		position: fixed;
 		right: 16px;
