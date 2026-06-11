@@ -103,8 +103,10 @@ export interface GuideParams {
 	voxel?: number;
 	/** Extra wall around each sleeve, mm (default 1.6). */
 	mountWall?: number;
-	/** Inspection windows: vertical cylindrical cutouts through the whole guide. */
-	windows?: { x: number; y: number; diameter: number }[];
+	/** Inspection windows: vertical cutouts through the whole guide. Round by
+	 *  default; an optional total `length` > diameter makes a stadium-shaped
+	 *  (elongated) slot oriented by `angle` (deg, volume XY plane). */
+	windows?: { x: number; y: number; diameter: number; length?: number; angle?: number }[];
 	/** Embossed label raised from the guide top surface. */
 	label?: GuideLabel;
 	/** Bone support regions: extra footprint circles (no sleeves), SPEC §9.5. */
@@ -814,14 +816,15 @@ export function generateGuide(
 		}
 	}
 
-	// 5b. inspection windows: vertical cylindrical cutouts through the full height.
+	// 5b. inspection windows: vertical cutouts (round or stadium) through the full height.
 	for (const w of params?.windows ?? []) {
 		const r = w.diameter / 2;
 		const rSq = r * r;
-		const i0 = Math.max(0, Math.floor((w.x - r - ox) / voxel));
-		const i1 = Math.min(nx - 1, Math.ceil((w.x + r - ox) / voxel));
-		const j0 = Math.max(0, Math.floor((w.y - r - oy) / voxel));
-		const j1 = Math.min(ny - 1, Math.ceil((w.y + r - oy) / voxel));
+		const reach = r + windowHalfLen(w);
+		const i0 = Math.max(0, Math.floor((w.x - reach - ox) / voxel));
+		const i1 = Math.min(nx - 1, Math.ceil((w.x + reach - ox) / voxel));
+		const j0 = Math.max(0, Math.floor((w.y - reach - oy) / voxel));
+		const j1 = Math.min(ny - 1, Math.ceil((w.y + reach - oy) / voxel));
 		for (let k = 0; k < nz; k++) {
 			const slab = k * nxny;
 			for (let j = j0; j <= j1; j++) {
@@ -829,9 +832,7 @@ export function generateGuide(
 				const row = slab + j * nx;
 				for (let i = i0; i <= i1; i++) {
 					const px = ox + i * voxel;
-					const dx = px - w.x;
-					const dy = py - w.y;
-					if (dx * dx + dy * dy <= rSq) grid[row + i] = 0;
+					if (windowDistSq(px, py, w) <= rSq) grid[row + i] = 0;
 				}
 			}
 		}
@@ -926,15 +927,11 @@ export function cutGuideToolPaths(
 		const wr = w.diameter / 2;
 		cutters.push({
 			inside(x, y) {
-				const dx = x - w.x;
-				const dy = y - w.y;
-				return dx * dx + dy * dy <= wr * wr;
+				return windowDistSq(x, y, w) <= wr * wr;
 			},
 			near(x, y, _z, slack) {
-				const dx = x - w.x;
-				const dy = y - w.y;
 				const rr = wr + slack;
-				return dx * dx + dy * dy <= rr * rr;
+				return windowDistSq(x, y, w) <= rr * rr;
 			}
 		});
 	}
@@ -1241,3 +1238,31 @@ export const GUIDE_RECIPES: GuideRecipe[] = [
 		params: {}
 	}
 ];
+
+
+/** half of the straight section of a stadium window (0 for round windows) */
+function windowHalfLen(w: { diameter: number; length?: number }): number {
+	return Math.max(0, ((w.length ?? w.diameter) - w.diameter) / 2);
+}
+
+/** squared XY distance from a point to the window's center segment */
+function windowDistSq(
+	px: number,
+	py: number,
+	w: { x: number; y: number; diameter: number; length?: number; angle?: number }
+): number {
+	const half = windowHalfLen(w);
+	if (half === 0) {
+		const dx = px - w.x;
+		const dy = py - w.y;
+		return dx * dx + dy * dy;
+	}
+	const a = (((w.angle ?? 0) * Math.PI) / 180);
+	const ux = Math.cos(a);
+	const uy = Math.sin(a);
+	let t = (px - w.x) * ux + (py - w.y) * uy;
+	t = Math.max(-half, Math.min(half, t));
+	const dx = px - (w.x + ux * t);
+	const dy = py - (w.y + uy * t);
+	return dx * dx + dy * dy;
+}

@@ -19,10 +19,12 @@
 	let {
 		name,
 		onnudge,
+		onscale,
 		onclose
 	}: {
 		name: string;
 		onnudge: (delta: NudgeDelta, frame: 'patient' | 'object') => void;
+		onscale?: (factor: number) => void;
 		onclose: () => void;
 	} = $props();
 
@@ -134,6 +136,19 @@
 				{/each}
 			</div>
 		</div>
+
+		{#if onscale}
+			<div class="fa-section">
+				<div class="fa-section-head">
+					<span>Size</span>
+				</div>
+				<div class="fa-grid">
+					<span class="fa-axis">scale</span>
+					<button class="btn" onclick={() => onscale?.(1 / 1.05)}>− 5%</button>
+					<button class="btn" onclick={() => onscale?.(1.05)}>+ 5%</button>
+				</div>
+			</div>
+		{/if}
 	</div>
 </div>
 

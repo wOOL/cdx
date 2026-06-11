@@ -20,7 +20,8 @@
 	import { onMount } from 'svelte';
 	import MeshCanvas, {
 		type CanvasOverlay,
-		type MeshPickHit
+		type MeshPickHit,
+		type MeshViewMode
 	} from './aireview/MeshCanvas.svelte';
 
 	let {
@@ -47,6 +48,7 @@
 			| 'fillHoles'
 			| 'boundarySmooth'
 			| 'bridge'
+			| 'partialFill'
 			| 'parts'
 			| 'reduce'
 			| 'invert'
@@ -66,6 +68,7 @@
 		maxEdges?: number;
 		iterations?: number;
 		loop?: number;
+		maxEdge?: number;
 		targetPercent?: number;
 		deep?: boolean;
 		axis?: Vec3;
@@ -91,6 +94,7 @@
 		| 'holes'
 		| 'boundary'
 		| 'bridge'
+		| 'partial'
 		| 'remesh'
 		| 'reduce'
 		| 'invert'
@@ -104,6 +108,7 @@
 		{ key: 'holes', label: 'Close holes', hint: 'Close all holes, keep the largest opening, or close a selected hole.' },
 		{ key: 'boundary', label: 'Boundary optimization', hint: 'Smooths ragged open borders (scan rims) without touching interior geometry.' },
 		{ key: 'bridge', label: 'Bridge boundaries', hint: 'Click the mesh near two open boundaries, then bridge them with a strip.' },
+		{ key: 'partial', label: 'Partial repair', hint: 'Click two points on the same open boundary — the shorter segment between them is filled, the rest of the hole stays open.' },
 		{ key: 'remesh', label: 'Remesh', hint: 'Split long triangles around a picked point (or the whole mesh) and relax them.' },
 		{ key: 'reduce', label: 'Reduce', hint: 'Decimate the mesh to a target percentage of its triangles (vertex clustering).' },
 		{ key: 'invert', label: 'Invert mesh', hint: 'Flip the orientation (winding) of every triangle.' },
@@ -130,6 +135,10 @@
 	let resetTick = $state(0);
 	let mainH = $state(0);
 	let tool = $state<Tool>('parts');
+	// view type (Surface / Surface + edges / Mesh only) + ctrl-wheel radius flash
+	let viewMode = $state<MeshViewMode>('surface');
+	let radiusFlash = $state('');
+	let flashTimer: ReturnType<typeof setTimeout> | undefined;
 
 	// part detection
 	let partsList = $state<PartInfo[] | null>(null);
@@ -145,34 +154,50 @@
 	// bridge
 	let bridgeA = $state<Vec3 | null>(null);
 	let bridgeB = $state<Vec3 | null>(null);
+	// partial repair (fill a segment of one hole)
+	let partialA = $state<Vec3 | null>(null);
+	let partialB = $state<Vec3 | null>(null);
 	// remesh
 	let remeshRadius = $state(5);
 	let remeshWhole = $state(false);
 	let remeshCenter = $state<Vec3 | null>(null);
+	let remeshMaxEdge = $state<number | null>(0.2);
+	let remeshStrength = $state(1);
 	// reduce
 	let reducePercent = $state(50);
-	// wax knife
-	let waxMode = $state<'smooth' | 'remove' | 'add'>('smooth');
+	// wax knife ('area' = select-area smoothing: drag marks, one op on release)
+	let waxMode = $state<'smooth' | 'area' | 'remove' | 'add'>('smooth');
 	let waxStrength = $state<'A' | 'B' | 'C' | 'D'>('B');
 	let waxRadius = $state(5);
+	let areaPts = $state<Vec3[]>([]);
 	// eraser
 	let eraseRadius = $state(3);
 	let eraseDeep = $state(false);
 	// margin cut
 	let marginPts = $state<Vec3[]>([]);
+	let marginClosed = $state(false);
 	// combine
 	let combineId = $state<number | null>(null);
 	let combineMode = $state<'merge' | 'subtract'>('merge');
+	let combineShow = $state(false);
+	let combinePreviewPos = $state<Float32Array | null>(null);
 
 	// ------------------------------------------------------------- derived
 	const activeHint = $derived(TOOLS.find((t) => t.key === tool)?.hint ?? '');
 	const pickActive = $derived(
 		tool === 'bridge' ||
+			tool === 'partial' ||
 			tool === 'wax' ||
 			tool === 'eraser' ||
 			tool === 'margin' ||
 			(tool === 'remesh' && !remeshWhole)
 	);
+	// drag-to-paint tools (eraser / deep erase / wax knife / local smooth)
+	const paintActive = $derived(tool === 'wax' || tool === 'eraser');
+	const paintRadius = $derived(tool === 'wax' ? waxRadius : eraseRadius);
+	// tools whose radius is adjusted by ctrl+wheel
+	const wheelTool = $derived(tool === 'wax' || tool === 'eraser' || tool === 'remesh');
+	const projectedTris = $derived(Math.max(0, Math.round((triangles * reducePercent) / 100)));
 	const canvasMeshes = $derived.by(() => {
 		const list: {
 			id: number;
@@ -181,6 +206,7 @@
 			visible: boolean;
 			transform: number[] | null;
 			raised?: boolean;
+			opacity?: number;
 		}[] = [];
 		if (positions) {
 			list.push({ id: 1, positions, color: '#3eb5a2', visible: true, transform: null });
@@ -194,19 +220,39 @@
 					raised: true
 				});
 			}
+			if (tool === 'combine' && combineShow && combinePreviewPos) {
+				// the sibling already mapped through inv(selfT)·otherT (server-merged tail)
+				list.push({
+					id: 3,
+					positions: combinePreviewPos,
+					color: '#b48de0',
+					visible: true,
+					transform: null,
+					opacity: 0.45
+				});
+			}
 		}
 		return list;
 	});
 	const canvasOverlays = $derived.by(() => {
 		const out: CanvasOverlay[] = [];
 		if (tool === 'margin' && marginPts.length) {
-			out.push({ points: marginPts, color: '#e8d44d', line: true, closed: marginPts.length > 2, size: 6 });
+			out.push({ points: marginPts, color: '#e8d44d', line: true, closed: marginClosed, size: 6 });
 		}
 		if (tool === 'bridge') {
 			const pts: Vec3[] = [];
 			if (bridgeA) pts.push(bridgeA);
 			if (bridgeB) pts.push(bridgeB);
 			if (pts.length) out.push({ points: pts, color: '#f08a24', size: 9 });
+		}
+		if (tool === 'partial') {
+			const pts: Vec3[] = [];
+			if (partialA) pts.push(partialA);
+			if (partialB) pts.push(partialB);
+			if (pts.length) out.push({ points: pts, color: '#e8d44d', size: 9 });
+		}
+		if (tool === 'wax' && waxMode === 'area' && areaPts.length) {
+			out.push({ points: areaPts, color: '#45b8e0', size: 6 });
 		}
 		if (tool === 'remesh' && !remeshWhole && remeshCenter) {
 			out.push({ points: [remeshCenter], color: '#45b8e0', size: 9 });
@@ -283,6 +329,7 @@
 		boundaryLoop = -1; // loop indices shift after an edit
 		if (partsList) await fetchParts();
 		if (holesList) await fetchHoles();
+		if (combineShow) void fetchCombinePreview(); // keep the preview in sync with the ops
 	}
 
 	async function pushOp(op: EditOp, label: string): Promise<boolean> {
@@ -355,6 +402,12 @@
 	}
 
 	// ------------------------------------------------------------- tool actions
+	const MARGIN_CLOSE_TOL = 2.5; // mm — "on/near the first point"
+
+	function dist3(a: Vec3, b: Vec3): number {
+		return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+	}
+
 	function picked(hit: MeshPickHit | null): void {
 		if (!hit || busy) return;
 		const p = rv(hit);
@@ -365,25 +418,168 @@
 			} else {
 				bridgeB = p;
 			}
+		} else if (tool === 'partial') {
+			if (!partialA || (partialA && partialB)) {
+				partialA = p;
+				partialB = null;
+			} else {
+				partialB = p;
+			}
 		} else if (tool === 'remesh') {
 			remeshCenter = p;
-		} else if (tool === 'wax') {
+		} else if (tool === 'wax' && waxMode === 'area') {
+			areaPts = [...areaPts, p];
+		} else if (tool === 'wax' || tool === 'eraser') {
+			enqueueBrush(hit);
+		} else if (tool === 'margin') {
+			if (marginClosed) return;
+			if (marginPts.length >= 3 && dist3(p, marginPts[0]) <= MARGIN_CLOSE_TOL) {
+				marginClosed = true; // clicking the first point closes the spline
+				return;
+			}
+			marginPts = [...marginPts, p];
+		}
+	}
+
+	/** Double-click: close the margin spline on its first point; otherwise let the canvas re-pivot. */
+	function dblPicked(hit: MeshPickHit | null): boolean {
+		if (!hit) return false;
+		if (tool === 'margin' && marginPts.length >= 3 && dist3(rv(hit), marginPts[0]) <= MARGIN_CLOSE_TOL) {
+			marginClosed = true;
+			return true; // consumed — keep the orbit pivot where it is
+		}
+		return false;
+	}
+
+	// ---- ctrl+wheel: active tool radius --------------------------------
+	function flashRadius(v: number): void {
+		radiusFlash = `Radius ${Math.round(v * 10) / 10} mm`;
+		clearTimeout(flashTimer);
+		flashTimer = setTimeout(() => (radiusFlash = ''), 1100);
+	}
+	function toolWheel(dir: 1 | -1): void {
+		if (tool === 'wax') {
+			waxRadius = Math.min(15, Math.max(1, waxRadius + dir * 0.5));
+			flashRadius(waxRadius);
+		} else if (tool === 'eraser') {
+			eraseRadius = Math.min(10, Math.max(0.5, eraseRadius + dir * 0.5));
+			flashRadius(eraseRadius);
+		} else if (tool === 'remesh') {
+			remeshRadius = Math.min(30, Math.max(1, remeshRadius + dir));
+			flashRadius(remeshRadius);
+		}
+	}
+
+	// ---- drag-to-paint: queued brush applications along the stroke -----
+	const brushQueue: MeshPickHit[] = [];
+	let brushPumping = false;
+
+	function enqueueBrush(hit: MeshPickHit): void {
+		if (brushQueue.length >= 64) return; // runaway guard
+		brushQueue.push(hit);
+		void pumpBrush();
+	}
+	async function pumpBrush(): Promise<void> {
+		if (brushPumping) return;
+		brushPumping = true;
+		try {
+			while (brushQueue.length) {
+				const hit = brushQueue.shift()!;
+				if (!(await applyBrushOp(hit))) brushQueue.length = 0;
+			}
+		} finally {
+			brushPumping = false;
+		}
+	}
+	/** One wax-knife / eraser application at a picked point (click or stroke step). */
+	async function applyBrushOp(hit: MeshPickHit): Promise<boolean> {
+		const p = rv(hit);
+		if (tool === 'wax') {
 			const op: EditOp = { op: 'smooth', center: p, radius: waxRadius };
-			if (waxMode !== 'smooth') {
+			if (waxMode === 'remove' || waxMode === 'add') {
 				op.mode = waxMode === 'remove' ? 'flatten' : 'add';
 				op.strength = waxStrength;
 			}
-			void pushOp(op, 'Wax knife');
-		} else if (tool === 'eraser') {
+			return pushOp(op, 'Wax knife');
+		}
+		if (tool === 'eraser') {
 			const op: EditOp = { op: 'erase', center: p, radius: eraseRadius };
 			if (eraseDeep) {
 				op.deep = true;
 				op.axis = rv({ x: hit.nx, y: hit.ny, z: hit.nz });
 			}
-			void pushOp(op, eraseDeep ? 'Deep erase' : 'Eraser');
-		} else if (tool === 'margin') {
-			marginPts = [...marginPts, p];
+			return pushOp(op, eraseDeep ? 'Deep erase' : 'Eraser');
 		}
+		return false;
+	}
+	function painted(hit: MeshPickHit): void {
+		if (tool === 'wax' && waxMode === 'area') {
+			areaPts = [...areaPts, rv(hit)]; // marks only — one op on release
+			return;
+		}
+		enqueueBrush(hit);
+	}
+	function paintEnded(): void {
+		if (tool === 'wax' && waxMode === 'area' && areaPts.length) void applyAreaSmooth();
+	}
+	/** Select-area smoothing: all accumulated marks in ONE op (one undo step). */
+	async function applyAreaSmooth(): Promise<void> {
+		if (!areaPts.length || busy) return;
+		if (await pushOp({ op: 'smooth', points: areaPts.map(rv), radius: waxRadius }, 'Smooth area')) {
+			areaPts = [];
+		}
+	}
+
+	// ---- margin point editing -------------------------------------------
+	function marginPointDrag(i: number, hit: MeshPickHit): void {
+		const p = rv(hit);
+		marginPts = marginPts.map((q, k) => (k === i ? p : q));
+	}
+	function marginPointRemove(i: number): void {
+		marginPts = marginPts.filter((_, k) => k !== i);
+		if (marginPts.length < 3) marginClosed = false;
+	}
+
+	async function partialApply(): Promise<void> {
+		if (!partialA || !partialB) return;
+		if (await pushOp({ op: 'partialFill', a: partialA, b: partialB }, 'Partial repair')) {
+			partialA = null;
+			partialB = null;
+		}
+	}
+
+	// ---- combine "show object" preview -----------------------------------
+	/**
+	 * Preview the selected sibling inside the editor before applying: a silent
+	 * merge preview concatenates [replayed self | transformed sibling], so the
+	 * tail beyond the current soup is exactly the sibling mapped through
+	 * inv(selfT)·otherT — the same transform the combine op will use.
+	 */
+	async function fetchCombinePreview(): Promise<void> {
+		if (combineId == null || !positions) {
+			combinePreviewPos = null;
+			return;
+		}
+		try {
+			const res = await fetch(base, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ ops: [...plainOps(ops), { op: 'combine', modelId: combineId }] })
+			});
+			if (!res.ok) {
+				combinePreviewPos = null;
+				return;
+			}
+			const buf = new Float32Array(await res.arrayBuffer());
+			const selfLen = positions?.length ?? 0;
+			combinePreviewPos = buf.length > selfLen ? buf.slice(selfLen) : null;
+		} catch {
+			combinePreviewPos = null;
+		}
+	}
+	function toggleCombinePreview(): void {
+		if (combineShow) void fetchCombinePreview();
+		else combinePreviewPos = null;
 	}
 
 	async function partAction(action: 'deleteSelected' | 'keepSelected' | 'keepLargest'): Promise<void> {
@@ -415,7 +611,10 @@
 	async function marginCut(keep: 'inside' | 'outside'): Promise<void> {
 		if (marginPts.length < 3) return;
 		const pts = marginPts.map(rv);
-		if (await pushOp({ op: 'marginCut', points: pts, keep }, 'Margin cut')) marginPts = [];
+		if (await pushOp({ op: 'marginCut', points: pts, keep }, 'Margin cut')) {
+			marginPts = [];
+			marginClosed = false;
+		}
 	}
 
 	/** Split: the discarded (outer) side becomes a new model, this mesh keeps the inner side. */
@@ -442,7 +641,10 @@
 		} finally {
 			busy = '';
 		}
-		if (await pushOp({ op: 'marginCut', points: pts, keep: 'inside' }, 'Margin cut')) marginPts = [];
+		if (await pushOp({ op: 'marginCut', points: pts, keep: 'inside' }, 'Margin cut')) {
+			marginPts = [];
+			marginClosed = false;
+		}
 	}
 
 	// ------------------------------------------------------------- persist
@@ -643,6 +845,21 @@
 								<button class="btn small" disabled={!bridgeA && !bridgeB} onclick={() => ((bridgeA = null), (bridgeB = null))}>
 									Clear points
 								</button>
+							{:else if t.key === 'partial'}
+								<div class="me-note">
+									A: {partialA ? 'set' : 'click the mesh near an open boundary'}<br />
+									B: {partialB ? 'set' : partialA ? 'click a second point on the SAME boundary' : '—'}
+								</div>
+								<button class="btn small" disabled={!!busy || !partialA || !partialB} onclick={partialApply}>
+									Fill segment between the points
+								</button>
+								<button class="btn small" disabled={!partialA && !partialB} onclick={() => ((partialA = null), (partialB = null))}>
+									Clear points
+								</button>
+								<div class="me-note">
+									The points snap to the nearest boundary; the shorter boundary path between
+									them is closed with a straight strip — the rest of the hole stays open.
+								</div>
 							{:else if t.key === 'remesh'}
 								<label class="me-field">
 									Radius
@@ -652,19 +869,32 @@
 								<label class="me-check">
 									<input type="checkbox" bind:checked={remeshWhole} /> whole mesh
 								</label>
+								<label class="me-field">
+									Max edge length (mm)
+									<input type="number" min="0.05" max="5" step="0.05" bind:value={remeshMaxEdge} />
+								</label>
+								<label class="me-field">
+									Strength
+									<input type="range" min="1" max="5" step="1" bind:value={remeshStrength} />
+									{remeshStrength}
+								</label>
+								<div class="me-note">
+									Selected triangles are split until no edge exceeds the max edge length
+									(clear the field for the automatic 2× mean-edge pass). Strength = smoothing
+									iterations after splitting.
+								</div>
 								{#if !remeshWhole}
 									<div class="me-note">{remeshCenter ? 'Center set — click again to move it.' : 'Click the mesh to set the center.'}</div>
 								{/if}
 								<button
 									class="btn small"
 									disabled={!!busy || (!remeshWhole && !remeshCenter)}
-									onclick={() =>
-										pushOp(
-											remeshWhole
-												? { op: 'remesh', radius: remeshRadius }
-												: { op: 'remesh', center: remeshCenter!, radius: remeshRadius },
-											'Remesh'
-										)}
+									onclick={() => {
+										const op: EditOp = { op: 'remesh', radius: remeshRadius, iterations: remeshStrength };
+										if (!remeshWhole) op.center = remeshCenter!;
+										if (remeshMaxEdge != null && remeshMaxEdge > 0) op.maxEdge = remeshMaxEdge;
+										void pushOp(op, 'Remesh');
+									}}
 								>
 									Remesh
 								</button>
@@ -674,6 +904,14 @@
 									<input type="range" min="10" max="95" step="5" bind:value={reducePercent} />
 									{reducePercent} %
 								</label>
+								<div class="me-note">
+									Recommended triangle counts (recommendations): maxilla 200–300k · mandible
+									150–200k.
+								</div>
+								<div class="me-note">
+									Projected: <span class={projectedTris > 300000 ? 'tri-high' : 'tri-ok'}>{projectedTris.toLocaleString()}</span>
+									of <span class={triangles > 300000 ? 'tri-high' : 'tri-ok'}>{triangles.toLocaleString()}</span> triangles
+								</div>
 								<button class="btn small" disabled={!!busy} onclick={() => pushOp({ op: 'reduce', targetPercent: reducePercent }, 'Reduce')}>
 									Reduce mesh
 								</button>
@@ -684,10 +922,11 @@
 							{:else if t.key === 'wax'}
 								<div class="me-seg">
 									<button class="btn small" class:primary={waxMode === 'smooth'} onclick={() => (waxMode = 'smooth')}>Smooth</button>
+									<button class="btn small" class:primary={waxMode === 'area'} onclick={() => (waxMode = 'area')}>Select area</button>
 									<button class="btn small" class:primary={waxMode === 'remove'} onclick={() => (waxMode = 'remove')}>Remove</button>
 									<button class="btn small" class:primary={waxMode === 'add'} onclick={() => (waxMode = 'add')}>Add</button>
 								</div>
-								{#if waxMode !== 'smooth'}
+								{#if waxMode === 'remove' || waxMode === 'add'}
 									<div class="me-seg">
 										{#each ['A', 'B', 'C', 'D'] as s (s)}
 											<button
@@ -706,6 +945,20 @@
 									<input type="range" min="1" max="15" step="0.5" bind:value={waxRadius} />
 									{waxRadius} mm
 								</label>
+								{#if waxMode === 'area'}
+									<div class="me-note">
+										{areaPts.length} mark(s) — drag over the surface to mark the area; releasing
+										the button smooths the whole marked area in one step (one undo).
+									</div>
+									<button class="btn small" disabled={!!busy || !areaPts.length} onclick={applyAreaSmooth}>
+										Smooth marked area
+									</button>
+									<button class="btn small" disabled={!areaPts.length} onclick={() => (areaPts = [])}>
+										Clear marks
+									</button>
+								{:else}
+									<div class="me-note">Click once, or hold the button and drag to paint along a path.</div>
+								{/if}
 							{:else if t.key === 'eraser'}
 								<label class="me-field">
 									Radius
@@ -715,12 +968,34 @@
 								<label class="me-check">
 									<input type="checkbox" bind:checked={eraseDeep} /> deep erase (through-thickness)
 								</label>
+								<div class="me-note">Click once, or hold the button and drag to erase along a path.</div>
 							{:else if t.key === 'margin'}
-								<div class="me-note">{marginPts.length} point(s) on the margin line</div>
-								<button class="btn small" disabled={!marginPts.length} onclick={() => (marginPts = marginPts.slice(0, -1))}>
+								<div class="me-note">
+									{marginPts.length} point(s) on the margin line{marginClosed ? ' · closed' : ''}<br />
+									Drag a point to move it · right-click a point to delete it · double-click
+									(or click) the first point to close the line.
+								</div>
+								<button class="btn small" disabled={marginClosed || marginPts.length < 3} onclick={() => (marginClosed = true)}>
+									Close line
+								</button>
+								<button
+									class="btn small"
+									disabled={!marginPts.length}
+									onclick={() => {
+										marginPts = marginPts.slice(0, -1);
+										marginClosed = false;
+									}}
+								>
 									Remove last point
 								</button>
-								<button class="btn small" disabled={!marginPts.length} onclick={() => (marginPts = [])}>
+								<button
+									class="btn small"
+									disabled={!marginPts.length}
+									onclick={() => {
+										marginPts = [];
+										marginClosed = false;
+									}}
+								>
 									Remove margin line
 								</button>
 								<button class="btn small" disabled={!!busy || marginPts.length < 3} onclick={() => marginCut('inside')}>
@@ -741,11 +1016,21 @@
 								{#if siblings.length === 0}
 									<div class="me-note">No other models in this case.</div>
 								{:else}
-									<select class="me-select" bind:value={combineId}>
+									<select
+										class="me-select"
+										bind:value={combineId}
+										onchange={() => {
+											if (combineShow) void fetchCombinePreview();
+										}}
+									>
 										{#each siblings as s (s.id)}
 											<option value={s.id}>{s.name} ({s.kind})</option>
 										{/each}
 									</select>
+									<label class="me-check">
+										<input type="checkbox" bind:checked={combineShow} onchange={toggleCombinePreview} />
+										show object (transparent preview)
+									</label>
 									<div class="me-seg">
 										<button class="btn small" class:primary={combineMode === 'merge'} onclick={() => (combineMode = 'merge')}>
 											Merge (add)
@@ -764,13 +1049,19 @@
 									<button
 										class="btn small"
 										disabled={!!busy || combineId == null}
-										onclick={() =>
-											pushOp(
+										onclick={async () => {
+											const ok = await pushOp(
 												combineMode === 'subtract'
 													? { op: 'combine', modelId: combineId!, mode: 'subtract' }
 													: { op: 'combine', modelId: combineId! },
 												combineMode === 'subtract' ? 'Subtract' : 'Combine'
-											)}
+											);
+											if (ok) {
+												// the object is now part of the mesh — drop the ghost preview
+												combineShow = false;
+												combinePreviewPos = null;
+											}
+										}}
 									>
 										Apply operation
 									</button>
@@ -783,7 +1074,10 @@
 				<div class="me-help">
 					<div class="me-help-title">Short help</div>
 					{activeHint}
-					<br />Move: drag · Zoom: wheel{pickActive ? ' · Pick: click the mesh' : ''}
+					<br />Move: drag · Zoom: wheel{wheelTool ? ' · Ctrl+wheel: tool radius' : ''} ·
+					Double-click: set turning point{pickActive ? ' · Pick: click the mesh' : ''}{paintActive
+						? ' · Paint: hold + drag on the mesh'
+						: ''}
 				</div>
 			</aside>
 
@@ -796,13 +1090,39 @@
 						overlays={canvasOverlays}
 						{pickActive}
 						onpick={picked}
+						{viewMode}
+						onToolWheel={wheelTool ? toolWheel : undefined}
+						ondblpick={dblPicked}
+						{paintActive}
+						paintStepMm={paintRadius / 2}
+						onpaint={painted}
+						onpaintend={paintEnded}
+						editPoints={tool === 'margin' ? marginPts : undefined}
+						onpointdrag={tool === 'margin' ? marginPointDrag : undefined}
+						onpointremove={tool === 'margin' ? marginPointRemove : undefined}
 						{resetTick}
 						height={Math.max(320, mainH - 16)}
 					/>
+					<div class="me-viewseg me-seg">
+						<button class="btn small" class:primary={viewMode === 'surface'} onclick={() => (viewMode = 'surface')}>
+							Surface
+						</button>
+						<button class="btn small" class:primary={viewMode === 'edges'} onclick={() => (viewMode = 'edges')}>
+							Surface + edges
+						</button>
+						<button class="btn small" class:primary={viewMode === 'wire'} onclick={() => (viewMode = 'wire')}>
+							Mesh only
+						</button>
+					</div>
 					{#if busy}
 						<div class="me-busy">Processing — {busy}…</div>
 					{/if}
-					<button class="btn small me-reset" onclick={() => resetTick++}>Reset view</button>
+					{#if radiusFlash}
+						<div class="me-flash">{radiusFlash}</div>
+					{/if}
+					<button class="btn small me-reset" onclick={() => resetTick++} title="Refit the view and restore the centroid turning point">
+						Reset view
+					</button>
 				{/if}
 			</section>
 		</div>
@@ -815,7 +1135,13 @@
 				↷ Redo
 			</button>
 			<span class="me-status muted">
-				Point count: {vertices.toLocaleString()} · Triangle count: {triangles.toLocaleString()}
+				Point count: {vertices.toLocaleString()} · Triangle count:
+				<span
+					class={triangles > 300000 ? 'tri-high' : 'tri-ok'}
+					title="Recommended: maxilla 200–300k, mandible 150–200k triangles (recommendations)"
+				>
+					{triangles.toLocaleString()}
+				</span>
 				· {ops.length} edit{ops.length === 1 ? '' : 's'}
 				{#if lastNote}· {lastNote}{/if}
 			</span>
@@ -1009,6 +1335,28 @@
 		right: 16px;
 		top: 16px;
 	}
+	.me-viewseg {
+		position: absolute;
+		left: 16px;
+		top: 16px;
+	}
+	.me-viewseg .btn.small {
+		font-size: 11px;
+		padding: 3px 7px;
+	}
+	.me-flash {
+		position: absolute;
+		left: 50%;
+		bottom: 22px;
+		transform: translateX(-50%);
+		background: var(--bg-1);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--radius);
+		padding: 4px 12px;
+		font-size: 12px;
+		pointer-events: none;
+		box-shadow: var(--shadow);
+	}
 	.me-actions {
 		align-items: center;
 	}
@@ -1016,5 +1364,13 @@
 		margin-right: auto;
 		margin-left: 6px;
 		font-size: 12px;
+	}
+	/* triangle-count budget colors (300k = recommended ceiling) */
+	.tri-ok {
+		color: #9fd6b9;
+	}
+	.tri-high {
+		color: #f06a5a;
+		font-weight: 600;
 	}
 </style>

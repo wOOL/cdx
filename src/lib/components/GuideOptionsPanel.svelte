@@ -69,8 +69,8 @@
 			{
 				key: 'windows',
 				name: 'Inspection windows',
-				fields: ['x', 'y', 'diameter'],
-				template: { x: 0, y: 0, diameter: 5 }
+				fields: ['x', 'y', 'diameter', 'length', 'angle'],
+				template: { x: 0, y: 0, diameter: 5, length: 5, angle: 0 }
 			},
 			{
 				key: 'reductionBars',

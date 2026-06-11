@@ -1318,6 +1318,22 @@
 		return n ? { x: sx / n, y: sy / n, z: sz / n } : { x: 0, y: 0, z: 0 };
 	}
 
+	/** uniform scale around the model's current centroid (virtual teeth sizing) */
+	function fineScale(factor: number) {
+		if (!ps || matching.modelId == null) return;
+		const m = ps.models.find((x) => x.id === matching.modelId);
+		if (!m) return;
+		const T = m.transform ?? identityMat4();
+		const c = modelCentroidWorld(m);
+		const D = identityMat4();
+		D[0] = D[5] = D[10] = factor;
+		D[12] = c.x * (1 - factor);
+		D[13] = c.y * (1 - factor);
+		D[14] = c.z * (1 - factor);
+		m.transform = composeMat4(D, T);
+		ps.saveModel(m.id);
+	}
+
 	function fineNudge(
 		delta: { tx: number; ty: number; tz: number; rx: number; ry: number; rz: number },
 		frame: 'patient' | 'object'
@@ -4917,22 +4933,46 @@
 {#if showVirtualTeeth && ps}
 	<VirtualToothPicker
 		{notation}
-		onpick={(tooth) => {
+		onpick={async (tooth) => {
 			if (!ps) return;
-			ps.markEdit();
-			ps.addMeasurement(
-				'annotation',
-				[
-					{
+			const res = await fetch(`/api/cases/${data.caseData.id}/virtual-tooth`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					tooth,
+					position: {
 						x: ps.cursor.x * ps.ds.spacing_x,
 						y: ps.cursor.y * ps.ds.spacing_y,
 						z: ps.cursor.z * ps.ds.spacing_z
-					}
-				],
-				tooth,
-				`Virtual tooth ${toothLabel(tooth, notation)}`
-			);
+					},
+					flip: tooth < 30
+				})
+			});
 			showVirtualTeeth = false;
+			if (!res.ok) {
+				alert('Virtual tooth failed: ' + (await res.text()).slice(0, 200));
+				return;
+			}
+			const { model } = await res.json();
+			let transform: number[] | null = null;
+			try {
+				const t = model.transform ? JSON.parse(model.transform) : null;
+				if (Array.isArray(t) && t.length === 16) transform = t;
+			} catch {
+				transform = null;
+			}
+			ps.models.push({
+				id: model.id,
+				name: model.name,
+				kind: model.kind,
+				color: model.color,
+				opacity: model.opacity ?? 1,
+				visible: true,
+				transform,
+				threshold: null
+			});
+			matching.modelId = model.id;
+			showFineAlign = true;
 		}}
 		onclose={() => (showVirtualTeeth = false)}
 	/>
@@ -5011,6 +5051,7 @@
 	<FineAlignDialog
 		name={ps.models.find((m) => m.id === matching.modelId)?.name ?? 'Scan'}
 		onnudge={fineNudge}
+		onscale={fineScale}
 		onclose={() => (showFineAlign = false)}
 	/>
 {/if}
