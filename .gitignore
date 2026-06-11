@@ -36,3 +36,6 @@ cod_guide
 
 # other static files
 static/cad-app
+vendor/chili3d/node_modules
+vendor/chili3d/dist
+vendor/chili3d/bun.lock
