@@ -29,6 +29,7 @@
 	import AngleBetweenAbutments from '$lib/components/AngleBetweenAbutments.svelte';
 	import { indexAtLength, toothArchU } from '$lib/curve';
 	import { implantPlatform } from '$lib/vpeCatalog';
+	import { guideFootprintOutline } from '$lib/guideFootprint';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
 	import { snapshotPrefs, toCanvas } from '$lib/client/render2d';
 	import { areaCm2, gridOverlayDraw } from '$lib/client/segExtras';
@@ -417,7 +418,39 @@
 			drawAxialObjects(ps, ctx, t);
 			drawMeasurements(ps, ctx, t);
 			if (connectorPreview && stage === 'guide') drawConnectorPreview(ctx, t);
+			if (footprintPreview && stage === 'guide') drawFootprintPreview(ctx, t);
 		}
+	}
+
+	/** planned guide footprint outline ("Show cut profile") on the axial view */
+	function drawFootprintPreview(ctx: CanvasRenderingContext2D, t: ViewTransform) {
+		if (!ps || !ps.implants.length) return;
+		const loops = guideFootprintOutline({
+			implants: ps.implants.map((i) => ({ x: i.x, y: i.y })),
+			regionRadius: guideParams.regionRadius,
+			largeConnectors: Boolean(guideAdvanced.largeConnectors),
+			supportRegions:
+				(guideAdvanced.supportRegions as { x: number; y: number; radius: number }[]) ?? [],
+			contactPolygons: (guideAdvanced.contactPolygons as { x: number; y: number }[][]) ?? []
+		});
+		const sx = ps.ds.spacing_x;
+		const sy = ps.ds.spacing_y;
+		ctx.strokeStyle = 'rgba(126, 200, 227, 0.9)';
+		ctx.setLineDash([4, 3]);
+		ctx.lineWidth = 1.5;
+		for (const loop of loops) {
+			if (loop.length < 2) continue;
+			ctx.beginPath();
+			loop.forEach((p, i) => {
+				const x = t.ox + (p.x / sx + 0.5) * t.scaleX;
+				const y = t.oy + (p.y / sy + 0.5) * t.scaleY;
+				if (i === 0) ctx.moveTo(x, y);
+				else ctx.lineTo(x, y);
+			});
+			ctx.closePath();
+			ctx.stroke();
+		}
+		ctx.setLineDash([]);
 	}
 
 	/** dashed connector strips + contact-surface order between consecutive implants (guide stage) */
@@ -966,30 +999,78 @@
 	let lastScanClick = $state<{ modelId: number; scanLocal: Vec3 } | null>(null);
 	let meshToolBusy = $state('');
 
+	// AI-assistant job status chip (orange hourglass while running, green check
+	// when results await review — click to open, like the original's icon)
+	let aiJobId = $state<string | number | null>(null);
+	let aiReady = $state<{ id: number; name: string; ok: boolean }[] | null>(null);
+	const aiSeenKey = (jobId: unknown) => `cdx_aiseg_seen_${ps?.ds.id}_${jobId}`;
+
+	async function pollAiJob(openWhenDone: boolean): Promise<void> {
+		if (!ps) return;
+		for (let i = 0; i < 240; i++) {
+			const st = await (await fetch(`/api/datasets/${ps.ds.id}/ai-segment`)).json();
+			aiJobId = st.jobId ?? aiJobId;
+			if (st.status === 'done') {
+				const models = (st.models ?? []).map((m: { id: number; name: string; ok: boolean }) => ({
+					id: m.id,
+					name: m.name,
+					ok: m.ok
+				}));
+				if (openWhenDone) aiReview = models;
+				else if (!localStorage.getItem(aiSeenKey(st.jobId))) aiReady = models;
+				return;
+			}
+			if (st.status === 'error') {
+				if (openWhenDone) alert(`AI segmentation failed: ${st.error ?? 'unknown error'}`);
+				return;
+			}
+			if (st.status === 'idle') return;
+			await new Promise((r) => setTimeout(r, 1500));
+		}
+		if (openWhenDone) alert('AI segmentation timed out');
+	}
+
 	async function runAiSegmentation() {
 		if (!ps || aiBusy) return;
 		aiBusy = true;
 		try {
 			await fetch(`/api/datasets/${ps.ds.id}/ai-segment`, { method: 'POST' });
-			for (let i = 0; i < 120; i++) {
-				await new Promise((r) => setTimeout(r, 1500));
-				const st = await (await fetch(`/api/datasets/${ps.ds.id}/ai-segment`)).json();
-				if (st.status === 'done') {
-					aiReview = (st.models ?? []).map((m: { id: number; name: string; ok: boolean }) => ({
-						id: m.id,
-						name: m.name,
-						ok: m.ok
-					}));
-					return;
-				}
-				if (st.status === 'error') {
-					alert(`AI segmentation failed: ${st.error ?? 'unknown error'}`);
-					return;
-				}
-			}
-			alert('AI segmentation timed out');
+			await new Promise((r) => setTimeout(r, 1500));
+			await pollAiJob(true);
 		} finally {
 			aiBusy = false;
+		}
+	}
+
+	let aiStatusChecked = false;
+	$effect(() => {
+		if (aiStatusChecked || !ps) return;
+		aiStatusChecked = true;
+		checkAiStatus();
+	});
+
+	/** resume awareness of a job started in an earlier session/page load */
+	async function checkAiStatus() {
+		if (!ps) return;
+		try {
+			const st = await (await fetch(`/api/datasets/${ps.ds.id}/ai-segment`)).json();
+			if (st.status === 'running') {
+				aiBusy = true;
+				try {
+					await pollAiJob(false);
+				} finally {
+					aiBusy = false;
+				}
+			} else if (st.status === 'done' && !localStorage.getItem(aiSeenKey(st.jobId))) {
+				aiJobId = st.jobId ?? null;
+				aiReady = (st.models ?? []).map((m: { id: number; name: string; ok: boolean }) => ({
+					id: m.id,
+					name: m.name,
+					ok: m.ok
+				}));
+			}
+		} catch {
+			// status probe is best-effort
 		}
 	}
 
@@ -1001,6 +1082,14 @@
 			}
 		}
 		aiReview = null;
+		aiReady = null;
+		if (aiJobId != null) {
+			try {
+				localStorage.setItem(aiSeenKey(aiJobId), '1');
+			} catch {
+				// quota/private mode — chip may reappear, harmless
+			}
+		}
 		await invalidateAll();
 	}
 
@@ -1472,6 +1561,7 @@
 	let guideRecipes = $state<{ key: string; name: string; description: string; params: Record<string, unknown> }[]>([]);
 	let showGuideOptions = $state(false);
 	let connectorPreview = $state(false);
+	let footprintPreview = $state(false);
 	// toolbar customization: hidden measure-tool keys, persisted
 	let hiddenTools = $state<string[]>([]);
 	let showToolbarAdjust = $state(false);
@@ -3857,6 +3947,14 @@
 						>
 							Connectors
 						</button>
+						<button
+							class="btn"
+							class:primary={footprintPreview}
+							title="Show the planned guide footprint (cut profile) outline in the axial view"
+							onclick={() => (footprintPreview = !footprintPreview)}
+						>
+							Cut profile
+						</button>
 						<button class="btn" title="Adjust offset/wall thickness for your producer and apply printer calibration" onclick={openProducerExport}>
 							<Icon name="export" size={14} /> Producer export…
 						</button>
@@ -4316,6 +4414,18 @@
 				params={{ ...guideParams, ...guideAdvanced }}
 				warnings={guideWarnings}
 				recipes={guideRecipes}
+				models={ps?.models ?? []}
+				caseMeta={{
+					patientName: `${data.patient.last_name ?? ''} ${data.patient.first_name ?? ''}`.trim(),
+					patientId: data.patient.external_id || String(data.patient.id),
+					date: (data.plan.updated_at ?? '').slice(0, 10)
+				}}
+				archPoint={(tooth) => {
+					const c = ps?.curve;
+					if (!c) return null;
+					const u = toothArchU(c, tooth);
+					return u == null ? null : c.points[indexAtLength(c, u)];
+				}}
 				onchange={(p) => {
 					guideParams.offset = Number(p.offset ?? guideParams.offset);
 					guideParams.thickness = Number(p.thickness ?? guideParams.thickness);
@@ -4589,6 +4699,20 @@
 
 <footer class="status-bar">
 	<span class="faint">coDiagnostiX Web — planning workspace</span>
+	{#if aiBusy}
+		<span class="ai-chip ai-running" title="The AI assistant is processing this dataset — you can keep working">⏳ AI assistant…</span>
+	{:else if aiReady}
+		<button
+			class="ai-chip ai-done"
+			title="AI assistant results are ready — click to review and import"
+			onclick={() => {
+				aiReview = aiReady;
+				aiReady = null;
+			}}
+		>
+			✓ AI results ready — review
+		</button>
+	{/if}
 	<span class="hint-text"><Icon name="chevron" size={11} /> {nextHint}</span>
 	{#if ps?.liveDistances}
 		{@const ld = ps.liveDistances}
@@ -4636,6 +4760,24 @@
 	/* point-placement affordance while an in-view edit mode is active */
 	.view-area.edit-cursor :global(.view canvas) {
 		cursor: crosshair;
+	}
+
+	/* AI-assistant job status chip (status bar) */
+	.ai-chip {
+		font-size: 11px;
+		padding: 1px 8px;
+		border-radius: 9px;
+		border: 1px solid transparent;
+	}
+	.ai-running {
+		color: #e0a04d;
+		border-color: rgba(224, 160, 77, 0.5);
+	}
+	.ai-done {
+		color: #5fce7b;
+		border-color: rgba(95, 206, 123, 0.6);
+		background: rgba(95, 206, 123, 0.08);
+		cursor: pointer;
 	}
 
 	.perio-btn {

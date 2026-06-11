@@ -9,7 +9,8 @@
  * along each implant axis, and finally polygonized with marching cubes.
  *
  * Extras supported through GuideParams:
- *  - embossed text labels raised from the guide top surface (5×7 bitmap font)
+ *  - text labels embossed (raised) or impressed (engraved) on the guide top
+ *    surface (5×7 bitmap font)
  *  - bone support regions (extra footprint circles, SPEC §9.5)
  *  - free-hand contact areas (footprint polygons, SPEC §9.6)
  *  - bone reduction bars (cut-profile guides, SPEC §9.8)
@@ -36,7 +37,7 @@ export interface GuideImplant {
 	sleeve: { diameter: number; height: number; offset: number };
 }
 
-/** Embossed label: raised text on the guide top surface. */
+/** Text label on the guide top surface: embossed (raised) or impressed (engraved). */
 export interface GuideLabel {
 	/** Text, A–Z / 0–9 / space / dash (anything else renders as space). */
 	text: string;
@@ -45,8 +46,14 @@ export interface GuideLabel {
 	y: number;
 	/** Letter height, mm (default 3). */
 	height?: number;
-	/** Relief depth raised above the top surface, mm (default 0.8). */
+	/** Relief depth raised above / engraved into the top surface, mm (default 0.8). */
 	depth?: number;
+	/**
+	 * 'embossed' (default): glyph strokes are extruded out of the top surface.
+	 * 'impressed': the same strokes are engraved into it instead (depth is
+	 * clamped so at least 0.4mm of cap material remains underneath).
+	 */
+	style?: 'embossed' | 'impressed';
 }
 
 /**
@@ -312,6 +319,7 @@ export function generateGuide(
 			: null;
 	const labelDepth = label ? (label.depth ?? LABEL_DEPTH_DEFAULT) : 0;
 	const labelHeight = label ? (label.height ?? LABEL_HEIGHT_DEFAULT) : 0;
+	const labelImpressed = label?.style === 'impressed';
 
 	if (implants.length === 0 || scanPositions.length < 9) return emptyMesh();
 
@@ -531,7 +539,7 @@ export function generateGuide(
 	}
 	if (minZSurf === Infinity) return emptyMesh(); // no scan coverage in the region
 
-	let topZ = maxZSurf + offset + thickness + labelDepth;
+	let topZ = maxZSurf + offset + thickness + (labelImpressed ? 0 : labelDepth);
 	for (const st of sleeveTops) {
 		topZ = Math.max(topZ, st.z + MOUNT_TOP_MARGIN);
 	}
@@ -566,10 +574,13 @@ export function generateGuide(
 		}
 	}
 
-	// 4a'. embossed label: extrude lit font pixels OUTWARD (+z) from the cap top
-	// surface so the text stands raised ~labelDepth above the guide.
+	// 4a'. label: embossed (default) extrudes lit font pixels OUTWARD (+z) from
+	// the cap top surface so the text stands raised ~labelDepth above the guide;
+	// impressed clears the same pixels INTO the cap instead, engraving the
+	// strokes ~labelDepth deep (clamped so ≥0.4mm of cap material remains).
 	if (label) {
 		const lit = makeLabelTester(label);
+		const engraveDepth = Math.min(labelDepth, Math.max(0, thickness - 0.4));
 		const li0 = Math.max(0, Math.floor((label.x - ox) / voxel));
 		const li1 = Math.min(nx - 1, Math.ceil((label.x + labelWidth(label) - ox) / voxel));
 		const lj0 = Math.max(0, Math.floor((label.y - oy) / voxel));
@@ -585,10 +596,18 @@ export function generateGuide(
 				const px = ox + i * voxel;
 				if (!lit(px, py)) continue;
 				const capTop = zs + offset + thickness;
-				const k0 = Math.max(0, Math.ceil((capTop - zLo) / voxel) - 1); // overlap the cap
-				const k1 = Math.min(nz - 1, Math.floor((capTop + labelDepth - zLo) / voxel));
-				for (let k = k0; k <= k1; k++) {
-					grid[k * nxny + idx2] = BODY;
+				if (labelImpressed) {
+					const k0 = Math.max(0, Math.ceil((capTop - engraveDepth - zLo) / voxel));
+					const k1 = Math.min(nz - 1, Math.floor((capTop - zLo) / voxel) + 1);
+					for (let k = k0; k <= k1; k++) {
+						grid[k * nxny + idx2] = 0;
+					}
+				} else {
+					const k0 = Math.max(0, Math.ceil((capTop - zLo) / voxel) - 1); // overlap the cap
+					const k1 = Math.min(nz - 1, Math.floor((capTop + labelDepth - zLo) / voxel));
+					for (let k = k0; k <= k1; k++) {
+						grid[k * nxny + idx2] = BODY;
+					}
 				}
 			}
 		}
@@ -735,6 +754,184 @@ export function generateGuide(
 		positions[i + 2] += zLo;
 	}
 	return { positions, normals, triangles: positions.length / 9 };
+}
+
+/* ------------------------------------------------------------------ */
+/* "Add object" tool-path cutting (coDX 9.10 dual-scan merge)          */
+/* ------------------------------------------------------------------ */
+
+/** Lateral accuracy of the mesh tool-path cut: fragments near a cut boundary
+ *  are subdivided down to ~this edge length (mm) before the keep/drop test. */
+const CUT_SUBDIV = 0.8;
+/** Maximum midpoint-subdivision depth per input triangle (4^depth fragments). */
+const CUT_MAX_DEPTH = 6;
+
+/**
+ * Cut the guide's tool paths through an arbitrary triangle soup ("Add object",
+ * coDX 9.10 dual-scan merge): removes every part of the mesh that lies inside
+ * a drill corridor (sleeve bore along each implant axis from the implant head
+ * upward, honouring the fitForm clearance cone) or inside an inspection-window
+ * cylinder (full height) — the same cut volumes generateGuide() clears from
+ * its voxel grid, so a merged denture/model keeps the sleeve seats and
+ * windows open.
+ *
+ * Precision (honest approximation): triangles near a cut boundary are
+ * midpoint-subdivided to ~CUT_SUBDIV mm and each fragment is kept or dropped
+ * by its centroid, so the cut wall is accurate to about ±CUT_SUBDIV mm and
+ * the rim is left as an open boundary (no wall re-tessellation — the merged
+ * STL is a visual/printable shell union, not a watertight boolean).
+ *
+ * Input/output are triangle soups (length divisible by 9) in the SAME frame
+ * as the implants (the endpoint's insertion frame).
+ */
+export function cutGuideToolPaths(
+	positions: Float32Array,
+	implants: GuideImplant[],
+	params?: Pick<GuideParams, 'windows' | 'mountHoleShape'>
+): Float32Array {
+	const fitForm = params?.mountHoleShape === 'fitForm';
+	interface Cutter {
+		/** Exact membership test (convex volume). */
+		inside: (x: number, y: number, z: number) => boolean;
+		/** Conservative proximity test, grown by `slack` mm in every direction. */
+		near: (x: number, y: number, z: number, slack: number) => boolean;
+	}
+	const cutters: Cutter[] = [];
+	for (const imp of implants) {
+		const al = Math.hypot(imp.axis.x, imp.axis.y, imp.axis.z);
+		if (al < 1e-9) continue;
+		const u: Vec3 = { x: imp.axis.x / al, y: imp.axis.y / al, z: imp.axis.z / al };
+		const h = imp.head;
+		const r = imp.sleeve.diameter / 2;
+		const so = imp.sleeve.offset;
+		const sh = Math.max(imp.sleeve.height, 1e-6);
+		const rMaxEff = fitForm ? r + FIT_CLEAR_BOTTOM : r;
+		const distSqToAxis = (x: number, y: number, z: number): { dSq: number; proj: number } => {
+			const vx = x - h.x;
+			const vy = y - h.y;
+			const vz = z - h.z;
+			const proj = vx * u.x + vy * u.y + vz * u.z;
+			return { dSq: vx * vx + vy * vy + vz * vz - proj * proj, proj };
+		};
+		cutters.push({
+			inside(x, y, z) {
+				if (z < h.z) return false;
+				const { dSq, proj } = distSqToAxis(x, y, z);
+				let rEff = r;
+				if (fitForm) {
+					const frac = Math.min(1, Math.max(0, (-proj - so) / sh));
+					rEff = r + FIT_CLEAR_BOTTOM + (FIT_CLEAR_TOP - FIT_CLEAR_BOTTOM) * frac;
+				}
+				return dSq <= rEff * rEff;
+			},
+			near(x, y, z, slack) {
+				if (z < h.z - slack) return false;
+				const rr = rMaxEff + slack;
+				return distSqToAxis(x, y, z).dSq <= rr * rr;
+			}
+		});
+	}
+	for (const w of params?.windows ?? []) {
+		const wr = w.diameter / 2;
+		cutters.push({
+			inside(x, y) {
+				const dx = x - w.x;
+				const dy = y - w.y;
+				return dx * dx + dy * dy <= wr * wr;
+			},
+			near(x, y, _z, slack) {
+				const dx = x - w.x;
+				const dy = y - w.y;
+				const rr = wr + slack;
+				return dx * dx + dy * dy <= rr * rr;
+			}
+		});
+	}
+	if (cutters.length === 0 || positions.length < 9) return positions;
+
+	/** Index of the first cutter containing the point, or -1. */
+	const insideIdx = (x: number, y: number, z: number): number => {
+		for (let c = 0; c < cutters.length; c++) {
+			if (cutters[c].inside(x, y, z)) return c;
+		}
+		return -1;
+	};
+
+	const out: number[] = [];
+	const visit = (
+		ax: number,
+		ay: number,
+		az: number,
+		bx: number,
+		by: number,
+		bz: number,
+		cx: number,
+		cy: number,
+		cz: number,
+		depth: number
+	): void => {
+		// Fully inside one (convex) cutter → drop regardless of size.
+		const ia = insideIdx(ax, ay, az);
+		if (ia >= 0 && ia === insideIdx(bx, by, bz) && ia === insideIdx(cx, cy, cz)) return;
+
+		const eAB = (bx - ax) * (bx - ax) + (by - ay) * (by - ay) + (bz - az) * (bz - az);
+		const eBC = (cx - bx) * (cx - bx) + (cy - by) * (cy - by) + (cz - bz) * (cz - bz);
+		const eCA = (ax - cx) * (ax - cx) + (ay - cy) * (ay - cy) + (az - cz) * (az - cz);
+		const e = Math.sqrt(Math.max(eAB, eBC, eCA));
+
+		if (depth >= CUT_MAX_DEPTH || e <= CUT_SUBDIV) {
+			// Leaf: keep/drop by centroid (boundary error ≤ ~CUT_SUBDIV).
+			if (insideIdx((ax + bx + cx) / 3, (ay + by + cy) / 3, (az + bz + cz) / 3) < 0) {
+				out.push(ax, ay, az, bx, by, bz, cx, cy, cz);
+			}
+			return;
+		}
+
+		// Any cutter within maxEdge of a vertex? (A cutter crossing the triangle
+		// interior is always within maxEdge of every vertex, so this is sound.)
+		let near = false;
+		for (const c of cutters) {
+			if (c.near(ax, ay, az, e) || c.near(bx, by, bz, e) || c.near(cx, cy, cz, e)) {
+				near = true;
+				break;
+			}
+		}
+		if (!near) {
+			out.push(ax, ay, az, bx, by, bz, cx, cy, cz);
+			return;
+		}
+
+		// 4-way midpoint subdivision.
+		const mabx = (ax + bx) / 2;
+		const maby = (ay + by) / 2;
+		const mabz = (az + bz) / 2;
+		const mbcx = (bx + cx) / 2;
+		const mbcy = (by + cy) / 2;
+		const mbcz = (bz + cz) / 2;
+		const mcax = (cx + ax) / 2;
+		const mcay = (cy + ay) / 2;
+		const mcaz = (cz + az) / 2;
+		visit(ax, ay, az, mabx, maby, mabz, mcax, mcay, mcaz, depth + 1);
+		visit(mabx, maby, mabz, bx, by, bz, mbcx, mbcy, mbcz, depth + 1);
+		visit(mcax, mcay, mcaz, mbcx, mbcy, mbcz, cx, cy, cz, depth + 1);
+		visit(mabx, maby, mabz, mbcx, mbcy, mbcz, mcax, mcay, mcaz, depth + 1);
+	};
+
+	for (let t = 0; t + 8 < positions.length; t += 9) {
+		visit(
+			positions[t],
+			positions[t + 1],
+			positions[t + 2],
+			positions[t + 3],
+			positions[t + 4],
+			positions[t + 5],
+			positions[t + 6],
+			positions[t + 7],
+			positions[t + 8],
+			0
+		);
+	}
+	return Float32Array.from(out);
 }
 
 /* ------------------------------------------------------------------ */

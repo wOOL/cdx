@@ -5,6 +5,7 @@ import { unlink } from 'node:fs/promises';
 import { caseRel, db, resolveData } from '$lib/server/db';
 import { getCase, getPlan, listImplants, logAudit, setSetting } from '$lib/server/db/repo';
 import {
+	cutGuideToolPaths,
 	generateGuide,
 	GUIDE_RECIPES,
 	validateGuideDesign,
@@ -23,16 +24,21 @@ import type { Model } from '$lib/types';
  *    — copies the plan's existing generated guide STL into a new 'other' model
  *      row (stacked-guide base). Never regenerates. Responds { model }.
  *
- *  { modelId, planId, insertion?, windows?, intaglioModelId?, params? }
+ *  { modelId, planId, insertion?, windows?, intaglioModelId?, mergeModelIds?, params? }
  *    — (re)generates the guide. params may carry:
  *      offset, thickness, regionRadius, voxel, mountWall,
  *      largeConnectors, mountHoleShape ('cylindrical' | 'fitForm'),
- *      label { text, x, y, height?, depth? },
+ *      label { text, x, y, height?, depth?, style? ('embossed' | 'impressed') },
  *      supportRegions [{ x, y, radius }],
  *      contactPolygons [[{ x, y }, ...]],
  *      reductionBars [{ x1, y1, x2, y2, width, height, zTop }].
  *      intaglioModelId: a second model of the same case whose surface is used
  *      for the intaglio heightfield (dual-scan denture bottom).
+ *      mergeModelIds: other case models (typically the imported denture STL)
+ *      merged INTO the produced guide STL as additional shells, with the
+ *      guide's drill corridors and inspection windows cut through them
+ *      ("Add object", coDX 9.10 dual-scan).
+ *      intaglioModelId / mergeModelIds are also accepted inside params.
  *      Responds { model, triangles, warnings }.
  */
 export const GET: RequestHandler = async () => {
@@ -175,6 +181,31 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		intaglio = rotateSoup(await loadSoup(im), parseTransform(im));
 	}
 
+	// "Add object" (coDX 9.10 dual-scan): other case models merged into the
+	// produced guide as additional shells, with the guide's tool paths (drill
+	// corridors) and inspection windows cut through them.
+	const mergeIdsRaw = Array.isArray(body.mergeModelIds)
+		? body.mergeModelIds
+		: Array.isArray(body.params?.mergeModelIds)
+			? body.params.mergeModelIds
+			: [];
+	const mergeModelIds = [
+		...new Set(
+			(mergeIdsRaw as unknown[])
+				.map((v) => Number(v))
+				.filter((n) => Number.isFinite(n) && n > 0)
+		)
+	].slice(0, 8);
+	const mergeSoups: Float32Array[] = [];
+	for (const mid of mergeModelIds) {
+		const mm = db
+			.query('SELECT * FROM models WHERE id = ?1 AND case_id = ?2')
+			.get(mid, caseId) as Model | null;
+		if (!mm) error(404, `Merge model ${mid} not found`);
+		if (mm.kind === 'guide') continue; // never merge a generated guide into itself
+		mergeSoups.push(rotateSoup(await loadSoup(mm), parseTransform(mm)));
+	}
+
 	const p = body.params ?? {};
 	const fin = (v: unknown): number | null => {
 		const n = Number(v);
@@ -207,7 +238,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 				x: cc.x,
 				y: cc.y,
 				height: Math.min(10, Math.max(1, fin(p.label.height) ?? 3)),
-				depth: Math.min(2, Math.max(0.2, fin(p.label.depth) ?? 0.8))
+				depth: Math.min(2, Math.max(0.2, fin(p.label.depth) ?? 0.8)),
+				style: p.label.style === 'impressed' ? 'impressed' : 'embossed'
 			};
 		}
 	}
@@ -285,19 +317,37 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	// design-rule validation (in the insertion frame, same data as generation)
 	const warnings = validateGuideDesign(rotatedImplants, guideParams, guide);
 
-	// rotate the guide back into volume space
-	for (let i = 0; i < guide.positions.length; i += 3) {
+	// "Add object": append the merged shells with the tool paths cut through
+	// them (same corridor/window volumes the body generation cleared).
+	let outPositions = guide.positions;
+	if (mergeSoups.length > 0) {
+		const shells = mergeSoups.map((s) => cutGuideToolPaths(s, rotatedImplants, guideParams));
+		const combined = new Float32Array(
+			outPositions.length + shells.reduce((a, s) => a + s.length, 0)
+		);
+		combined.set(outPositions, 0);
+		let off = outPositions.length;
+		for (const s of shells) {
+			combined.set(s, off);
+			off += s.length;
+		}
+		outPositions = combined;
+	}
+	const outTriangles = outPositions.length / 9;
+
+	// rotate the guide (and merged shells) back into volume space
+	for (let i = 0; i < outPositions.length; i += 3) {
 		const v = applyRot3(Rinv, {
-			x: guide.positions[i],
-			y: guide.positions[i + 1],
-			z: guide.positions[i + 2]
+			x: outPositions[i],
+			y: outPositions[i + 1],
+			z: outPositions[i + 2]
 		});
-		guide.positions[i] = v.x;
-		guide.positions[i + 1] = v.y;
-		guide.positions[i + 2] = v.z;
+		outPositions[i] = v.x;
+		outPositions[i + 1] = v.y;
+		outPositions[i + 2] = v.z;
 	}
 
-	const stl = meshToStlBinary(guide.positions, 'surgical_guide');
+	const stl = meshToStlBinary(outPositions, 'surgical_guide');
 	const path = join(caseRel(caseId), `guide_${crypto.randomUUID().slice(0, 8)}.stl`);
 	await Bun.write(resolveData(path), stl);
 
@@ -328,6 +378,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 			modelId: Number(body.modelId),
 			insertion: insertionMode,
 			intaglioModelId: Number.isFinite(intaglioModelId) && intaglioModelId > 0 ? intaglioModelId : null,
+			mergeModelIds,
 			windows: Array.isArray(body.windows) ? body.windows : [],
 			params: p
 		})
@@ -337,7 +388,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		locals.user,
 		'guide.generate',
 		`plan:${plan.id}`,
-		`${guide.triangles} triangles, ${warnings.length} warning(s)`
+		`${outTriangles} triangles, ${warnings.length} warning(s)` +
+			(mergeSoups.length > 0 ? `, ${mergeSoups.length} merged object(s)` : '')
 	);
-	return json({ model: guideModel, triangles: guide.triangles, warnings });
+	return json({ model: guideModel, triangles: outTriangles, warnings });
 };
