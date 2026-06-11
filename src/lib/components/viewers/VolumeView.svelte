@@ -60,6 +60,17 @@
 	let controlsRef: OrbitControls | null = null;
 	let viewDistance = 0;
 
+	/** Current 3D viewing direction (camera → orbit target) in volume mm coordinates. */
+	export function getViewDirection(): { x: number; y: number; z: number } | null {
+		if (!cameraRef || !controlsRef || !groupRef) return null;
+		const d = controlsRef.target.clone().sub(cameraRef.position);
+		const q = new THREE.Quaternion();
+		groupRef.getWorldQuaternion(q);
+		d.applyQuaternion(q.invert());
+		const len = d.length() || 1;
+		return { x: d.x / len, y: d.y / len, z: d.z / len };
+	}
+
 	/** standard anatomical camera perspectives (world: +y = head up, +z = anterior) */
 	function setPerspective(name: string) {
 		if (!cameraRef || !controlsRef) return;

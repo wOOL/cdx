@@ -246,6 +246,22 @@ export function drawPanoOverlay(
 			}
 		});
 
+		// while editing: live segment lengths (placement guidance, 5–10 mm spacing)
+		if (active && n.points.length >= 2) {
+			ctx.font = '9px sans-serif';
+			for (let i = 1; i < n.points.length; i++) {
+				const a3 = n.points[i - 1];
+				const b3 = n.points[i];
+				const mm = Math.hypot(b3.x - a3.x, b3.y - a3.y, b3.z - a3.z);
+				const a2 = pts[i - 1];
+				const b2 = pts[i];
+				if (!a2 || !b2) continue;
+				const mx = (a2.x + b2.x) / 2;
+				const my = (a2.y + b2.y) / 2;
+				ctx.fillStyle = mm > 10.5 ? 'rgba(240, 138, 36, 0.95)' : 'rgba(216, 220, 228, 0.85)';
+				ctx.fillText(`${mm.toFixed(1)}`, mx + 4, my - 3);
+			}
+		}
 	}
 
 	// implants
@@ -326,6 +342,8 @@ interface PanoToolEvent {
 }
 
 type DragKind = 'none' | 'nerve-point' | 'implant-body' | 'implant-head' | 'implant-apex';
+/** set when the active nerve-point drag started by appending a new point */
+let nervePointAppended = false;
 
 let panoDrag: { kind: DragKind; index: number; implantId: number; lastU: number; lastZ: number } = {
 	kind: 'none',
@@ -361,6 +379,7 @@ export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 			});
 			if (near >= 0) {
 				panoDrag = { kind: 'nerve-point', index: near, implantId: -1, lastU: e.u, lastZ: e.zmm };
+				nervePointAppended = false;
 			} else {
 				const p3 = panoTo3D(ps, e.u, e.zmm);
 				if (!p3) return false;
@@ -372,6 +391,7 @@ export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 					lastU: e.u,
 					lastZ: e.zmm
 				};
+				nervePointAppended = true;
 				ps.saveNerve(nerve.id);
 			}
 			ps.lastNervePoint = { nerveId: nerve.id, index: panoDrag.index };
@@ -386,6 +406,19 @@ export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 			return true;
 		}
 		if (e.type === 'up') {
+			// center the other views on a freshly placed point (like the original)
+			if (panoDrag.kind === 'nerve-point' && nervePointAppended) {
+				const pt = nerve.points[panoDrag.index];
+				if (pt) {
+					ps.cursor.x = Math.round(pt.x / ps.ds.spacing_x);
+					ps.cursor.y = Math.round(pt.y / ps.ds.spacing_y);
+					ps.cursor.z = Math.max(
+						0,
+						Math.min(ps.ds.slices - 1, Math.round(pt.z / ps.ds.spacing_z))
+					);
+				}
+				nervePointAppended = false;
+			}
 			panoDrag.kind = 'none';
 			return true;
 		}

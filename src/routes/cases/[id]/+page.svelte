@@ -570,6 +570,14 @@
 	}
 
 	let selectedImplant = $derived(ps?.implants.find((i) => i.id === ps?.selectedImplantId) ?? null);
+	/** sleeve systems recommended for the selected implant's manufacturer */
+	const recSleeveSystems = $derived(
+		selectedImplant
+			? SLEEVE_SYSTEMS.filter((s) =>
+					s.name.toLowerCase().includes(selectedImplant!.manufacturer.toLowerCase())
+				)
+			: []
+	);
 
 	// implants whose article no longer exists in the active catalog (catalog updates)
 	let outdatedImplants = $derived(
@@ -866,6 +874,8 @@
 
 	// ---------- scan matching (align stage) ----------
 	let alignVolView = $state<ReturnType<typeof VolumeView>>();
+	/** 3D view of the default (implant/sleeve/guide) grid — for view-derived insertion */
+	let defaultVolView = $state<ReturnType<typeof VolumeView>>();
 	let matching = $state<{
 		modelId: number | null;
 		mode: 'idle' | 'pick-scan' | 'pick-volume';
@@ -3483,7 +3493,18 @@
 								if (!ps) return;
 								for (const im of ps.implants) {
 									if (!im.sleeve) {
-										im.sleeve = defaultSleeve();
+										// prefer the sleeve system recommended for the implant's manufacturer
+										const rec = SLEEVE_SYSTEMS.find((s) =>
+											s.name.toLowerCase().includes(im.manufacturer.toLowerCase())
+										);
+										im.sleeve = rec
+											? {
+													system: rec.name,
+													diameter: rec.diameters[0],
+													height: rec.heights[0],
+													offset: rec.offsets[Math.floor(rec.offsets.length / 2)]
+												}
+											: defaultSleeve();
 										ps.saveImplant(im.id);
 									}
 								}
@@ -3528,9 +3549,22 @@
 								}}
 							>
 								<option value="">No sleeve</option>
-								{#each SLEEVE_SYSTEMS as s (s.name)}
-									<option value={s.name}>{s.name}</option>
-								{/each}
+								{#if recSleeveSystems.length}
+									<optgroup label="Recommended ({selectedImplant.manufacturer})">
+										{#each recSleeveSystems as s (s.name)}
+											<option value={s.name}>{s.name}</option>
+										{/each}
+									</optgroup>
+									<optgroup label="Open sleeve systems">
+										{#each SLEEVE_SYSTEMS.filter((s) => !recSleeveSystems.includes(s)) as s (s.name)}
+											<option value={s.name}>{s.name}</option>
+										{/each}
+									</optgroup>
+								{:else}
+									{#each SLEEVE_SYSTEMS as s (s.name)}
+										<option value={s.name}>{s.name}</option>
+									{/each}
+								{/if}
 								{#if customSleeves.length}
 									<optgroup label="Custom systems (/sleeves)">
 										{#each customSleeves as cs (cs.id)}
@@ -3797,7 +3831,7 @@
 			{:else}
 				<div class="view-grid grid-2x2">
 					<div class="view panel" class:cell-max={maximized === 'd3d'} class:cell-hidden={maximized && maximized !== 'd3d'}>
-						<VolumeView state={ps} onMeshClick={onGuideMeshClick} />
+						<VolumeView state={ps} onMeshClick={onGuideMeshClick} bind:this={defaultVolView} />
 						{@render maxBtn('d3d')}
 					</div>
 					<div class="view panel" class:cell-max={maximized === 'dax'} class:cell-hidden={maximized && maximized !== 'dax'}>
