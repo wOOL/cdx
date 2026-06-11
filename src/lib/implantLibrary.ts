@@ -266,6 +266,8 @@ export interface SleeveSpec {
 	diameter: number;
 	height: number;
 	offset: number;
+	/** Set when the sleeve comes from a custom sleeve system (/sleeves). */
+	systemId?: number;
 }
 
 export function defaultSleeve(): SleeveSpec {

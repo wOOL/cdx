@@ -17,7 +17,8 @@
 	import AngleBetweenAbutments from '$lib/components/AngleBetweenAbutments.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
-	import { snapshotPrefs } from '$lib/client/render2d';
+	import { snapshotPrefs, toCanvas } from '$lib/client/render2d';
+	import { areaCm2, gridOverlayDraw } from '$lib/client/segExtras';
 	import {
 		crossTool,
 		drawAxialObjects,
@@ -1074,13 +1075,137 @@
 	// ---------- voxel mask editor (Scanview-style segmentation editing) ----------
 	let segEdit = $state({
 		active: false,
-		tool: 'brush' as 'brush' | 'fill',
+		tool: 'brush' as 'brush' | 'fill' | 'boundary' | 'area',
 		mode: 'add' as 'add' | 'erase',
 		brushMM: 2,
 		rangeLo: 300,
-		busy: ''
+		busy: '',
+		grid: false,
+		propagateN: 5,
+		lodId: 0
 	});
 	let maskTick = $state(0);
+	let segStats = $state<{ voxels: number; ml: number } | null>(null);
+	let segUndoState = $state({ undo: 0, redo: 0 });
+	let segBoundaries = $state<Record<string, { x: number; y: number }[][]>>({});
+	let boundaryDraft = $state<{ x: number; y: number }[]>([]);
+	let areaDraft = $state<{ x: number; y: number }[]>([]);
+	let segLodPresets = $state<{ id: number; name: string; isDefault?: boolean }[]>([]);
+	let segExtrasLoaded = false;
+	$effect(() => {
+		if (!segEdit.active || segExtrasLoaded || !ps) return;
+		segExtrasLoaded = true;
+		const dsId = ps.ds.id;
+		fetch('/api/seg-lod')
+			.then((r) => r.json())
+			.then((b) => {
+				segLodPresets = b.presets ?? [];
+				const def = segLodPresets.find((x) => x.isDefault);
+				if (def) segEdit.lodId = def.id;
+			})
+			.catch(() => {});
+		fetch(`/api/datasets/${dsId}/mask/boundaries`)
+			.then((r) => r.json())
+			.then((b) => (segBoundaries = b.boundaries ?? b ?? {}))
+			.catch(() => {});
+		refreshSegStats();
+	});
+
+	async function refreshSegStats() {
+		if (!ps) return;
+		try {
+			const r = await fetch(`/api/datasets/${ps.ds.id}/mask/stats`);
+			if (r.ok) segStats = await r.json();
+		} catch {
+			segStats = null;
+		}
+	}
+
+	async function segHistory(op: 'undo' | 'redo') {
+		if (!ps) return;
+		const res = await fetch(`/api/datasets/${ps.ds.id}/mask/${op}`, { method: 'POST' });
+		if (!res.ok) return;
+		const b = await res.json();
+		segUndoState = { undo: b.undo ?? 0, redo: b.redo ?? 0 };
+		for (const idx of b.slices ?? []) invalidateMaskSlice(ps.ds.id, idx);
+		maskTick++;
+		refreshSegStats();
+	}
+
+	async function segPropagate(dir: 1 | -1) {
+		if (!ps) return;
+		segEdit.busy = 'Propagating…';
+		try {
+			const from = ps.cursor.z;
+			const to = Math.max(0, Math.min(ps.ds.slices - 1, from + dir * segEdit.propagateN));
+			const res = await fetch(`/api/datasets/${ps.ds.id}/mask/propagate`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ from, to, lo: segEdit.rangeLo, hi: 32767 })
+			});
+			const b = await res.json().catch(() => null);
+			if (!res.ok) {
+				alert(b?.message ?? 'Propagation failed');
+				return;
+			}
+			for (const r of b.slices ?? []) invalidateMaskSlice(ps.ds.id, r.index);
+			maskTick++;
+			refreshSegStats();
+			if (b.warnings?.length)
+				alert(`Check slice${b.warnings.length > 1 ? 's' : ''} ${b.warnings.join(', ')} — the segmented area changed by more than 40% there.`);
+		} finally {
+			segEdit.busy = '';
+		}
+	}
+
+	async function saveBoundaryDraft() {
+		if (!ps || boundaryDraft.length < 3) {
+			boundaryDraft = [];
+			return;
+		}
+		const key = String(ps.cursor.z);
+		const next = { ...segBoundaries, [key]: [...(segBoundaries[key] ?? []), boundaryDraft.map((p) => ({ ...p }))] };
+		const res = await fetch(`/api/datasets/${ps.ds.id}/mask/boundaries`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(next)
+		});
+		if (res.ok) segBoundaries = next;
+		boundaryDraft = [];
+		maskTick++;
+	}
+
+	async function clearSliceBoundaries() {
+		if (!ps) return;
+		const key = String(ps.cursor.z);
+		const next = { ...segBoundaries };
+		delete next[key];
+		const res = await fetch(`/api/datasets/${ps.ds.id}/mask/boundaries`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(next)
+		});
+		if (res.ok) segBoundaries = next;
+		maskTick++;
+	}
+
+	function finishAreaDraft() {
+		if (!ps || areaDraft.length < 3) {
+			areaDraft = [];
+			return;
+		}
+		const area = areaCm2(areaDraft, ps.ds.spacing_x, ps.ds.spacing_y);
+		const cx = areaDraft.reduce((a, p) => a + p.x, 0) / areaDraft.length;
+		const cy = areaDraft.reduce((a, p) => a + p.y, 0) / areaDraft.length;
+		ps.addMeasurement(
+			'annotation',
+			[{ x: cx * ps.ds.spacing_x, y: cy * ps.ds.spacing_y, z: ps.cursor.z * ps.ds.spacing_z }],
+			area,
+			`${area.toFixed(2)} cm²`
+		);
+		areaDraft = [];
+		maskTick++;
+	}
 
 	async function maskInit() {
 		if (!ps) return;
@@ -1093,6 +1218,7 @@
 			});
 			invalidateMaskSlice(ps.ds.id);
 			maskTick++;
+			refreshSegStats();
 		} finally {
 			segEdit.busy = '';
 		}
@@ -1106,7 +1232,7 @@
 			const res = await fetch(`/api/datasets/${ps.ds.id}/mask/build-model`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name: 'Custom segmentation' })
+				body: JSON.stringify({ name: 'Custom segmentation', ...(segEdit.lodId ? { lodId: segEdit.lodId } : {}) })
 			});
 			if (res.ok) {
 				const { model } = await res.json();
@@ -1137,12 +1263,61 @@
 		} else {
 			fetchMaskSlice(ps.ds.id, ps.cursor.z).then(() => maskTick++);
 		}
+		if (segEdit.grid) {
+			gridOverlayDraw(ctx, ctx.canvas.width, ctx.canvas.height, 1 / (t.scaleX / ps.ds.spacing_x));
+		}
+		const polys = segBoundaries[String(ps.cursor.z)] ?? [];
+		for (const poly of polys) drawSlicePoly(ctx, t, poly, '#e8d44d', true);
+		if (boundaryDraft.length) drawSlicePoly(ctx, t, boundaryDraft, '#e8d44d', false);
+		if (areaDraft.length) drawSlicePoly(ctx, t, areaDraft, '#45b8e0', false);
+	}
+
+	function drawSlicePoly(
+		ctx: CanvasRenderingContext2D,
+		t: ViewTransform,
+		poly: { x: number; y: number }[],
+		color: string,
+		close: boolean
+	) {
+		if (poly.length < 2) {
+			if (poly.length === 1) {
+				const c = toCanvas(t, poly[0].x, poly[0].y);
+				ctx.fillStyle = color;
+				ctx.fillRect(c.x - 2, c.y - 2, 4, 4);
+			}
+			return;
+		}
+		ctx.strokeStyle = color;
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		const p0 = toCanvas(t, poly[0].x, poly[0].y);
+		ctx.moveTo(p0.x, p0.y);
+		for (let i = 1; i < poly.length; i++) {
+			const c = toCanvas(t, poly[i].x, poly[i].y);
+			ctx.lineTo(c.x, c.y);
+		}
+		if (close) ctx.closePath();
+		ctx.stroke();
 	}
 
 	function segTool(e: ToolPointerEvent): boolean {
 		if (!ps || !segEdit.active || ps.locked) return false;
 		const dsId = ps.ds.id;
 		const index = ps.cursor.z;
+		if (segEdit.tool === 'boundary') {
+			if (e.type === 'down') {
+				boundaryDraft.push({ x: e.px, y: e.py });
+				maskTick++;
+			}
+			return true;
+		}
+		if (segEdit.tool === 'area') {
+			if (e.type === 'down') {
+				areaDraft.push({ x: e.px, y: e.py });
+				maskTick++;
+			}
+			return true;
+		}
 		if (segEdit.tool === 'fill') {
 			if (e.type === 'down') {
 				segEdit.busy = 'Filling…';
@@ -1160,6 +1335,7 @@
 					.then(() => {
 						invalidateMaskSlice(dsId, index);
 						maskTick++;
+						refreshSegStats();
 					})
 					.finally(() => (segEdit.busy = ''));
 			}
@@ -1175,7 +1351,7 @@
 			return true;
 		}
 		if (e.type === 'up') {
-			flushPaintOps();
+			flushPaintOps().then(() => refreshSegStats());
 			return true;
 		}
 		return false;
@@ -1215,6 +1391,22 @@
 	// ---------- DICOM upload ----------
 	let uploading = $state(false);
 	let wizardFiles = $state<File[] | null>(null);
+	type CustomSleeveSys = {
+		id: number;
+		name: string;
+		segments: { height: number; upperDiameter: number; lowerDiameter: number; distanceToZeroLevel: number }[];
+	};
+	let customSleeves = $state<CustomSleeveSys[]>([]);
+	let customSleevesLoaded = false;
+	$effect(() => {
+		if (stage !== 'sleeve' || customSleevesLoaded) return;
+		customSleevesLoaded = true;
+		fetch('/api/sleeves')
+			.then((r) => r.json())
+			.then((b) => (customSleeves = b.systems ?? []))
+			.catch(() => {});
+	});
+
 	let showImplantPicker = $state(false);
 	let pickerFavorites = $state<string[]>([]);
 
@@ -2229,6 +2421,8 @@
 						<select bind:value={segEdit.tool} title="Tool">
 							<option value="brush">Brush</option>
 							<option value="fill">Flood fill</option>
+							<option value="boundary">Boundary polyline</option>
+							<option value="area">Area (cm²)</option>
 						</select>
 						<select bind:value={segEdit.mode} title="Add or erase">
 							<option value="add">Add</option>
@@ -2245,6 +2439,58 @@
 								style="width:80px"
 							/>
 							<span class="muted">{segEdit.brushMM.toFixed(1)} mm</span>
+						{/if}
+						{#if segEdit.tool === 'boundary'}
+							<button class="btn" disabled={boundaryDraft.length < 3} onclick={saveBoundaryDraft}>
+								Close boundary ({boundaryDraft.length})
+							</button>
+							<button class="btn" disabled={!boundaryDraft.length} onclick={() => (boundaryDraft = [])}>
+								Cancel
+							</button>
+							<button
+								class="btn danger"
+								disabled={!segBoundaries[String(ps.cursor.z)]?.length}
+								onclick={clearSliceBoundaries}
+								title="Remove all boundary polylines on this slice"
+							>
+								Clear slice
+							</button>
+						{/if}
+						{#if segEdit.tool === 'area'}
+							<button class="btn" disabled={areaDraft.length < 3} onclick={finishAreaDraft}>
+								Close area ({areaDraft.length})
+							</button>
+							<button class="btn" disabled={!areaDraft.length} onclick={() => (areaDraft = [])}>
+								Cancel
+							</button>
+						{/if}
+						<button class="btn" title="Undo last mask edit" onclick={() => segHistory('undo')}>↶</button>
+						<button class="btn" title="Redo mask edit" onclick={() => segHistory('redo')}>↷</button>
+						<span title="Propagate the current slice's mask to neighbouring slices (threshold- and boundary-aware)">
+							<button class="btn" disabled={!!segEdit.busy} onclick={() => segPropagate(-1)}>⇞</button>
+							<input
+								type="number"
+								min="1"
+								max="40"
+								bind:value={segEdit.propagateN}
+								style="width:44px"
+								title="Slices to propagate"
+							/>
+							<button class="btn" disabled={!!segEdit.busy} onclick={() => segPropagate(1)}>⇟</button>
+						</span>
+						<button class="btn" class:primary={segEdit.grid} title="Measurement grid (1 mm)" onclick={() => (segEdit.grid = !segEdit.grid)}>
+							<Icon name="grid" size={13} />
+						</button>
+						{#if segLodPresets.length}
+							<select bind:value={segEdit.lodId} title="Level-of-detail preset for model build">
+								<option value={0}>Full detail</option>
+								{#each segLodPresets as lp (lp.id)}
+									<option value={lp.id}>{lp.name}</option>
+								{/each}
+							</select>
+						{/if}
+						{#if segStats}
+							<span class="muted" title="Segmented volume">{segStats.ml.toFixed(2)} ml</span>
 						{/if}
 						<button class="btn primary" disabled={!!segEdit.busy} onclick={maskBuildModel}>
 							{segEdit.busy || 'Build 3D model'}
@@ -2468,7 +2714,22 @@
 								value={selectedImplant.sleeve?.system ?? ''}
 								onchange={(e) => {
 									if (!selectedImplant || !ps) return;
-									const sys = SLEEVE_SYSTEMS.find((s) => s.name === e.currentTarget.value);
+									const v = e.currentTarget.value;
+									if (v.startsWith('custom:')) {
+										const cs = customSleeves.find((c) => c.id === Number(v.slice(7)));
+										if (cs && cs.segments.length) {
+											selectedImplant.sleeve = {
+												system: cs.name,
+												diameter: Math.max(...cs.segments.map((g) => g.upperDiameter)),
+												height: cs.segments.reduce((a, g) => a + g.height, 0),
+												offset: cs.segments[0].distanceToZeroLevel,
+												systemId: cs.id
+											};
+										}
+										ps.saveImplant(selectedImplant.id);
+										return;
+									}
+									const sys = SLEEVE_SYSTEMS.find((s) => s.name === v);
 									if (!sys) {
 										selectedImplant.sleeve = null;
 									} else {
@@ -2486,6 +2747,13 @@
 								{#each SLEEVE_SYSTEMS as s (s.name)}
 									<option value={s.name}>{s.name}</option>
 								{/each}
+								{#if customSleeves.length}
+									<optgroup label="Custom systems (/sleeves)">
+										{#each customSleeves as cs (cs.id)}
+											<option value={'custom:' + cs.id}>{cs.name}</option>
+										{/each}
+									</optgroup>
+								{/if}
 							</select>
 							{#if selectedImplant.sleeve}
 								{@const sys = SLEEVE_SYSTEMS.find((s) => s.name === selectedImplant?.sleeve?.system)}

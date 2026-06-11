@@ -36,6 +36,10 @@
 				{t.label}
 			</button>
 		{/each}
+		<span class="tab-links">
+			<a class="tab" href="/catalogs">Implant catalogs ↗</a>
+			<a class="tab" href="/sleeves">Sleeve systems ↗</a>
+		</span>
 	</div>
 
 	<form
@@ -298,6 +302,10 @@
 		flex: 1;
 		overflow-y: auto;
 		padding: 24px;
+	}
+	.tab-links {
+		margin-left: auto;
+		display: flex;
 	}
 	.tab-bar {
 		display: flex;
