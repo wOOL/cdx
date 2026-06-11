@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db, resolveData } from '$lib/server/db';
 import { getPlan, logAudit } from '$lib/server/db/repo';
+import { spendCredit } from '$lib/server/auth';
 import type { Model } from '$lib/types';
 
 export const GET: RequestHandler = async ({ params, url, locals }) => {
@@ -23,7 +24,17 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 			if (!plan || !plan.approved) {
 				error(409, 'Approve the plan before exporting the guide for production');
 			}
-			logAudit(locals.user, 'guide.export', `model:${m.id}`, m.name);
+			if (plan.guide_stale) {
+				error(409, 'The plan changed after this guide was generated — regenerate the guide first');
+			}
+			// every production export burns one credit — spent atomically so parallel
+			// downloads can never push the balance below zero.
+			const remaining = locals.user ? spendCredit(locals.user.id) : null;
+			if (remaining === null) {
+				error(402, 'No export credits left — top up in your account console');
+			}
+			headers['X-Credits-Remaining'] = String(remaining);
+			logAudit(locals.user, 'guide.export', `model:${m.id}`, `${m.name} — credits left: ${remaining}`);
 		}
 		const safe = m.name.replace(/[^\w\-. ]+/g, '_');
 		headers['Content-Disposition'] = `attachment; filename="${safe}.${ext}"`;

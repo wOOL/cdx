@@ -2333,8 +2333,13 @@
 							{guideBusy ? 'Generating…' : 'Generate guide'}
 						</button>
 						{#if guideError}<span class="warn-text">{guideError}</span>{/if}
+						{#if data.plan.guide_stale}
+							<span class="warn-text" title="Implants changed after the guide was generated — regenerate before export">
+								<Icon name="warning" size={13} /> Guide outdated
+							</span>
+						{/if}
 						{#each guideModels as g (g.id)}
-							{#if data.plan.approved}
+							{#if data.plan.approved && !data.plan.guide_stale}
 								<a class="btn" href="/api/models/{g.id}/file?download=1" title="Download STL">
 									<Icon name="export" size={14} /> {g.name}.stl
 								</a>

@@ -145,6 +145,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		)
 		.get(caseId, `Guide — ${plan.name}`, path, plan.id) as Model;
 
+	db.query('UPDATE plans SET guide_stale = 0 WHERE id = ?1').run(plan.id);
 	logAudit(locals.user, 'guide.generate', `plan:${plan.id}`, `${guide.triangles} triangles`);
 	return json({ model: guideModel, triangles: guide.triangles });
 };

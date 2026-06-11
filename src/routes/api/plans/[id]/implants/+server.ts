@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-import { getPlan, listImplants } from '$lib/server/db/repo';
+import { getPlan, listImplants, markGuideStale } from '$lib/server/db/repo';
 import type { Implant } from '$lib/types';
 
 export const GET: RequestHandler = async ({ params }) => {
@@ -41,5 +41,6 @@ export const POST: RequestHandler = async ({ params, request }) => {
 			String(body.color ?? '#3aa757'),
 			body.sleeve ? JSON.stringify(body.sleeve) : ''
 		) as Implant;
+	markGuideStale(planId);
 	return json({ implant });
 };

@@ -75,6 +75,8 @@ export interface Plan {
 	pan_curve: string;
 	settings: string;
 	jaw: 'mandible' | 'maxilla';
+	sent: number;
+	guide_stale: number;
 	created_at: string;
 	updated_at: string;
 }

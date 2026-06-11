@@ -228,6 +228,14 @@ export function updatePlan(id: number, fields: Partial<Plan>): void {
 	);
 }
 
+/** flag the plan's guide as outdated when planning changes after generation */
+export function markGuideStale(planId: number): void {
+	db.query(
+		`UPDATE plans SET guide_stale = 1
+		 WHERE id = ?1 AND EXISTS (SELECT 1 FROM models WHERE plan_id = ?1 AND kind = 'guide')`
+	).run(planId);
+}
+
 // ---------- settings ----------
 
 export const SETTING_DEFAULTS: Record<string, string> = {

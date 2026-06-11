@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-import { getPlan } from '$lib/server/db/repo';
+import { getPlan, markGuideStale } from '$lib/server/db/repo';
 import type { Implant } from '$lib/types';
 
 function getImplant(id: number): Implant | null {
@@ -59,6 +59,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		updated.visible,
 		updated.abutment
 	);
+	markGuideStale(implant.plan_id);
 	return json({ implant: getImplant(id) });
 };
 
@@ -66,5 +67,6 @@ export const DELETE: RequestHandler = async ({ params }) => {
 	const implant = getImplant(Number(params.id));
 	if (implant) assertUnlocked(implant.plan_id);
 	db.query('DELETE FROM implants WHERE id = ?1').run(Number(params.id));
+	if (implant) markGuideStale(implant.plan_id);
 	return json({ ok: true });
 };
