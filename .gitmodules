@@ -1,0 +1,4 @@
+[submodule "vendor/chili3d"]
+	path = vendor/chili3d
+	url = https://github.com/xiangechen/chili3d
+	ignore = untracked

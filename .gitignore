@@ -33,3 +33,6 @@ vite.config.ts.timestamp-*
 
 # local guide binary files
 cod_guide
+
+# other static files
+static/cad-app
