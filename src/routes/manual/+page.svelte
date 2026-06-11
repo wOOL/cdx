@@ -196,6 +196,19 @@
 		color: var(--accent-bright);
 	}
 	@media print {
+		/* whiten the whole page chrome — otherwise the app's dark body colour
+		   shows through wherever a chapter panel doesn't fill the page (the dark
+		   blocks below short chapters, which some PDF viewers paint and others hide) */
+		:global(html),
+		:global(body),
+		:global(.app) {
+			background: #fff !important;
+		}
+		.manual-layout,
+		.manual-body,
+		.manual-toc {
+			background: #fff !important;
+		}
 		:global(.app) {
 			height: auto !important;
 			overflow: visible !important;
