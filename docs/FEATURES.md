@@ -103,13 +103,13 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Align views to implant (cross-sectional/tangential/axial to selected instrument axis; toggle revert; 360° tangential rotation) — partial: cross-section align toggle only
 - [~] [P1] Status bar: patient info + live chips (Average density HU, Distance to other implants, Distance to nerve canal, Distance to other sleeves) with red/green state — partial: warnings + density only; no distance chips
 - [ ] [P2] Status-bar distance chip popups listing per-object live distances (1 decimal mm)
-- [ ] [P2] Cross-sectional link button "jointly move and zoom" + auto-recenter on implant selection
+- [~] [P2] Cross-sectional link button "jointly move and zoom" + auto-recenter on implant selection — partial: auto-recenter done; no link button
 - [ ] [P2] 3D default-perspective dropdown (Left/Right/Anterior/Posterior/Superior/Inferior)
 - [~] [P2] Millimeter scale bars in 2D views (toggle, default on) — partial: no toggle; absent in cross view
 - [~] [P2] Orientation indicators: 2D orientation strings + 3D cube/model (L/R/A/P/H/F), model choice setting, Ctrl+1..6 — partial: 2D letters only; no 3D cube
 - [~] [P2] View > Objects visibility submenu (implants, axes, crestal levels, 3D models, abutments, sleeves, teeth) + per-object tree checkboxes — partial: per-object eyes; no category submenu
 - [x] [P2] Vertical & horizontal 3D cuts (clip planes bound to current cross-section / axial position)
-- [~] [P2] Per-view Snapshot button (high-res capture, size choice, save to Image Management or download) — partial: canvas-resolution PNG only
+- [x] [P2] Per-view Snapshot button (high-res capture, size choice, save to Image Management or download)
 - [~] [P2] Grayscale presets in dialog (save/overwrite/delete; "Implant Planning (CT)" factory preset) — partial: fixed presets; no save/delete
 - [~] [P2] Hotkey system + hotkey list dialog (Ctrl+F1) per SPEC §3.9 — partial: few hotkeys; no list dialog
 - [~] [P3] Panoramic X-ray mode toggle (ray-sum projection vs curved slice) — partial: slab averaging only; no ray-sum toggle
@@ -118,7 +118,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P3] 3D Setup dialog: per-segmentation visibility/name/color/transparency, Alpha/Beta/Gamma absolute rotation, relative rotation step, move/zoom steps, 6 perspectives, 3D contrast/brightness, threshold edit — partial: threshold + presets only
 - [x] [P3] Interactive grayscale drag tool (up/down = level, left/right = width)
 - [ ] [P3] Smooth animated view transitions (setting, default on)
-- [ ] [P3] Image Management: per-patient image library (add file BMP/JPEG/TIFF/DICOM + metadata, select/invert/clear, delete, export with naming & format options)
+- [~] [P3] Image Management: per-patient image library (add file BMP/JPEG/TIFF/DICOM + metadata, select/invert/clear, delete, export with naming & format options) — partial: snapshot library with download/delete; no external upload
 - [ ] [P3] Image Viewer: 1/2/4-image layouts, navigation, info display, full screen, pan, 5 zoom levels
 - [ ] [P3] Screenshot function (F8) honoring Screenshot settings (filename scheme, storage, notification)
 - [ ] [P4] Stereo 3D anaglyph mode (red/cyan) + Stereo 3D settings tab
@@ -180,10 +180,10 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Live density readout under cursor while dragging nerve points — partial: hover HU in orthogonal views only
 - [ ] [P2] Nerve point context menu: bring-to-slice, interchange successor/predecessor, show point numbers, center-views-to-point, clickzoom toggle
 - [ ] [P2] Nerve cautions displayed verbatim (verify manually / poor image quality / safety distance)
-- [ ] [P2] Continuous distance measurement (polyline, per-segment labels, total in tree)
+- [x] [P2] Continuous distance measurement (polyline, per-segment labels, total in tree)
 - [ ] [P2] Auxiliary line object (2 points, no value)
 - [ ] [P2] Measurement editing semantics: positioning-mode handles, blue selection, off-slice transparency + jump-to-slice, Shift-drag whole object, point context menu
-- [ ] [P2] Annotations: point-anchored text in all views + tree, red rendering, edit dialog
+- [~] [P2] Annotations: point-anchored text in all views + tree, red rendering, edit dialog — partial: axial view only; prompt-based editing
 - [~] [P2] Interactive density probe (circle cursor, LMB average, RMB cycles 3 sizes, HU for CT only) — partial: single-pixel click; no circle sizes
 - [~] [P2] Density statistics panel: vertical + horizontal distribution diagrams, top/bottom offset sliders, outline-only vs whole-area toggle, Ø HU footer + status-bar mirror — partial: implant-cylinder mean/min/max only
 - [ ] [P3] Angle Between Implants dialog (selection/master table, align-to-master vs mean direction, real-time updates, stays open)

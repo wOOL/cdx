@@ -160,6 +160,18 @@ const MIGRATIONS: string[] = [
 		created_at TEXT NOT NULL DEFAULT (datetime('now'))
 	);
 	CREATE INDEX idx_sessions_user ON sessions(user_id);
+	`,
+	// 5 — image management (view snapshots per patient/case)
+	`
+	CREATE TABLE images (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+		case_id INTEGER REFERENCES cases(id) ON DELETE SET NULL,
+		name TEXT NOT NULL DEFAULT 'Snapshot',
+		file_path TEXT NOT NULL,
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
+	CREATE INDEX idx_images_patient ON images(patient_id);
 	`
 ];
 

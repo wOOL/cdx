@@ -209,6 +209,8 @@
 				</button>
 			</div>
 
+
+
 			<div class="case-grid">
 				{#each data.cases as c (c.id)}
 					<div class="case-tile panel">
@@ -237,7 +239,36 @@
 					<div class="empty-hint">No cases for this patient yet.</div>
 				{/each}
 			</div>
-		{:else}
+
+			{#if data.images.length}
+				<div class="cases-head"><h3>Image library</h3></div>
+				<div class="image-grid">
+					{#each data.images as img (img.id)}
+						<figure class="image-tile panel">
+							<a href="/api/images/{img.id}" target="_blank" rel="noopener">
+								<img src="/api/images/{img.id}" alt={img.name} loading="lazy" />
+							</a>
+							<figcaption>
+								<span class="image-name" title={img.name}>{img.name}</span>
+								<a class="tree-eye" href="/api/images/{img.id}?download=1" title="Download">
+									<Icon name="export" size={13} />
+								</a>
+								<button
+									class="tree-eye"
+									title="Delete"
+									onclick={async () => {
+										if (!confirm(`Delete snapshot "${img.name}"?`)) return;
+										await fetch(`/api/images/${img.id}`, { method: 'DELETE' });
+										await invalidateAll();
+									}}
+								>
+									<Icon name="trash" size={13} />
+								</button>
+							</figcaption>
+						</figure>
+					{/each}
+				</div>
+			{/if}		{:else}
 			<div class="welcome">
 				<div class="welcome-logo"><span class="brand-x">co</span>DiagnostiX<span class="brand-web">web</span></div>
 				<p class="muted">
@@ -533,6 +564,43 @@
 		padding: 24px;
 		text-align: center;
 		color: var(--text-faint);
+	}
+	.image-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+		gap: 8px;
+	}
+	.image-tile {
+		margin: 0;
+		overflow: hidden;
+	}
+	.image-tile img {
+		display: block;
+		width: 100%;
+		height: 96px;
+		object-fit: cover;
+		background: #000;
+	}
+	.image-tile figcaption {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 8px;
+		font-size: 11px;
+	}
+	.image-name {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: var(--text-dim);
+	}
+	.tree-eye {
+		color: var(--text-dim);
+		display: inline-flex;
+	}
+	.tree-eye:hover {
+		color: var(--text);
 	}
 	.welcome {
 		flex: 1;

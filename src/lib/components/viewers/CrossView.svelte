@@ -2,9 +2,9 @@
 	import type { PlanningState } from '$lib/client/planning.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import {
-		downloadCanvas,
 		drawScaleBar,
 		fitTransform,
+		handleSnapshot,
 		windowInto,
 		type RawImage,
 		type ReconInfo,
@@ -55,6 +55,7 @@
 	let img: RawImage | null = $state.raw(null);
 	let stepMM = $state(0.25);
 	let loading = $state(false);
+	let snapSaved = $state(false);
 
 	const offscreen = typeof document !== 'undefined' ? document.createElement('canvas') : null;
 	let lastWindowKey = '';
@@ -262,9 +263,14 @@
 		</button>
 		<button
 			class="orient-toggle snap-pos"
-			title="Save view snapshot (PNG)"
-			onclick={() => canvas && downloadCanvas(canvas, `${orientation}_${effU.toFixed(0)}mm`)}
-			>📷</button
+			title="Snapshot → image library (Alt+click to download)"
+			onclick={async (e) => {
+				if (!canvas) return;
+				if (await handleSnapshot(e, canvas, `${orientation}_${effU.toFixed(0)}mm`, ps.ds.case_id)) {
+					snapSaved = true;
+					setTimeout(() => (snapSaved = false), 1200);
+				}
+			}}>{snapSaved ? '✓' : '📷'}</button
 		>
 		{#if ps.selectedImplantId != null}
 			<button

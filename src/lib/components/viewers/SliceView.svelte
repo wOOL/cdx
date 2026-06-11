@@ -3,8 +3,8 @@
 	import type { Plane, Slice } from '$lib/client/sliceCache';
 
 	import {
-		downloadCanvas,
 		drawScaleBar,
+		handleSnapshot,
 		type ToolPointerEvent,
 		type ViewTransform
 	} from '$lib/client/render2d';
@@ -38,6 +38,7 @@
 
 	let hoverHU: number | null = $state(null);
 	let hoverPos: { px: number; py: number } | null = null;
+	let snapSaved = $state(false);
 
 	// slice geometry per plane
 	let sliceIndex = $derived(
@@ -352,8 +353,14 @@
 	<div class="view-label">{label || plane}</div>
 	<button
 		class="snap-btn"
-		title="Save view snapshot (PNG)"
-		onclick={() => canvas && downloadCanvas(canvas, `${plane}_${sliceIndex + 1}`)}>📷</button
+		title="Snapshot → image library (Alt+click to download)"
+		onclick={async (e) => {
+			if (!canvas) return;
+			if (await handleSnapshot(e, canvas, `${plane}_${sliceIndex + 1}`, ps.ds.case_id)) {
+				snapSaved = true;
+				setTimeout(() => (snapSaved = false), 1200);
+			}
+		}}>{snapSaved ? '✓' : '📷'}</button
 	>
 	<input
 		class="slice-slider"

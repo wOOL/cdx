@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { PlanningState } from '$lib/client/planning.svelte';
 	import {
-		downloadCanvas,
 		drawScaleBar,
 		fitTransform,
+		handleSnapshot,
 		windowInto,
 		type RawImage,
 		type ReconInfo,
@@ -34,6 +34,7 @@
 	let img: RawImage | null = $state.raw(null);
 	let stepMM = 0.5;
 	let loading = $state(false);
+	let snapSaved = $state(false);
 
 	const offscreen = typeof document !== 'undefined' ? document.createElement('canvas') : null;
 	let lastWindowKey = '';
@@ -216,8 +217,14 @@
 	<div class="view-label">Panoramic</div>
 	<button
 		class="snap-btn"
-		title="Save view snapshot (PNG)"
-		onclick={() => canvas && downloadCanvas(canvas, 'panoramic')}>📷</button
+		title="Snapshot → image library (Alt+click to download)"
+		onclick={async (e) => {
+			if (!canvas) return;
+			if (await handleSnapshot(e, canvas, 'panoramic', ps.ds.case_id)) {
+				snapSaved = true;
+				setTimeout(() => (snapSaved = false), 1200);
+			}
+		}}>{snapSaved ? '✓' : '📷'}</button
 	>
 	{#if !ps.curve}
 		<div class="pano-hint muted">

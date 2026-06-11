@@ -253,6 +253,23 @@ export function deletePlan(planId: number): boolean {
 	return true;
 }
 
+// ---------- images ----------
+
+export interface ImageRow {
+	id: number;
+	patient_id: number;
+	case_id: number | null;
+	name: string;
+	file_path: string;
+	created_at: string;
+}
+
+export function listImages(patientId: number): ImageRow[] {
+	return db
+		.query('SELECT * FROM images WHERE patient_id = ?1 ORDER BY created_at DESC')
+		.all(patientId) as ImageRow[];
+}
+
 // ---------- models / nerves / implants / measurements ----------
 
 export function listModels(caseId: number): Model[] {

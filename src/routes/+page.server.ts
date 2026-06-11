@@ -9,6 +9,7 @@ import {
 	getPatient,
 	listCasesForPatient,
 	listDatasets,
+	listImages,
 	listPatients,
 	updatePatient
 } from '$lib/server/db/repo';
@@ -25,7 +26,8 @@ export const load: PageServerLoad = async ({ url }) => {
 				datasetCount: listDatasets(c.id).length
 			}))
 		: [];
-	return { patients, selected, cases, search };
+	const images = selected ? listImages(selected.id) : [];
+	return { patients, selected, cases, images, search };
 };
 
 function patientFromForm(form: FormData) {

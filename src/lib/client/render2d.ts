@@ -99,6 +99,38 @@ export function downloadCanvas(canvas: HTMLCanvasElement, name: string): void {
 	});
 }
 
+/** Save a canvas snapshot into the case's image library. */
+export async function snapshotToLibrary(
+	canvas: HTMLCanvasElement,
+	name: string,
+	caseId: number
+): Promise<boolean> {
+	const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r));
+	if (!blob) return false;
+	const form = new FormData();
+	form.append('file', blob, `${name}.png`);
+	form.append('name', name);
+	const res = await fetch(`/api/cases/${caseId}/images`, { method: 'POST', body: form });
+	return res.ok;
+}
+
+/**
+ * Snapshot button behavior shared by all views:
+ * plain click → save to the image library; Alt+click → download the PNG.
+ */
+export async function handleSnapshot(
+	e: MouseEvent,
+	canvas: HTMLCanvasElement,
+	name: string,
+	caseId: number
+): Promise<boolean> {
+	if (e.altKey) {
+		downloadCanvas(canvas, name);
+		return true;
+	}
+	return snapshotToLibrary(canvas, name, caseId);
+}
+
 /** Apply window/level to a raw image, drawing into (and resizing) the given offscreen canvas. */
 export function windowInto(
 	offscreen: HTMLCanvasElement,
