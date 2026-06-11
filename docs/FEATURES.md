@@ -185,7 +185,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P2] Measurement editing semantics: positioning-mode handles, blue selection, off-slice transparency + jump-to-slice, Shift-drag whole object, point context menu
 - [~] [P2] Annotations: point-anchored text in all views + tree, red rendering, edit dialog — partial: axial view only; prompt-based editing
 - [~] [P2] Interactive density probe (circle cursor, LMB average, RMB cycles 3 sizes, HU for CT only) — partial: single-pixel click; no circle sizes
-- [~] [P2] Density statistics panel: vertical + horizontal distribution diagrams, top/bottom offset sliders, outline-only vs whole-area toggle, Ø HU footer + status-bar mirror — partial: implant-cylinder mean/min/max only
+- [~] [P2] Density statistics panel: vertical + horizontal distribution diagrams, top/bottom offset sliders, outline-only vs whole-area toggle, Ø HU footer + status-bar mirror — partial: vertical profile + Ø HU; no horizontal diagram/offset sliders
 - [ ] [P3] Angle Between Implants dialog (selection/master table, align-to-master vs mean direction, real-time updates, stays open)
 - [ ] [P3] Angle Between Abutments dialog (+ acceptable deviation column)
 - [ ] [P4] HU-validity informational note for CBCT modality
@@ -283,7 +283,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] EASY Step 2: Select sleeve / Select abutment per implant + Overview node all-at-once assignment — partial: sleeves only; no abutments
 - [~] [P2] EASY Step 3: Surgical guide (Create/Edit surgical guide, object-visibility segment control, stale warning) — partial: no stale-design warning
 - [~] [P2] EASY Step 4: Finish (protocol selector, page arrows, Print + Save to PDF) — partial: single protocol; browser print
-- [~] [P2] EASY contextual help panel per step (collapsible, content authored per step) — partial: one-line status hints only
+- [x] [P2] EASY contextual help panel per step (collapsible, content authored per step)
 - [x] [P2] Mode switching: EASY ↔ EXPERT on same dataset without data loss
 - [ ] [P2] EASY temporary measurements mode in implant step
 - [ ] [P3] EASY zoom hotkeys (Ctrl +/−/0) + Ctrl-click recent dataset opens in EASY
