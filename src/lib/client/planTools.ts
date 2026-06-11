@@ -782,16 +782,16 @@ export function measureEditTool(ps: PlanningState, e: ToolPointerEvent): boolean
 			// recompute the value live
 			if (m.type === 'distance' && m.points.length === 2) {
 				m.value = len(sub(m.points[1], m.points[0]));
-				m.label = `${m.value.toFixed(1)} mm`;
+				m.label = `${m.value.toFixed(ps.measureDecimals)} mm`;
 			} else if (m.type === 'angle' && m.points.length === 3) {
 				const v1 = norm(sub(m.points[0], m.points[1]));
 				const v2 = norm(sub(m.points[2], m.points[1]));
 				m.value = (Math.acos(Math.max(-1, Math.min(1, dot(v1, v2)))) * 180) / Math.PI;
-				m.label = `${m.value.toFixed(1)}°`;
+				m.label = `${m.value.toFixed(ps.measureDecimals)}°`;
 			} else if (m.type === 'polyline') {
 				m.value = 0;
 				for (let i = 1; i < m.points.length; i++) m.value += len(sub(m.points[i], m.points[i - 1]));
-				m.label = `Σ ${m.value.toFixed(1)} mm`;
+				m.label = `Σ ${m.value.toFixed(ps.measureDecimals)} mm`;
 			}
 		}
 		return true;
@@ -858,7 +858,7 @@ export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolea
 	if (ps.measureTool === 'distance' && ps.pendingMeasure.length === 2) {
 		const [a, b] = ps.pendingMeasure;
 		const d = len(sub(b, a));
-		ps.addMeasurement('distance', [{ ...a }, { ...b }], d, `${d.toFixed(1)} mm`);
+		ps.addMeasurement('distance', [{ ...a }, { ...b }], d, `${d.toFixed(ps.measureDecimals)} mm`);
 		ps.pendingMeasure.length = 0;
 		ps.measureTool = 'none';
 	} else if (ps.measureTool === 'angle' && ps.pendingMeasure.length === 3) {
@@ -866,7 +866,7 @@ export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolea
 		const v1 = norm(sub(a, b));
 		const v2 = norm(sub(c, b));
 		const ang = (Math.acos(Math.max(-1, Math.min(1, dot(v1, v2)))) * 180) / Math.PI;
-		ps.addMeasurement('angle', [{ ...a }, { ...b }, { ...c }], ang, `${ang.toFixed(1)}°`);
+		ps.addMeasurement('angle', [{ ...a }, { ...b }, { ...c }], ang, `${ang.toFixed(ps.measureDecimals)}°`);
 		ps.pendingMeasure.length = 0;
 		ps.measureTool = 'none';
 	}
@@ -884,7 +884,7 @@ export function finishPolyline(ps: PlanningState): void {
 			'polyline',
 			ps.pendingMeasure.map((p) => ({ ...p })),
 			total,
-			`Σ ${total.toFixed(1)} mm`
+			`Σ ${total.toFixed(ps.measureDecimals)} mm`
 		);
 	}
 	ps.pendingMeasure.length = 0;

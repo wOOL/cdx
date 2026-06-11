@@ -13,6 +13,14 @@
 	let editingPatient: Patient | null = $state(null);
 	let caseDialog: HTMLDialogElement | undefined = $state();
 	let searchValue = $state(data.search);
+	let backupDismissed = $state(false);
+	$effect(() => {
+		// honor check frequency: suppress the banner until the next check window
+		if (!data.staleBackup) return;
+		const last = Number(localStorage.getItem('cdx_backup_seen') || 0);
+		const win = data.staleBackup.check === 'daily' ? 864e5 : 6048e5;
+		backupDismissed = Date.now() - last < win;
+	});
 	let showAbout = $state(false);
 	let showTour = $state(false);
 	$effect(() => {
@@ -117,6 +125,24 @@
 		<button class="btn ghost" title="Sign out"><Icon name="export" size={16} /></button>
 	</form>
 </header>
+
+{#if data.staleBackup && !backupDismissed}
+	<div class="backup-banner">
+		<Icon name="warning" size={14} />
+		{data.staleBackup.count} case{data.staleBackup.count === 1 ? '' : 's'} with image data
+		unchanged for over {data.staleBackup.days} days — consider exporting a backup (case menu →
+		Export).
+		<button
+			class="btn ghost"
+			onclick={() => {
+				localStorage.setItem('cdx_backup_seen', String(Date.now()));
+				backupDismissed = true;
+			}}
+		>
+			Dismiss
+		</button>
+	</div>
+{/if}
 
 <div class="db-layout">
 	<!-- left: patient list -->
@@ -403,6 +429,20 @@
 {/if}
 
 <style>
+	.backup-banner {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 16px;
+		background: #3a3220;
+		border-bottom: 1px solid #8a5a1e;
+		color: var(--yellow);
+		font-size: 12px;
+	}
+	.backup-banner .btn {
+		margin-left: auto;
+	}
+
 	.appbar {
 		display: flex;
 		align-items: center;

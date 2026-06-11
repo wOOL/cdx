@@ -99,19 +99,41 @@ export function downloadCanvas(canvas: HTMLCanvasElement, name: string): void {
 	});
 }
 
+/** Screenshot preferences set once per session from the settings rows. */
+export const snapshotPrefs = { format: 'png' as 'png' | 'jpeg', notify: true };
+
 /** Save a canvas snapshot into the case's image library. */
 export async function snapshotToLibrary(
 	canvas: HTMLCanvasElement,
 	name: string,
 	caseId: number
 ): Promise<boolean> {
-	const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r));
+	const mime = snapshotPrefs.format === 'jpeg' ? 'image/jpeg' : 'image/png';
+	const ext = snapshotPrefs.format === 'jpeg' ? 'jpg' : 'png';
+	const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, mime, 0.92));
 	if (!blob) return false;
 	const form = new FormData();
-	form.append('file', blob, `${name}.png`);
+	form.append('file', blob, `${name}.${ext}`);
 	form.append('name', name);
 	const res = await fetch(`/api/cases/${caseId}/images`, { method: 'POST', body: form });
+	if (res.ok && snapshotPrefs.notify) notifySnapshot(`Saved "${name}" to the image library`);
 	return res.ok;
+}
+
+/** Small transient toast in the lower-right corner (no framework dependency). */
+function notifySnapshot(text: string): void {
+	const el = document.createElement('div');
+	el.textContent = text;
+	el.style.cssText =
+		'position:fixed;right:16px;bottom:36px;z-index:300;background:var(--bg-3);' +
+		'border:1px solid var(--accent-dim);border-radius:4px;padding:8px 14px;' +
+		'font-size:12px;color:var(--text);box-shadow:var(--shadow);opacity:0;transition:opacity .2s';
+	document.body.appendChild(el);
+	requestAnimationFrame(() => (el.style.opacity = '1'));
+	setTimeout(() => {
+		el.style.opacity = '0';
+		setTimeout(() => el.remove(), 300);
+	}, 2200);
 }
 
 /**

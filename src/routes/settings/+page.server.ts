@@ -20,7 +20,15 @@ export const actions: Actions = {
 			if (v != null && typeof v === 'string') setSetting(key, v);
 		}
 		// checkbox: absent when unchecked
-		setSetting('logo_enabled', form.get('logo_enabled') ? '1' : '0');
+		for (const cb of [
+			'logo_enabled',
+			'plan_comment_on_material',
+			'smooth_transitions',
+			'nerve_safety_on',
+			'implant_safety_on',
+			'snapshot_notify'
+		])
+			setSetting(cb, form.get(cb) ? '1' : '0');
 
 		const logo = form.get('logo');
 		if (logo instanceof File && logo.size > 0) {

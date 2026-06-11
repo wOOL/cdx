@@ -13,7 +13,8 @@ import {
 	listImages,
 	listPatients,
 	logAudit,
-	updatePatient
+	updatePatient,
+	getSettings
 } from '$lib/server/db/repo';
 import { importDicomToCase } from '$lib/server/dicom/import';
 
@@ -29,7 +30,22 @@ export const load: PageServerLoad = async ({ url }) => {
 			}))
 		: [];
 	const images = selected ? listImages(selected.id) : [];
-	return { patients, selected, cases, images, search };
+
+	// auto-backup suggestion: cases with data untouched for backup_days
+	const settings = getSettings();
+	const days = Number(settings.backup_days) || 0;
+	let staleBackup: { count: number; days: number; check: string } | null = null;
+	if (days > 0 && settings.backup_check !== 'never') {
+		const row = db
+			.query(
+				`SELECT COUNT(*) AS n FROM cases c
+				 WHERE c.updated_at < datetime('now', '-' || ?1 || ' days')
+				   AND EXISTS (SELECT 1 FROM datasets d WHERE d.case_id = c.id)`
+			)
+			.get(days) as { n: number };
+		if (row.n > 0) staleBackup = { count: row.n, days, check: settings.backup_check };
+	}
+	return { patients, selected, cases, images, search, staleBackup };
 };
 
 function patientFromForm(form: FormData) {

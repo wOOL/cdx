@@ -45,6 +45,61 @@
 	}
 
 	const fmtDate = (iso: string) => iso.slice(0, 10);
+
+	// Print All: persisted document-section selection
+	const SECTIONS = [
+		{ key: 'volume', label: 'Volume data' },
+		{ key: 'implants', label: 'Implant list (material list)' },
+		{ key: 'drill', label: 'Drill protocol' },
+		{ key: 'warnings', label: 'Safety warnings' },
+		{ key: 'nerves', label: 'Marked nerves' },
+		{ key: 'cross', label: 'Implant cross-sections' },
+		{ key: 'pano', label: 'Panoramic overview' }
+	] as const;
+	let docSel = $state<Record<string, boolean>>({
+		volume: true,
+		implants: true,
+		drill: true,
+		warnings: true,
+		nerves: true,
+		cross: true,
+		pano: true
+	});
+	$effect(() => {
+		try {
+			const saved = JSON.parse(localStorage.getItem('cdx_print_all') ?? '{}');
+			for (const k of Object.keys(docSel)) if (typeof saved[k] === 'boolean') docSel[k] = saved[k];
+		} catch {
+			// keep defaults
+		}
+	});
+	let showPrintAll = $state(false);
+	let showQr = $state(false);
+
+	function printSelection() {
+		localStorage.setItem('cdx_print_all', JSON.stringify(docSel));
+		showPrintAll = false;
+		setTimeout(() => window.print(), 50);
+	}
+
+	function downloadProtocolJson() {
+		const payload = {
+			format: 'cdx-protocol-v1',
+			patient: { name: `${data.patient.last_name}, ${data.patient.first_name}` },
+			plan: data.plan.name,
+			implants: data.implants.map((im) => ({
+				tooth: im.tooth,
+				article: im.article,
+				diameter: im.diameter,
+				length: im.length
+			}))
+		};
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, '\t')], { type: 'application/json' }));
+		a.download = 'protocol-export.json';
+		a.click();
+		URL.revokeObjectURL(a.href);
+	}
 </script>
 
 <svelte:head>
@@ -55,6 +110,10 @@
 	<div class="report-toolbar no-print">
 		<a class="btn" href="/cases/{data.caseData.id}"><Icon name="back" size={14} /> Back to planning</a>
 		<div class="spacer"></div>
+		<button class="btn" onclick={() => (showQr = true)}>QR export</button>
+		<button class="btn" onclick={() => (showPrintAll = true)}>
+			<Icon name="report" size={14} /> Print all…
+		</button>
 		<button class="btn primary" onclick={() => window.print()}>
 			<Icon name="report" size={14} /> Print / PDF
 		</button>
@@ -89,7 +148,7 @@
 		</header>
 
 		{#if data.datasets[0]}
-			<section>
+			<section class="sec-volume" class:sec-off={!docSel.volume}>
 				<h2>Volume data</h2>
 				<table class="data-table">
 					<thead>
@@ -110,7 +169,7 @@
 			</section>
 		{/if}
 
-		<section>
+		<section class="sec-implants" class:sec-off={!docSel.implants}>
 			<h2>Implants ({data.implants.length})</h2>
 			{#if data.implants.length}
 				<table class="data-table">
@@ -152,7 +211,7 @@
 		</section>
 
 		{#if data.implants.some((im) => parseSleeve(im.sleeve))}
-			<section>
+			<section class="sec-drill" class:sec-off={!docSel.drill}>
 				<h2>Drill protocol</h2>
 				{#each data.implants as im (im.id)}
 					{@const sleeve = parseSleeve(im.sleeve)}
@@ -204,7 +263,7 @@
 		{/if}
 
 		{#if ps?.warnings.length}
-			<section class="warnings">
+			<section class="warnings sec-warnings" class:sec-off={!docSel.warnings}>
 				<h2>⚠ Safety warnings</h2>
 				<ul>
 					{#each ps.warnings as w, i (i)}
@@ -218,7 +277,7 @@
 		{/if}
 
 		{#if data.nerves.length}
-			<section>
+			<section class="sec-nerves" class:sec-off={!docSel.nerves}>
 				<h2>Marked nerves</h2>
 				<table class="data-table">
 					<thead><tr><th>Name</th><th>Diameter</th><th>Points</th></tr></thead>
@@ -236,7 +295,7 @@
 		{/if}
 
 		{#if ps && ps.curve && ps.implants.length}
-			<section>
+			<section class="sec-cross" class:sec-off={!docSel.cross}>
 				<h2>Implant cross-sections</h2>
 				<div class="cross-grid">
 					{#each ps.implants as im (im.id)}
@@ -254,7 +313,7 @@
 		{/if}
 
 		{#if ps && ps.curve}
-			<section>
+			<section class="sec-pano" class:sec-off={!docSel.pano}>
 				<h2>Panoramic overview</h2>
 				<div class="report-view">
 					<PanoView state={ps} overlayDraw={(ctx, t, info) => ps && drawPanoOverlay(ps, ctx, t, info)} />
@@ -290,7 +349,75 @@
 	</article>
 </div>
 
+{#if showPrintAll}
+	<div class="backdrop no-print" role="presentation" onclick={() => (showPrintAll = false)}>
+		<div class="panel pa-dialog" role="dialog" onclick={(e) => e.stopPropagation()}>
+			<div class="dialog-title">Print all — select documents</div>
+			<div class="dialog-body">
+				<p class="muted">The selection is remembered for the next batch print.</p>
+				{#each SECTIONS as sec (sec.key)}
+					<label class="pa-row">
+						<input type="checkbox" bind:checked={docSel[sec.key]} />
+						{sec.label}
+					</label>
+				{/each}
+			</div>
+			<div class="dialog-actions">
+				<button class="btn" onclick={() => (showPrintAll = false)}>Cancel</button>
+				<button class="btn primary" onclick={printSelection}>Print selection</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showQr}
+	<div class="backdrop no-print" role="presentation" onclick={() => (showQr = false)}>
+		<div class="panel pa-dialog" role="dialog" onclick={(e) => e.stopPropagation()}>
+			<div class="dialog-title">QR protocol export</div>
+			<div class="dialog-body">
+				<p>
+					Integration stub: surgical-motor systems (e.g. iChiropro) can import the drill
+					sequence by scanning a QR code printed on the protocol. This build exports the
+					protocol data as JSON; QR rendering hooks in here.
+				</p>
+				<p class="muted">
+					{data.implants.length} implant{data.implants.length === 1 ? '' : 's'} ·
+					{data.plan.name}
+				</p>
+			</div>
+			<div class="dialog-actions">
+				<button class="btn" onclick={() => (showQr = false)}>Close</button>
+				<button class="btn primary" onclick={downloadProtocolJson}>Download protocol JSON</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <style>
+	.sec-off {
+		display: none;
+	}
+	.backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.55);
+		display: grid;
+		place-items: center;
+		z-index: 100;
+	}
+	.pa-dialog {
+		width: 360px;
+	}
+	.pa-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		text-transform: none;
+		letter-spacing: 0;
+		color: var(--text);
+	}
+
 	.report-shell {
 		flex: 1;
 		overflow-y: auto;

@@ -11,8 +11,11 @@
 	import MakeParallel from '$lib/components/MakeParallel.svelte';
 	import DistancePopover from '$lib/components/DistancePopover.svelte';
 	import ImportWizard from '$lib/components/ImportWizard.svelte';
+	import AngleBetweenImplants from '$lib/components/AngleBetweenImplants.svelte';
+	import AngleBetweenAbutments from '$lib/components/AngleBetweenAbutments.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
+	import { snapshotPrefs } from '$lib/client/render2d';
 	import {
 		crossTool,
 		drawAxialObjects,
@@ -1154,6 +1157,53 @@
 	// ---------- DICOM upload ----------
 	let uploading = $state(false);
 	let wizardFiles = $state<File[] | null>(null);
+	let nerveDetecting = $state(false);
+	let showAngleDialog = $state(false);
+	let showAbutmentAngles = $state(false);
+
+	async function autoDetectNerve(nerveId: number) {
+		if (!ps) return;
+		const n = ps.nerves.find((x) => x.id === nerveId);
+		if (!n || n.points.length < 2) return;
+		nerveDetecting = true;
+		try {
+			const res = await fetch(`/api/datasets/${ps.ds.id}/nerve-detect`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ start: n.points[0], end: n.points[n.points.length - 1] })
+			});
+			if (!res.ok) {
+				const b = await res.json().catch(() => null);
+				alert(b?.message ?? 'No canal path found between the seed points');
+				return;
+			}
+			const { points, warning } = await res.json();
+			ps.markEdit();
+			const d0 = n.points[0].d;
+			n.points = points.map((pt: { x: number; y: number; z: number }) => ({ ...pt, d: d0 }));
+			ps.saveNerve(n.id);
+			if (warning) alert(warning);
+		} finally {
+			nerveDetecting = false;
+		}
+	}
+
+	async function alignImplantsTo(ids: number[], axis: { x: number; y: number; z: number }) {
+		if (!ps) return;
+		ps.markEdit();
+		for (const id of ids) {
+			const im = ps.implants.find((i) => i.id === id);
+			if (!im) continue;
+			im.ax = axis.x;
+			im.ay = axis.y;
+			im.az = axis.z;
+			await fetch(`/api/implants/${id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ ax: axis.x, ay: axis.y, az: axis.z })
+			});
+		}
+	}
 	let advInput: HTMLInputElement | undefined = $state();
 	let uploadError = $state('');
 	let dragOver = $state(false);
@@ -1502,6 +1552,15 @@
 							<div>
 								<strong>{d.series_description || d.description}</strong>
 								{#if d.locked}<span class="badge">locked</span>{/if}
+								{#if d.status === 'ready'}
+									<span class="status-ic ok" title="Processing finished — dataset ready">
+										<Icon name="check" size={11} />
+									</span>
+								{:else if d.status === 'error'}
+									<span class="status-ic err" title="Processing failed"><Icon name="warning" size={11} /></span>
+								{:else}
+									<span class="status-ic busy" title="Processing… ({d.status})">⏳</span>
+								{/if}
 							</div>
 							<div class="faint">
 								{d.modality} · {d.cols}×{d.rows}×{d.slices} ·
@@ -2204,6 +2263,19 @@
 							</button>
 						{/if}
 					{/if}
+					{#if ps.activeNerveId != null}
+						{@const an = ps.nerves.find((n) => n.id === ps?.activeNerveId)}
+						{#if an && an.points.length >= 2}
+							<button
+								class="btn"
+								disabled={nerveDetecting}
+								title="Trace the canal automatically between the first and last marked point (foramen seeds). Intermediate points are replaced."
+								onclick={() => autoDetectNerve(an.id)}
+							>
+								{nerveDetecting ? 'Detecting…' : 'Auto detect'}
+							</button>
+						{/if}
+					{/if}
 					{#if ps.nerveEditMode}
 						<span class="muted">Click in the panoramic or cross-section view to add nerve points</span>
 					{/if}
@@ -2213,6 +2285,21 @@
 				{:else if stage === 'implant'}
 					<button class="btn primary" onclick={openImplantDialog}>
 						<Icon name="implant" size={14} /> Add implant
+					</button>
+					<button
+						class="btn"
+						disabled={ps.implants.length < 2}
+						onclick={() => (showAngleDialog = true)}
+					>
+						<Icon name="angle" size={14} /> Angles…
+					</button>
+					<button
+						class="btn"
+						disabled={ps.implants.filter((i) => i.abutment).length < 2}
+						title="Angle between abutments"
+						onclick={() => (showAbutmentAngles = true)}
+					>
+						<Icon name="angle" size={14} /> Abutments…
 					</button>
 					{#if outdatedImplants.length}
 						<span
@@ -2637,6 +2724,36 @@
 	</div>
 {/if}
 
+{#if showAngleDialog && ps}
+	<AngleBetweenImplants
+		implants={ps.implants.map((i) => ({
+			id: i.id,
+			label: `${i.tooth ? toothLabel(i.tooth, notation) + ' — ' : ''}${i.article || i.line}`,
+			ax: i.ax,
+			ay: i.ay,
+			az: i.az
+		}))}
+		onalign={alignImplantsTo}
+		onclose={() => (showAngleDialog = false)}
+	/>
+{/if}
+
+{#if showAbutmentAngles && ps}
+	<AngleBetweenAbutments
+		implants={ps.implants
+			.filter((i) => i.abutment)
+			.map((i) => ({
+				id: i.id,
+				label: `${i.tooth ? toothLabel(i.tooth, notation) + ' — ' : ''}${i.article || i.line}`,
+				ax: i.ax,
+				ay: i.ay,
+				az: i.az,
+				abutmentAngle: i.abutment?.angle
+			}))}
+		onclose={() => (showAbutmentAngles = false)}
+	/>
+{/if}
+
 {#if wizardFiles}
 	<ImportWizard
 		caseId={data.caseData.id}
@@ -2836,6 +2953,20 @@
 </footer>
 
 <style>
+	.status-ic {
+		margin-left: 4px;
+		font-size: 10px;
+	}
+	.status-ic.ok {
+		color: var(--green);
+	}
+	.status-ic.err {
+		color: var(--red);
+	}
+	.status-ic.busy {
+		color: var(--yellow);
+	}
+
 	.case-bar {
 		display: flex;
 		align-items: center;

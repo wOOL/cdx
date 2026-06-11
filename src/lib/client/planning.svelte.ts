@@ -154,6 +154,7 @@ export class PlanningState {
 	/** in-progress measurement points (mm) */
 	pendingMeasure = $state<Vec3[]>([]);
 
+	measureDecimals = $state(1);
 	nerveSafety = $state(NERVE_SAFETY_MM);
 	implantSafety = $state(IMPLANT_SAFETY_MM);
 	/** snapshot name template with {patient} {case} {view} {date} placeholders */
@@ -244,6 +245,10 @@ export class PlanningState {
 		if (Number(settings.nerve_safety_mm) > 0) this.nerveSafety = Number(settings.nerve_safety_mm);
 		if (Number(settings.implant_safety_mm) > 0)
 			this.implantSafety = Number(settings.implant_safety_mm);
+		if (settings.nerve_safety_on === '0') this.nerveSafety = 0;
+		if (settings.implant_safety_on === '0') this.implantSafety = 0;
+		const dec = Number(settings.measure_decimals);
+		if (Number.isInteger(dec) && dec >= 0 && dec <= 3) this.measureDecimals = dec;
 		if (settings.snapshot_scheme) this.snapshotScheme = settings.snapshot_scheme;
 		this.slices = new SliceCache(ds.id);
 		this.cursor = {

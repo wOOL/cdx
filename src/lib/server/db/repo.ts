@@ -247,7 +247,16 @@ export const SETTING_DEFAULTS: Record<string, string> = {
 	notation: 'fdi',
 	logo_enabled: '0',
 	snapshot_scheme: '{view}_{date}',
-	cross_spacing_mm: '2'
+	snapshot_format: 'png',
+	snapshot_notify: '1',
+	cross_spacing_mm: '2',
+	measure_decimals: '1',
+	plan_comment_on_material: '0',
+	smooth_transitions: '1',
+	nerve_safety_on: '1',
+	implant_safety_on: '1',
+	backup_days: '30',
+	backup_check: 'weekly'
 };
 
 export function getSettings(): Record<string, string> {
