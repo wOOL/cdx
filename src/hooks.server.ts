@@ -8,7 +8,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = user;
 
 	const path = event.url.pathname;
-	const isPublic = PUBLIC_ROUTES.has(path) || path.startsWith('/favicon');
+	const isPublic =
+		PUBLIC_ROUTES.has(path) || path.startsWith('/favicon') || path.startsWith('/share/');
 
 	if (!user && !isPublic) {
 		if (path.startsWith('/api/')) {

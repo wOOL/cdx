@@ -111,7 +111,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] Vertical & horizontal 3D cuts (clip planes bound to current cross-section / axial position)
 - [x] [P2] Per-view Snapshot button (high-res capture, size choice, save to Image Management or download)
 - [~] [P2] Grayscale presets in dialog (save/overwrite/delete; "Implant Planning (CT)" factory preset) — partial: fixed presets; no save/delete
-- [~] [P2] Hotkey system + hotkey list dialog (Ctrl+F1) per SPEC §3.9 — partial: few hotkeys; no list dialog
+- [x] [P2] Hotkey system + hotkey list dialog (Ctrl+F1) per SPEC §3.9
 - [x] [P3] Panoramic X-ray mode toggle (ray-sum projection vs curved slice)
 - [x] [P3] Axial mirror-horizontally button
 - [~] [P3] View display-mode choosers (pane-config switching: cross-sectional+tangential / +panoramic / only) + toolbar config-cycle button — partial: cross/tangential toggle only; layouts stage-fixed
@@ -320,7 +320,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P3] Service requests: Digital surgical guide (matching/design/fabrication sub-items + requirements text), Custom, Bone block design, Radiographic assessment; non-binding note; reject with minus icon
 - [ ] [P3] Order Management (provider): registration with offered services, lab directory listing, asynchronous pairing (confirmation pending → email confirm)
 - [ ] [P3] Order list: color-coded service types, grouping (contact/patient/service), full-text search, sequence-controlled locking, Process/Finish/Reject/Remove
-- [ ] [P3] Read-only share links: tokenized presentation viewer (implant list, aligned 3D, 2D views, watermark), revocable
+- [~] [P3] Read-only share links: tokenized presentation viewer (implant list, aligned 3D, 2D views, watermark), revocable — partial: tokenized read-only doc (tables); no 3D viewer/watermark
 - [~] [P3] Quick Export/Import: single-plan archive download/upload (.caf-style) with write-protect + Sent label — partial: whole-case archive; no write-protect/Sent label
 - [x] [P4] Full dataset archive export/import (all plans + images) with version-compatibility warning
 - [ ] [P4] Auto-backup suggestions for stale datasets (N days, check frequency)

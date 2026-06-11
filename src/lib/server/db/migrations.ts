@@ -180,6 +180,15 @@ const MIGRATIONS: string[] = [
 	// 7 — abutment planning per implant
 	`
 	ALTER TABLE implants ADD COLUMN abutment TEXT NOT NULL DEFAULT '';
+	`,
+	// 8 — read-only plan share links
+	`
+	CREATE TABLE shares (
+		token TEXT PRIMARY KEY,
+		plan_id INTEGER NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
+		revoked INTEGER NOT NULL DEFAULT 0,
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
 	`
 ];
 

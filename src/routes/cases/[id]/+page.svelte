@@ -583,8 +583,31 @@
 			const idx = Number(e.key) - 1;
 			const s = stages[idx];
 			if (s && s.key !== 'report') stage = s.key;
+		} else if (e.key === '?' || ((e.ctrlKey || e.metaKey) && e.key === 'F1')) {
+			e.preventDefault();
+			hotkeysOpen = !hotkeysOpen;
 		}
 	}
+
+	let hotkeysOpen = $state(false);
+	const HOTKEYS: [string, string][] = [
+		['↑ / ↓', 'Previous / next axial slice'],
+		['PgUp / PgDn', '±5 axial slices'],
+		['1 … 7', 'Switch workflow stage'],
+		['Delete', 'Remove the selected implant'],
+		['Esc', 'Cancel tool / deselect / restore view'],
+		['Ctrl+Z / Ctrl+Shift+Z', 'Undo / redo plan edit'],
+		['Mouse wheel', 'Scroll slices (views) / cross-section position (pano)'],
+		['Ctrl + wheel', 'Zoom slice view'],
+		['Left-drag', 'Crosshair / drag object (tool-dependent)'],
+		['Right-drag', 'Window / level'],
+		['Middle-drag', 'Pan view'],
+		['Double-click view', 'Reset zoom & pan'],
+		['Double-click axial (Implants stage)', 'Place implant at point'],
+		['Shift + drag (scan alignment)', 'Rotate the scan'],
+		['Alt + click 📷', 'Download snapshot instead of saving to library'],
+		['? or Ctrl+F1', 'This hotkey list']
+	];
 
 	// ---------- plan management ----------
 	let planMenuOpen = $state(false);
@@ -1114,6 +1137,17 @@
 				<button class="plan-menu-item" onclick={() => togglePlanFlag('approved')}>
 					{data.plan.approved ? 'Revoke approval' : 'Approve plan'}
 				</button>
+				<button
+					class="plan-menu-item"
+					onclick={async () => {
+						planMenuOpen = false;
+						const res = await fetch(`/api/plans/${data.plan.id}/share`, { method: 'POST' });
+						if (res.ok) {
+							const { url } = await res.json();
+							prompt('Read-only share link (copy with Ctrl+C):', url);
+						}
+					}}>Share read-only link…</button
+				>
 				{#if !data.plan.is_master}
 					<button class="plan-menu-item danger-item" onclick={deletePlanAction}>Delete plan</button>
 				{/if}
@@ -2098,6 +2132,24 @@
 	<AdjustGrayscale state={ps} onclose={() => (grayscaleOpen = false)} />
 {/if}
 
+{#if hotkeysOpen}
+	<div class="hk-backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && (hotkeysOpen = false)}>
+		<div class="hk-dialog panel">
+			<div class="dialog-title">Keyboard & mouse shortcuts</div>
+			<table class="hk-table">
+				<tbody>
+					{#each HOTKEYS as [key, desc] (key)}
+						<tr><td class="hk-key">{key}</td><td>{desc}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+			<div class="dialog-actions">
+				<button class="btn primary" onclick={() => (hotkeysOpen = false)}>Close</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
 {#if compareOpen}
 	<PlanCompare
 		plans={data.plans}
@@ -2418,6 +2470,33 @@
 	.danger-item:hover {
 		background: var(--red);
 		color: #fff;
+	}
+	.hk-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.55);
+		display: grid;
+		place-items: center;
+		z-index: 100;
+	}
+	.hk-dialog {
+		min-width: 460px;
+		box-shadow: var(--shadow);
+	}
+	.hk-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 12px;
+		margin: 8px 0;
+	}
+	.hk-table td {
+		padding: 4px 14px;
+		border-bottom: 1px solid var(--border-soft);
+	}
+	.hk-key {
+		font-family: var(--mono);
+		color: var(--accent-bright);
+		white-space: nowrap;
 	}
 
 	.workspace {
