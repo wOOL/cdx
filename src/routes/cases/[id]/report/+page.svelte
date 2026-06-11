@@ -43,6 +43,13 @@
 			<div>
 				<h1>Surgical protocol</h1>
 				<div class="sub">coDiagnostiX Web — guided surgery plan</div>
+				{#if data.settings.practice_name || data.settings.practitioner}
+					<div class="practice">
+						{#if data.settings.practice_name}<strong>{data.settings.practice_name}</strong><br />{/if}
+						{#if data.settings.practitioner}{data.settings.practitioner}<br />{/if}
+						{#if data.settings.practice_address}<span class="practice-addr">{data.settings.practice_address}</span>{/if}
+					</div>
+				{/if}
 			</div>
 			<table class="meta">
 				<tbody>
@@ -229,6 +236,15 @@
 	.sub {
 		color: #667;
 		margin-top: 4px;
+	}
+	.practice {
+		margin-top: 12px;
+		font-size: 12px;
+		color: #334;
+	}
+	.practice-addr {
+		white-space: pre-line;
+		color: #667;
 	}
 	h2 {
 		font-size: 14px;

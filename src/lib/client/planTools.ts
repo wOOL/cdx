@@ -228,7 +228,7 @@ function panoTo3D(ps: PlanningState, u: number, zmm: number): Vec3 | null {
 
 export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 	const c = ps.curve;
-	if (!c) return false;
+	if (!c || ps.locked) return false;
 
 	// --- nerve editing has priority when active ---
 	if (ps.nerveEditMode && ps.activeNerveId != null) {
@@ -484,7 +484,7 @@ function crossTo3D(ps: PlanningState, w: number, zmm: number): Vec3 | null {
 
 export function crossTool(ps: PlanningState, e: CrossToolEvent): boolean {
 	const frame = crossFrame(ps);
-	if (!frame) return false;
+	if (!frame || ps.locked) return false;
 
 	// nerve point placement
 	if (ps.nerveEditMode && ps.activeNerveId != null) {
@@ -632,7 +632,7 @@ export function drawAxialObjects(
 // ---------------- measurements (axial view) ----------------
 
 export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolean {
-	if (ps.measureTool === 'none') return false;
+	if (ps.measureTool === 'none' || ps.locked) return false;
 	if (e.type !== 'down') return true;
 	const p: Vec3 = {
 		x: e.px * ps.ds.spacing_x,

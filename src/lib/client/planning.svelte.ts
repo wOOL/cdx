@@ -97,6 +97,7 @@ export class PlanningState {
 	wc = $state(400);
 	ww = $state(1800);
 	crosshairVisible = $state(true);
+	locked = $state(false);
 
 	// panoramic curve — control points in mm (volume-local), defined on axial slice curveZ
 	curveControl = $state<Vec2[]>([]);
@@ -120,6 +121,9 @@ export class PlanningState {
 	/** in-progress measurement points (mm) */
 	pendingMeasure = $state<Vec3[]>([]);
 
+	nerveSafety = $state(NERVE_SAFETY_MM);
+	implantSafety = $state(IMPLANT_SAFETY_MM);
+
 	warnings = $derived.by(() => {
 		const out: SafetyWarning[] = [];
 		for (const im of this.implants) {
@@ -127,8 +131,8 @@ export class PlanningState {
 			for (const n of this.nerves) {
 				if (n.points.length === 0) continue;
 				const d = segPolylineDistance(head, apex, n.points) - im.diameter / 2 - n.diameter / 2;
-				if (d < NERVE_SAFETY_MM) {
-					out.push({ implantId: im.id, kind: 'nerve', otherId: n.id, distance: d, limit: NERVE_SAFETY_MM });
+				if (d < this.nerveSafety) {
+					out.push({ implantId: im.id, kind: 'nerve', otherId: n.id, distance: d, limit: this.nerveSafety });
 				}
 			}
 			for (const other of this.implants) {
@@ -138,8 +142,8 @@ export class PlanningState {
 					segPolylineDistance(head, apex, [seg2.head, seg2.apex]) -
 					im.diameter / 2 -
 					other.diameter / 2;
-				if (d < IMPLANT_SAFETY_MM) {
-					out.push({ implantId: im.id, kind: 'implant', otherId: other.id, distance: d, limit: IMPLANT_SAFETY_MM });
+				if (d < this.implantSafety) {
+					out.push({ implantId: im.id, kind: 'implant', otherId: other.id, distance: d, limit: this.implantSafety });
 				}
 			}
 		}
@@ -152,10 +156,15 @@ export class PlanningState {
 		nerves: Nerve[] = [],
 		implants: Implant[] = [],
 		models: Model[] = [],
-		measurements: Measurement[] = []
+		measurements: Measurement[] = [],
+		settings: Record<string, string> = {}
 	) {
 		this.ds = ds;
 		this.planId = plan.id;
+		this.locked = !!plan.locked;
+		if (Number(settings.nerve_safety_mm) > 0) this.nerveSafety = Number(settings.nerve_safety_mm);
+		if (Number(settings.implant_safety_mm) > 0)
+			this.implantSafety = Number(settings.implant_safety_mm);
 		this.slices = new SliceCache(ds.id);
 		this.cursor = {
 			x: Math.floor(ds.cols / 2),
@@ -274,6 +283,7 @@ export class PlanningState {
 	private saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 	private debounced(key: string, fn: () => void, ms = 350) {
+		if (this.locked) return;
 		clearTimeout(this.saveTimers.get(key));
 		this.saveTimers.set(
 			key,

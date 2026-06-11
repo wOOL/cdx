@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import Icon from '$lib/components/Icon.svelte';
 	import SliceView from '$lib/components/viewers/SliceView.svelte';
 	import VolumeView from '$lib/components/viewers/VolumeView.svelte';
@@ -56,7 +56,8 @@
 					data.nerves,
 					data.implants,
 					data.models,
-					data.measurements
+					data.measurements,
+					data.settings
 				)
 			: null
 	);
@@ -147,7 +148,7 @@
 	}
 
 	function curveTool(e: ToolPointerEvent): boolean {
-		if (!ps || !ps.curveEditMode) return false;
+		if (!ps || !ps.curveEditMode || ps.locked) return false;
 		const mm = { x: e.px * ps.ds.spacing_x, y: e.py * ps.ds.spacing_y };
 		if (e.type === 'down') {
 			const idx = ps.curveControl.findIndex((p) => Math.hypot(p.x - mm.x, p.y - mm.y) < 2.5);
@@ -259,6 +260,53 @@
 	}
 
 	let selectedImplant = $derived(ps?.implants.find((i) => i.id === ps?.selectedImplantId) ?? null);
+
+	// ---------- plan management ----------
+	let planMenuOpen = $state(false);
+
+	async function duplicatePlanAction() {
+		planMenuOpen = false;
+		const name = prompt('Name for the new plan:', `${data.plan.name} (copy)`);
+		if (!name) return;
+		const res = await fetch(`/api/cases/${data.caseData.id}/plans`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ name, copyFrom: data.plan.id })
+		});
+		if (res.ok) {
+			const { plan } = await res.json();
+			await goto(`/cases/${data.caseData.id}?plan=${plan.id}`, { invalidateAll: true });
+		}
+	}
+
+	async function renamePlanAction() {
+		planMenuOpen = false;
+		const name = prompt('Plan name:', data.plan.name);
+		if (!name || name === data.plan.name) return;
+		await fetch(`/api/plans/${data.plan.id}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ name })
+		});
+		await invalidateAll();
+	}
+
+	async function togglePlanFlag(flag: 'locked' | 'approved') {
+		planMenuOpen = false;
+		await fetch(`/api/plans/${data.plan.id}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ [flag]: flag === 'locked' ? !data.plan.locked : !data.plan.approved })
+		});
+		await invalidateAll();
+	}
+
+	async function deletePlanAction() {
+		planMenuOpen = false;
+		if (!confirm(`Delete plan "${data.plan.name}"?`)) return;
+		const res = await fetch(`/api/plans/${data.plan.id}`, { method: 'DELETE' });
+		if (res.ok) await goto(`/cases/${data.caseData.id}`, { invalidateAll: true });
+	}
 
 	// ---------- scan matching (align stage) ----------
 	let alignVolView = $state<ReturnType<typeof VolumeView>>();
@@ -494,7 +542,46 @@
 	</nav>
 
 	<div class="spacer"></div>
-	<div class="plan-chip muted" title="Active plan">{data.plan.name}</div>
+	{#if ps?.locked}
+		<span class="badge planning" title="This plan is locked — editing disabled">🔒 locked</span>
+	{/if}
+	{#if data.plan.approved}
+		<span class="badge finalized">approved</span>
+	{/if}
+	<div class="plan-menu-wrap">
+		<button class="plan-chip" onclick={() => (planMenuOpen = !planMenuOpen)} title="Plans">
+			{data.plan.name} <Icon name="chevron-down" size={12} />
+		</button>
+		{#if planMenuOpen}
+			<div class="plan-menu panel">
+				{#each data.plans as p (p.id)}
+					<a
+						class="plan-menu-item"
+						class:active={p.id === data.plan.id}
+						href="/cases/{data.caseData.id}?plan={p.id}"
+						onclick={() => (planMenuOpen = false)}
+					>
+						<span>{p.name}</span>
+						<span class="faint">
+							{p.is_master ? 'master' : ''}{p.locked ? ' 🔒' : ''}{p.approved ? ' ✓' : ''}
+						</span>
+					</a>
+				{/each}
+				<div class="plan-menu-sep"></div>
+				<button class="plan-menu-item" onclick={duplicatePlanAction}>Duplicate this plan</button>
+				<button class="plan-menu-item" onclick={renamePlanAction}>Rename…</button>
+				<button class="plan-menu-item" onclick={() => togglePlanFlag('locked')}>
+					{data.plan.locked ? 'Unlock plan' : 'Lock plan'}
+				</button>
+				<button class="plan-menu-item" onclick={() => togglePlanFlag('approved')}>
+					{data.plan.approved ? 'Revoke approval' : 'Approve plan'}
+				</button>
+				{#if !data.plan.is_master}
+					<button class="plan-menu-item danger-item" onclick={deletePlanAction}>Delete plan</button>
+				{/if}
+			</div>
+		{/if}
+	</div>
 </header>
 
 <div class="workspace">
@@ -1164,10 +1251,56 @@
 		flex: 1;
 	}
 	.plan-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
 		border: 1px solid var(--border);
 		border-radius: 12px;
 		padding: 3px 12px;
 		font-size: 12px;
+		color: var(--text-dim);
+	}
+	.plan-chip:hover {
+		color: var(--text);
+		border-color: var(--accent-dim);
+	}
+	.plan-menu-wrap {
+		position: relative;
+	}
+	.plan-menu {
+		position: absolute;
+		right: 0;
+		top: calc(100% + 6px);
+		min-width: 220px;
+		z-index: 30;
+		box-shadow: var(--shadow);
+		padding: 4px;
+	}
+	.plan-menu-item {
+		display: flex;
+		justify-content: space-between;
+		gap: 10px;
+		width: 100%;
+		text-align: left;
+		padding: 6px 10px;
+		border-radius: var(--radius);
+		font-size: 12px;
+		color: var(--text);
+	}
+	.plan-menu-item:hover {
+		background: var(--bg-3);
+	}
+	.plan-menu-item.active {
+		background: var(--accent-dim);
+	}
+	.plan-menu-sep {
+		height: 1px;
+		background: var(--border-soft);
+		margin: 4px 0;
+	}
+	.danger-item:hover {
+		background: var(--red);
+		color: #fff;
 	}
 
 	.workspace {

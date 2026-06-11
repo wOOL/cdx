@@ -189,6 +189,68 @@ export function updatePlan(id: number, fields: Partial<Plan>): void {
 	);
 }
 
+// ---------- settings ----------
+
+export const SETTING_DEFAULTS: Record<string, string> = {
+	practice_name: '',
+	practitioner: '',
+	practice_address: '',
+	nerve_safety_mm: '2.0',
+	implant_safety_mm: '3.0'
+};
+
+export function getSettings(): Record<string, string> {
+	const rows = db.query('SELECT key, value FROM settings').all() as {
+		key: string;
+		value: string;
+	}[];
+	const out = { ...SETTING_DEFAULTS };
+	for (const r of rows) out[r.key] = r.value;
+	return out;
+}
+
+export function setSetting(key: string, value: string): void {
+	db.query(
+		`INSERT INTO settings (key, value) VALUES (?1, ?2)
+		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+	).run(key, value);
+}
+
+// ---------- plan copy ----------
+
+export function duplicatePlan(planId: number, name: string): Plan | null {
+	const src = getPlan(planId);
+	if (!src) return null;
+	const copy = db
+		.query(
+			`INSERT INTO plans (case_id, name, is_master, locked, approved, pan_curve, settings)
+			 VALUES (?1, ?2, 0, 0, 0, ?3, ?4) RETURNING *`
+		)
+		.get(src.case_id, name, src.pan_curve, src.settings) as Plan;
+	db.query(
+		`INSERT INTO nerves (plan_id, name, color, diameter, points, visible)
+		 SELECT ?2, name, color, diameter, points, visible FROM nerves WHERE plan_id = ?1`
+	).run(planId, copy.id);
+	db.query(
+		`INSERT INTO implants (plan_id, tooth, manufacturer, line, article, diameter, length,
+			x, y, z, ax, ay, az, rotation, color, sleeve, visible)
+		 SELECT ?2, tooth, manufacturer, line, article, diameter, length,
+			x, y, z, ax, ay, az, rotation, color, sleeve, visible FROM implants WHERE plan_id = ?1`
+	).run(planId, copy.id);
+	db.query(
+		`INSERT INTO measurements (plan_id, type, points, value, label)
+		 SELECT ?2, type, points, value, label FROM measurements WHERE plan_id = ?1`
+	).run(planId, copy.id);
+	return copy;
+}
+
+export function deletePlan(planId: number): boolean {
+	const p = getPlan(planId);
+	if (!p || p.is_master) return false;
+	db.query('DELETE FROM plans WHERE id = ?1').run(planId);
+	return true;
+}
+
 // ---------- models / nerves / implants / measurements ----------
 
 export function listModels(caseId: number): Model[] {

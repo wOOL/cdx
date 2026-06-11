@@ -130,6 +130,13 @@ const MIGRATIONS: string[] = [
 		created_at TEXT NOT NULL DEFAULT (datetime('now'))
 	);
 	CREATE INDEX idx_measurements_plan ON measurements(plan_id);
+	`,
+	// 2 — app settings (key/value)
+	`
+	CREATE TABLE settings (
+		key TEXT PRIMARY KEY,
+		value TEXT NOT NULL DEFAULT ''
+	);
 	`
 ];
 
