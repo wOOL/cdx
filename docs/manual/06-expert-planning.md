@@ -89,6 +89,33 @@ A matched surface scan is the basis for tooth-supported guides.
 > (fixation pins or temporary implants from the library) before scanning and use them as the
 > point-pair landmarks for registration.
 
+### Dual-scan template matching (radiographic template)
+
+For the classic dual-scan protocol — a radiographic template with radiopaque fiducial
+markers, scanned once **in the patient's mouth** and once **alone** — the registration is
+automatic:
+
+1. Import both scans into the case (the Data stage shows a hint when two datasets are
+   present).
+2. Open **Align stage → Match template…**, pick which dataset is the patient scan and which
+   the template-alone scan, and click **Detect & match**. The software finds the markers in
+   both volumes (spheres and irregular gutta-percha blobs are supported; streak artifacts
+   are rejected) and solves the correspondence:
+
+![Dual-scan template matching](img/template-match.png)
+
+3. Review the result: every marker pair with its residual in mm (green < 0.3, yellow < 0.6,
+   red above), the total RMS and the confidence verdict. Ambiguous or degenerate marker
+   constellations are reported as *low* confidence — never silently accepted.
+4. **Accept & create matched template model** transforms the template surface into patient
+   space and adds it to the case as a matched model, ready to serve as the intaglio side of
+   a mucosa-supported guide (chapter 6.6). The match is recorded in the audit log.
+
+> ⚠️ **Caution**
+> Verify the congruency in all views after applying — automatic matching never replaces the
+> visual check. Manual point-pair + ICP registration remains available at any time and is
+> the fallback whenever the confidence verdict is not *good*.
+
 > ⚠️ **Caution**
 > After matching, check the congruency of the scan and volume contours in **all** 2D views
 > (the scan is drawn as an outline over the slices). The fit RMS is an aid — only visual

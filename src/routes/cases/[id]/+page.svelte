@@ -20,6 +20,7 @@
 	import VirtualToothPicker from '$lib/components/VirtualToothPicker.svelte';
 	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
 	import PerioChart, { type PerioData } from '$lib/components/PerioChart.svelte';
+	import TemplateMatchDialog from '$lib/components/TemplateMatchDialog.svelte';
 	import AugmentWizard from '$lib/components/AugmentWizard.svelte';
 	import AiReviewDialog from '$lib/components/AiReviewDialog.svelte';
 	import ProstheticImportDialog from '$lib/components/ProstheticImportDialog.svelte';
@@ -860,6 +861,7 @@
 	let showAbutmentDial = $state(false);
 	let helpOpen = $state(false);
 	let showPerio = $state(false);
+	let showTemplateMatch = $state(false);
 	let perioData = $state<PerioData>(
 		(() => {
 			try {
@@ -2741,6 +2743,12 @@
 				{#if uploadError}
 					<div class="upload-error"><Icon name="warning" size={16} /> {uploadError}</div>
 				{/if}
+				{#if data.datasets.length >= 2}
+					<p class="muted" style="text-align:center">
+						Two datasets on this case — if this is a dual-scan template pair, use
+						<strong>Align stage → Match template…</strong> for automatic marker registration.
+					</p>
+				{/if}
 				<div class="adv-row">
 					<button class="btn" onclick={() => advInput?.click()}>
 						<Icon name="settings" size={14} /> Advanced import… (slice selection, crop, gantry, histogram)
@@ -2892,6 +2900,15 @@
 					<button class="btn" onclick={() => pcsDialog?.showModal()}>
 						<Icon name="rotate" size={14} /> Align patient axes…
 					</button>
+					{#if data.datasets.length >= 2}
+						<button
+							class="btn"
+							title="Dual-scan template protocol: detect the radiopaque markers in both scans and register them automatically"
+							onclick={() => (showTemplateMatch = true)}
+						>
+							Match template…
+						</button>
+					{/if}
 					<div class="tool-sep"></div>
 					<button
 						class="btn"
@@ -3786,6 +3803,21 @@
 
 {#if aiReview}
 	<AiReviewDialog models={aiReview} onimport={aiImport} onclose={() => aiImport([])} />
+{/if}
+
+{#if showTemplateMatch && ps}
+	<TemplateMatchDialog
+		caseId={data.caseData.id}
+		datasets={data.datasets.map((d) => ({
+			id: d.id,
+			label: `${d.series_description || d.description} (${d.cols}×${d.rows}×${d.slices})`
+		}))}
+		onapplied={async () => {
+			showTemplateMatch = false;
+			await invalidateAll();
+		}}
+		onclose={() => (showTemplateMatch = false)}
+	/>
 {/if}
 
 {#if showPerio && ps}
