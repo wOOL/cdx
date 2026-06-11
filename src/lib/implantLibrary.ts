@@ -137,3 +137,44 @@ export function defaultSleeve(): SleeveSpec {
 export function drillLength(implantLength: number, sleeve: SleeveSpec): number {
 	return implantLength + sleeve.offset + sleeve.height;
 }
+
+// ---------------- drill protocols ----------------
+
+export interface DrillStep {
+	name: string;
+	/** drill diameter (mm) */
+	diameter: number;
+	/** handle color code printed in the protocol */
+	color: string;
+	/** only used when the implant diameter is at least this value */
+	minImplantDiameter?: number;
+}
+
+/**
+ * Ordered drill sequence per sleeve system. Steps whose minImplantDiameter exceeds
+ * the planned implant are skipped; the drill stops at the guided length.
+ */
+export const DRILL_PROTOCOLS: Record<string, DrillStep[]> = {
+	'Straumann T-Sleeve': [
+		{ name: 'Needle drill', diameter: 1.6, color: 'gray' },
+		{ name: 'Pilot drill', diameter: 2.2, color: 'yellow' },
+		{ name: 'Drill ⌀2.8', diameter: 2.8, color: 'red', minImplantDiameter: 3.3 },
+		{ name: 'Drill ⌀3.5', diameter: 3.5, color: 'blue', minImplantDiameter: 4.1 },
+		{ name: 'Drill ⌀4.2', diameter: 4.2, color: 'green', minImplantDiameter: 4.8 }
+	],
+	'Generic sleeve': [
+		{ name: 'Pilot drill', diameter: 2.0, color: 'yellow' },
+		{ name: 'Twist drill ⌀2.8', diameter: 2.8, color: 'red', minImplantDiameter: 3.3 },
+		{ name: 'Twist drill ⌀3.4', diameter: 3.4, color: 'blue', minImplantDiameter: 4.0 },
+		{ name: 'Twist drill ⌀4.1', diameter: 4.1, color: 'green', minImplantDiameter: 4.8 },
+		{ name: 'Twist drill ⌀4.7', diameter: 4.7, color: 'black', minImplantDiameter: 5.4 }
+	],
+	'Pilot drill sleeve': [{ name: 'Pilot drill', diameter: 2.0, color: 'yellow' }]
+};
+
+export function drillSequence(sleeve: SleeveSpec, implantDiameter: number): DrillStep[] {
+	const steps = DRILL_PROTOCOLS[sleeve.system] ?? DRILL_PROTOCOLS['Generic sleeve'];
+	return steps.filter(
+		(s) => s.minImplantDiameter == null || implantDiameter >= s.minImplantDiameter
+	);
+}

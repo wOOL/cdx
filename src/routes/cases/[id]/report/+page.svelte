@@ -5,7 +5,13 @@
 	import { PlanningState } from '$lib/client/planning.svelte';
 	import { drawPanoOverlay } from '$lib/client/planTools';
 	import ReportCross from '$lib/components/viewers/ReportCross.svelte';
-	import { drillLength, toothLabel, type Notation, type SleeveSpec } from '$lib/implantLibrary';
+	import {
+		drillLength,
+		drillSequence,
+		toothLabel,
+		type Notation,
+		type SleeveSpec
+	} from '$lib/implantLibrary';
 
 	let { data } = $props();
 
@@ -128,6 +134,55 @@
 				<p class="empty">No implants planned.</p>
 			{/if}
 		</section>
+
+		{#if data.implants.some((im) => parseSleeve(im.sleeve))}
+			<section>
+				<h2>Drill protocol</h2>
+				{#each data.implants as im (im.id)}
+					{@const sleeve = parseSleeve(im.sleeve)}
+					{#if sleeve}
+						<h3 class="drill-head">
+							Tooth {im.tooth ? toothLabel(im.tooth, notation) : '—'} — {im.manufacturer}
+							{im.article} · sleeve {sleeve.system} ⌀{sleeve.diameter.toFixed(1)} H{sleeve.height.toFixed(1)}
+							offset {sleeve.offset.toFixed(0)} mm
+						</h3>
+						<table class="data-table drill-table">
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Drill</th>
+									<th>⌀</th>
+									<th>Handle</th>
+									<th>Guided drill length (stop)</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each drillSequence(sleeve, im.diameter) as step, i (step.name)}
+									<tr>
+										<td>{i + 1}</td>
+										<td>{step.name}</td>
+										<td>⌀{step.diameter.toFixed(1)} mm</td>
+										<td><span class="handle-dot" style="background:{step.color}"></span> {step.color}</td>
+										<td>{drillLength(im.length, sleeve).toFixed(1)} mm</td>
+									</tr>
+								{/each}
+								<tr>
+									<td>{drillSequence(sleeve, im.diameter).length + 1}</td>
+									<td><strong>Implant insertion</strong></td>
+									<td>⌀{im.diameter.toFixed(1)} mm</td>
+									<td>—</td>
+									<td>seat to sleeve stop ({(sleeve.offset + sleeve.height).toFixed(1)} mm above shoulder)</td>
+								</tr>
+							</tbody>
+						</table>
+					{/if}
+				{/each}
+				<p class="faint">
+					Drill lengths are measured from the sleeve top. Verify each drill against the physical
+					drill kit and use the matching depth stop.
+				</p>
+			</section>
+		{/if}
 
 		{#if ps?.warnings.length}
 			<section class="warnings">
@@ -302,6 +357,22 @@
 	.mono {
 		font-family: var(--mono);
 		font-size: 11px;
+	}
+	.drill-head {
+		font-size: 12px;
+		margin: 12px 0 4px;
+		color: #223;
+	}
+	.drill-table {
+		margin-bottom: 6px;
+	}
+	.handle-dot {
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		border: 1px solid #889;
+		vertical-align: -1px;
 	}
 	.empty {
 		color: #889;

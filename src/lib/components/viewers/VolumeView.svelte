@@ -39,12 +39,32 @@
 	];
 	let preset = $state('Bone');
 	let threshold = $state((300 + 1000) / 4000);
+	// clip planes bound to the axial slice / cross-section position
+	let clipAxial = $state(false);
+	let clipCross = $state(false);
 
 	let material: THREE.ShaderMaterial | null = null;
 	let redraw: (() => void) | null = null;
 	let objGroup: THREE.Group | null = null;
+	let groupRef: THREE.Group | null = null;
 	let sceneReady = $state(false);
 	let volHalfExtent = { x: 0, y: 0, z: 0 };
+	let meshClipPlanes: THREE.Plane[] = [];
+
+	/** apply current clip planes to every mesh material (models + implants + nerves) */
+	function applyMeshClipping() {
+		const planes = meshClipPlanes.length ? meshClipPlanes : null;
+		for (const mesh of modelMeshes.values()) {
+			if (mesh.material instanceof THREE.Material) mesh.material.clippingPlanes = planes;
+		}
+		if (objGroup) {
+			objGroup.traverse((o) => {
+				if (o instanceof THREE.Mesh && o.material instanceof THREE.Material) {
+					o.material.clippingPlanes = planes;
+				}
+			});
+		}
+	}
 
 	function rebuildObjects() {
 		if (!objGroup) return;
@@ -132,6 +152,7 @@
 				}
 			}
 		}
+		applyMeshClipping();
 		redraw?.();
 	}
 
@@ -228,6 +249,7 @@
 				modelMeshes.delete(id);
 			}
 		}
+		applyMeshClipping();
 		redraw?.();
 	}
 
@@ -242,11 +264,61 @@
 	});
 
 	$effect(() => {
+		// read reactive deps unconditionally so the effect re-runs once the scene is ready
+		const th = threshold;
+		const mip = preset === 'MIP' ? 1 : 0;
+		void sceneReady;
 		if (material) {
-			material.uniforms.u_threshold.value = threshold;
-			material.uniforms.u_mip.value = preset === 'MIP' ? 1 : 0;
+			material.uniforms.u_threshold.value = th;
+			material.uniforms.u_mip.value = mip;
 			redraw?.();
 		}
+	});
+
+	// update clip plane uniforms from viewer state
+	$effect(() => {
+		const wantAxial = clipAxial;
+		const wantCross = clipCross;
+		const cursorZ = ps.cursor.z;
+		const c = ps.curve;
+		const crossU = ps.crossU;
+		void sceneReady;
+		if (!material) return;
+		const ex = volHalfExtent.x;
+		const ey = volHalfExtent.y;
+		const ez = volHalfExtent.z;
+		// horizontal cut: keep volume below the axial slice plane
+		const zmm = cursorZ * ps.ds.spacing_z - ez;
+		material.uniforms.u_clipZ.value = wantAxial ? zmm : 1e6;
+		// vertical cut: keep the lingual side of the cross-section plane
+		let cn = { x: 0, y: 0 };
+		let cd = 1e6;
+		if (wantCross && c) {
+			const i = Math.max(0, Math.min(c.points.length - 1, Math.round((crossU / c.length) * (c.points.length - 1))));
+			const t = c.tangents[i];
+			cn = { x: t.x, y: t.y };
+			cd = (c.points[i].x - ex) * t.x + (c.points[i].y - ey) * t.y;
+		}
+		material.uniforms.u_clipN.value.set(cn.x, cn.y);
+		material.uniforms.u_clipD.value = wantCross ? cd : 1e6;
+
+		// matching clip planes for surface meshes (volume-local → world via the group transform)
+		meshClipPlanes = [];
+		if (groupRef) {
+			groupRef.updateMatrixWorld(true);
+			if (wantAxial) {
+				meshClipPlanes.push(
+					new THREE.Plane(new THREE.Vector3(0, 0, -1), zmm).applyMatrix4(groupRef.matrixWorld)
+				);
+			}
+			if (wantCross && cd < 1e5) {
+				meshClipPlanes.push(
+					new THREE.Plane(new THREE.Vector3(-cn.x, -cn.y, 0), cd).applyMatrix4(groupRef.matrixWorld)
+				);
+			}
+		}
+		applyMeshClipping();
+		redraw?.();
 	});
 
 	const VERT = /* glsl */ `
@@ -266,6 +338,9 @@
 		uniform float u_threshold;     // iso threshold (0..1)
 		uniform int u_mip;             // 1 = MIP mode
 		uniform vec3 u_camPos;         // camera in object space
+		uniform float u_clipZ;         // discard samples with z > u_clipZ (1e6 = off)
+		uniform vec2 u_clipN;          // vertical cut plane normal (xy)
+		uniform float u_clipD;         // discard samples with dot(p.xy, n) > d (1e6 = off)
 
 		varying vec3 v_position;
 
@@ -279,6 +354,8 @@
 		}
 
 		float sampleVol(vec3 p) {
+			if (p.z > u_clipZ) return 0.0;
+			if (dot(p.xy, u_clipN) > u_clipD) return 0.0;
 			vec3 uvw = (p + u_halfExtent) / (2.0 * u_halfExtent);
 			return texture(u_data, uvw).r;
 		}
@@ -384,7 +461,10 @@
 						u_halfExtent: { value: new THREE.Vector3(ex, ey, ez) },
 						u_threshold: { value: threshold },
 						u_mip: { value: 0 },
-						u_camPos: { value: new THREE.Vector3() }
+						u_camPos: { value: new THREE.Vector3() },
+						u_clipZ: { value: 1e6 },
+						u_clipN: { value: new THREE.Vector2(0, 0) },
+						u_clipD: { value: 1e6 }
 					},
 					vertexShader: VERT,
 					fragmentShader: FRAG,
@@ -399,6 +479,7 @@
 				group.add(mesh);
 				group.rotation.x = -Math.PI / 2;
 				scene.add(group);
+				groupRef = group;
 
 				// objects layer (implants, nerves) in volume-local mm (centered)
 				volHalfExtent = { x: ex, y: ey, z: ez };
@@ -412,7 +493,8 @@
 				dir.position.set(120, 200, 160);
 				scene.add(dir);
 
-				renderer = new THREE.WebGLRenderer({ antialias: true });
+				renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+				renderer.localClippingEnabled = true;
 				renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 				container.appendChild(renderer.domElement);
 
@@ -523,6 +605,18 @@
 	{/if}
 	<div class="view-label">3D</div>
 	<div class="vol-controls">
+		<button
+			class="clip-btn"
+			class:clip-on={clipAxial}
+			title="Horizontal cut at the axial slice"
+			onclick={() => (clipAxial = !clipAxial)}>⬓</button
+		>
+		<button
+			class="clip-btn"
+			class:clip-on={clipCross}
+			title="Vertical cut at the cross-section"
+			onclick={() => (clipCross = !clipCross)}>◧</button
+		>
 		<select bind:value={preset}>
 			{#each PRESETS as p (p.name)}
 				<option value={p.name}>{p.name}</option>
@@ -545,6 +639,7 @@
 	.volume-view :global(canvas) {
 		position: absolute;
 		inset: 0;
+		z-index: 1;
 	}
 	.vol-status {
 		position: absolute;
@@ -571,6 +666,7 @@
 		align-items: center;
 		opacity: 0.35;
 		transition: opacity 0.15s;
+		z-index: 3;
 	}
 	.volume-view:hover .vol-controls {
 		opacity: 1;
@@ -581,5 +677,18 @@
 	}
 	.vol-controls input[type='range'] {
 		width: 90px;
+	}
+	.clip-btn {
+		width: 24px;
+		height: 22px;
+		border-radius: 3px;
+		border: 1px solid var(--border);
+		background: var(--bg-2);
+		color: var(--text-dim);
+		font-size: 12px;
+	}
+	.clip-on {
+		color: var(--accent-bright);
+		border-color: var(--accent);
 	}
 </style>

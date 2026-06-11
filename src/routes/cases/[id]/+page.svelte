@@ -7,6 +7,7 @@
 	import CrossView from '$lib/components/viewers/CrossView.svelte';
 	import { PlanningState, WINDOW_PRESETS } from '$lib/client/planning.svelte';
 	import AdjustGrayscale from '$lib/components/AdjustGrayscale.svelte';
+	import PlanCompare from '$lib/components/PlanCompare.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
 	import {
@@ -393,6 +394,7 @@
 	let crossSpacing = $state(2);
 
 	let grayscaleOpen = $state(false);
+	let compareOpen = $state(false);
 
 	// ---------- implant fine controls ----------
 	function stepImplantDim(field: 'diameter' | 'length', dir: 1 | -1) {
@@ -925,6 +927,15 @@
 					Jaw: {data.plan.jaw} → switch to {data.plan.jaw === 'maxilla' ? 'mandible' : 'maxilla'}
 				</button>
 				<button class="plan-menu-item" onclick={duplicatePlanAction}>Duplicate this plan</button>
+				{#if data.plans.length > 1}
+					<button
+						class="plan-menu-item"
+						onclick={() => {
+							planMenuOpen = false;
+							compareOpen = true;
+						}}>Compare plans…</button
+					>
+				{/if}
 				<button class="plan-menu-item" onclick={renamePlanAction}>Rename…</button>
 				<button class="plan-menu-item" onclick={() => togglePlanFlag('locked')}>
 					{data.plan.locked ? 'Unlock plan' : 'Lock plan'}
@@ -1697,6 +1708,15 @@
 
 {#if grayscaleOpen && ps}
 	<AdjustGrayscale state={ps} onclose={() => (grayscaleOpen = false)} />
+{/if}
+
+{#if compareOpen}
+	<PlanCompare
+		plans={data.plans}
+		currentPlanId={data.plan.id}
+		{notation}
+		onclose={() => (compareOpen = false)}
+	/>
 {/if}
 
 <!-- align patient coordinate system dialog -->

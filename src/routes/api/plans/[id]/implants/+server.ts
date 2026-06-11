@@ -1,8 +1,14 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-import { getPlan } from '$lib/server/db/repo';
+import { getPlan, listImplants } from '$lib/server/db/repo';
 import type { Implant } from '$lib/types';
+
+export const GET: RequestHandler = async ({ params }) => {
+	const plan = getPlan(Number(params.id));
+	if (!plan) error(404, 'Plan not found');
+	return json({ implants: listImplants(plan.id) });
+};
 
 export const POST: RequestHandler = async ({ params, request }) => {
 	const planId = Number(params.id);
