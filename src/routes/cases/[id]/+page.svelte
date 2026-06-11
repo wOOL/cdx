@@ -464,7 +464,7 @@
 
 	// cross-section group (3 parallel slices like coDiagnostiX)
 	let crossGroupMode = $state(false);
-	let crossSpacing = $state(2);
+	let crossSpacing = $derived(Number(data.settings.cross_spacing_mm) > 0 ? Number(data.settings.cross_spacing_mm) : 2);
 
 	// model appearance editor in the object tree
 	let expandedModelId = $state<number | null>(null);

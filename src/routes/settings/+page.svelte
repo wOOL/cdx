@@ -62,6 +62,10 @@
 		<div class="settings-body">
 			<div class="field-row">
 				<div>
+					<label for="s-cross">Cross-section group spacing (mm)</label>
+					<input id="s-cross" name="cross_spacing_mm" type="number" min="0.5" max="10" step="0.5" value={data.settings.cross_spacing_mm} style="width:100%" />
+				</div>
+				<div>
 					<label for="s-notation">Dental notation</label>
 					<select id="s-notation" name="notation" value={data.settings.notation} style="width:100%">
 						<option value="fdi">FDI (two-digit, e.g. 36)</option>

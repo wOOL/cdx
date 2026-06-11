@@ -238,7 +238,8 @@ export const SETTING_DEFAULTS: Record<string, string> = {
 	implant_safety_mm: '3.0',
 	notation: 'fdi',
 	logo_enabled: '0',
-	snapshot_scheme: '{view}_{date}'
+	snapshot_scheme: '{view}_{date}',
+	cross_spacing_mm: '2'
 };
 
 export function getSettings(): Record<string, string> {

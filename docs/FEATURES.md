@@ -144,13 +144,13 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] Surface extraction pipeline (marching cubes, worker-based, cached per threshold)
 - [~] [P1] Segmentation slots (max 8): name (Enter-commit, predefined list), color (cycle/palette dialog), transparency, visibility — partial: multiple named segmentations w/ color/opacity; no slot semantics
 - [x] [P1] Segmentations listed in object tree with visibility checkboxes
-- [ ] [P2] Segmentation mode UI (Scanview): main view + 4 reference views (axial/coronal/sagittal/3D), left parameter pane, auto-save on exit/slot change
+- [~] [P2] Segmentation mode UI (Scanview): main view + 4 reference views (axial/coronal/sagittal/3D), left parameter pane, auto-save on exit/slot change — partial: mask editing inline on the axial view; no dedicated 4-view mode
 - [ ] [P2] Target/Source/Exclude slot semantics (source constrains tools, "None" = free, "Source visible in 3D", exclude column)
-- [ ] [P2] Flood Fill tool (LMB add / RMB delete, boundary-aware, Ctrl+F)
-- [ ] [P2] Brush tool (3 sizes, LMB select / RMB erase, source-constrained, Ctrl+P/Ctrl+S)
+- [~] [P2] Flood Fill tool (LMB add / RMB delete, boundary-aware, Ctrl+F) — partial: HU-range 2D fill with add/erase modes; no hotkey
+- [~] [P2] Brush tool (3 sizes, LMB select / RMB erase, source-constrained, Ctrl+P/Ctrl+S) — partial: continuous-size brush, add/erase; not source-constrained
 - [ ] [P2] Segmentation boundary polylines (yellow, freehand+polyline, close/clear, Ctrl+L, Ctrl+Backspace)
 - [ ] [P2] Slice-propagation automatic segmentation (Page Up/Down, 2D-only, boundary-aware, check-slice warning)
-- [ ] [P2] Whole-dataset ops: all-voxels-in-slice select/clear, segment whole dataset (confirm), clear whole segmentation (confirm; re-enables threshold edit)
+- [~] [P2] Whole-dataset ops: all-voxels-in-slice select/clear, segment whole dataset (confirm), clear whole segmentation (confirm; re-enables threshold edit) — partial: init-from-threshold over the whole dataset
 - [ ] [P2] Segmentation undo/redo (10 steps) + Segmentation Options toggles (undo on/off, auto-refresh small 3D)
 - [ ] [P2] Volume readout per segmentation (ml)
 - [~] [P2] Convert segmentation → 3D model (LOD presets Coarse/Standard/Fine) — partial: direct mesh creation; no LOD presets
@@ -330,7 +330,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Settings dialog framework (tabs, per-user persistence, defaults per Appendix A) — partial: single global page; no tabs or per-user
 - [~] [P1] Safety distance tab (2 enable checkboxes + mm spin boxes, 0–10 ranges, sleeve note) — partial: spin boxes only; no enable checkboxes
 - [~] [P1] Implants tab: dental notation FDI/Universal (drives chart, labels, reports), axes options, visible-through-segmentations, selection box, rotation-pivot setting, 2D color — partial: notation switch only; axes/pivot options missing
-- [ ] [P2] Views tab: smooth transitions, orientation model, outline width adapt, auxiliary/annotation/measurement colors, text size, joint cross-sectional move/zoom, rotate-on-align (×2), cross-sectional distance
+- [~] [P2] Views tab: smooth transitions, orientation model, outline width adapt, auxiliary/annotation/measurement colors, text size, joint cross-sectional move/zoom, rotate-on-align (×2), cross-sectional distance — partial: cross-section spacing setting; other view options missing
 - [ ] [P2] Common tab: measurement decimal places
 - [ ] [P2] Printout tab: plan comment on material list, logo upload + enable
 - [~] [P2] Screenshot tab: filename scheme (default/anonymized/user-defined + placeholders), storage target, format, save notification — partial: scheme with placeholders; no storage-target/format options
