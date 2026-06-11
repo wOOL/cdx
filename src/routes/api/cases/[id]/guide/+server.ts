@@ -134,9 +134,16 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
 	// insertion direction: rotate everything so the seating axis is vertical,
 	// generate, then rotate the result back.
-	// 'auto' = mean implant axis; 'vertical' = volume -z (mandible default).
-	const insertionMode = body.insertion === 'vertical' ? 'vertical' : 'auto';
+	// 'auto' = mean implant axis; 'vertical' = volume -z (mandible default);
+	// an {x,y,z} vector = explicit direction (e.g. the user's 3D viewing
+	// direction, "occlusal look-for-path" in the original).
+	const insVec =
+		body.insertion && typeof body.insertion === 'object' && Number.isFinite(body.insertion.x)
+			? norm(body.insertion as { x: number; y: number; z: number })
+			: null;
+	const insertionMode = insVec ? 'custom' : body.insertion === 'vertical' ? 'vertical' : 'auto';
 	let seat = { x: 0, y: 0, z: -1 };
+	if (insVec && Math.abs(insVec.z) > 0.3) seat = insVec;
 	if (insertionMode === 'auto') {
 		const sum = withSleeves.reduce(
 			(a, im) => ({ x: a.x + im.axis.x, y: a.y + im.axis.y, z: a.z + im.axis.z }),

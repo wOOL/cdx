@@ -1452,7 +1452,9 @@
 
 	// ---------- guide generation ----------
 	let guideParams = $state({ offset: 0.15, thickness: 2.5, regionRadius: 9 });
-	let guideInsertion = $state<'auto' | 'vertical'>('auto');
+	let guideInsertion = $state<'auto' | 'vertical' | 'view'>('auto');
+	/** captured 3D viewing direction for insertion = 'view' (volume mm, unit) */
+	let customInsertion = $state<{ x: number; y: number; z: number } | null>(null);
 	let guideWindows = $state<{ x: number; y: number; z: number; diameter: number }[]>(
 		(() => {
 			try {
@@ -1633,7 +1635,7 @@
 						offset: guideParams.offset + producer.offsetAdj,
 						thickness: guideParams.thickness + producer.thicknessAdj
 					},
-					insertion: guideInsertion,
+					insertion: guideInsertion === 'view' && customInsertion ? customInsertion : guideInsertion,
 					windows: guideWindows
 				})
 			});
@@ -1738,7 +1740,7 @@
 					modelId: baseId,
 					planId: ps.planId,
 					params: { ...guideParams, ...guideAdvanced },
-					insertion: guideInsertion,
+					insertion: guideInsertion === 'view' && customInsertion ? customInsertion : guideInsertion,
 					windows: guideWindows
 				})
 			});
@@ -3908,7 +3910,28 @@
 						<select id="guide-ins" bind:value={guideInsertion}>
 							<option value="auto">Along implant axes</option>
 							<option value="vertical">Vertical</option>
+							{#if customInsertion}
+								<option value="view">From 3D view</option>
+							{/if}
 						</select>
+						<button
+							class="btn"
+							title="Use the current 3D viewing direction as the insertion axis — orient the 3D view to look along the intended path of insertion first (occlusal view)"
+							onclick={() => {
+								const d = defaultVolView?.getViewDirection();
+								if (!d) return;
+								if (Math.abs(d.z) <= 0.3) {
+									alert(
+										'The current view direction is too horizontal for a seating axis — look at the arch from the occlusal side.'
+									);
+									return;
+								}
+								customInsertion = d;
+								guideInsertion = 'view';
+							}}
+						>
+							Use view direction
+						</button>
 						<div class="tool-sep"></div>
 						<button
 							class="btn"

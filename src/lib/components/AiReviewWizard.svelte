@@ -142,6 +142,8 @@
 
 	// nerve canals
 	let canals = $state<{ modelId: number; side: 'left' | 'right'; points: Vec3[]; active: number }[]>([]);
+	/** pristine AI-proposed canal points (per canal, for one-click reset) */
+	let canalProposed: Vec3[][] = [];
 	let canalTab = $state(0);
 	let nerveDragIdx = -1;
 	let nerveNote = $state('');
@@ -344,6 +346,7 @@
 				.filter((c) => inJob.has(c.modelId))
 				.map((c) => ({ ...c, points: c.points.map((p) => ({ ...p })), active: 0 }))
 				.sort((a, b) => (a.side === b.side ? 0 : a.side === 'right' ? -1 : 1));
+			canalProposed = canals.map((c) => c.points.map((p) => ({ ...p })));
 			for (const s of bundle.scans) {
 				scanTransforms[s.id] = s.transform.slice();
 				scanOrig[s.id] = s.transform.slice();
@@ -1038,6 +1041,20 @@
 								Delete point
 							</button>
 							<button class="btn" onclick={nerveRedetect}>Re-detect path</button>
+							<button
+								class="btn"
+								title="Revert this canal to the points originally proposed by the AI assistant"
+								disabled={!canalProposed[canalTab]}
+								onclick={() => {
+									const orig = canalProposed[canalTab];
+									if (!orig || !canals[canalTab]) return;
+									canals[canalTab].points = orig.map((p) => ({ ...p }));
+									canals[canalTab].active = 0;
+									nerveNote = 'Reset to the AI proposal';
+								}}
+							>
+								Reset
+							</button>
 							<span class="muted">
 								point {activeCanal.active + 1} / {activeCanal.points.length}
 							</span>
