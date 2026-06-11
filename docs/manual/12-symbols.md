@@ -1,6 +1,10 @@
 # 12. Explanation of symbols
 
-Symbols used throughout the application:
+Symbols used throughout the application — examples as they appear in the UI:
+
+![Status chips with a violation](img/ui-status-chips.png)
+![Stage bar with completion checks](img/ui-stage-bar.png)
+
 
 | Symbol | Meaning |
 |--------|---------|

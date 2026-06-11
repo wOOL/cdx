@@ -15,9 +15,13 @@ you jump between stages freely and exposes every tool of the application.
 
 ## 5.1 Toolbar
 
-The stage toolbar always shows the actions of the active stage — e.g. *Draw curve* in the
-Panoramic stage or *Add implant* in the Implants stage. Chapters 6.1–6.7 describe the tools
-stage by stage.
+The stage bar selects the active planning stage; green checks mark completed stages:
+
+![Stage bar](img/ui-stage-bar.png)
+
+The stage toolbar below it always shows the actions of the active stage — e.g. *Draw curve*
+in the Panoramic stage or *Add implant* in the Implants stage. Chapters 6.1–6.7 describe the
+tools stage by stage.
 
 **Customizing.** Right-click the measurement-tool rail (left panel, *Measure (axial view)*)
 to choose which measurement tools are shown; *Reset to default* restores all of them. The
@@ -40,8 +44,8 @@ share the same cursor: clicking in one view moves the crosshair in all of them.
 | Pan | Drag with the **middle** mouse button. |
 | Crosshair / reference lines | *Crosshair* checkbox in the View panel toggles the reference lines in all 2D views. |
 | Align views to implant | In the Cross-section view header, the ⌖ button aligns the cross/tangential cut to the axis of the selected implant. |
-| Maximize a view | The ⤢ button in a view's corner (or **Esc** to restore the grid). |
-| Snapshot | The 📷 button in a view's header saves the view to the patient's image library; **Alt-click** downloads it as a file instead. **F8** captures all visible views as one screen copy. |
+| Maximize a view | ![maximize](img/ui-max-btn.png) in a view's corner (or **Esc** to restore the grid). |
+| Snapshot & display controls | ![view controls](img/ui-view-controls.png) in the view header: mirror toggle, layout and snapshot. Snapshot saves to the patient's image library; **Alt-click** downloads instead. **F8** captures all visible views as one screen copy. |
 | 3D rotation | Drag in the 3D view; the orientation cube and ANTERIOR/POSTERIOR labels indicate the direction; presets (occlusal, lateral, …) in the *View…* menu. |
 | 3D clipping | The clip buttons in the 3D view header cut the volume/models at the current axial or cross-section plane. |
 

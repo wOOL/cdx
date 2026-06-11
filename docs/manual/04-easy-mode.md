@@ -19,12 +19,12 @@ the tools that matter for it. Activate EASY on the start screen (work-mode toggl
 
 ### Navigation and help tools
 
-| Control | Where | Effect |
-|---------|-------|--------|
-| ← (top left) | Header | Return to the start screen. All changes are already saved — there is no separate save action. |
-| **Back / Next** | Bottom of the rail | Move one step backward / forward in the workflow order. |
-| **? Help — this step** | Rail | Expand the inline instructions for the current step. **F1** opens the larger context-help panel with a link to this manual. |
-| **Plan selector** | Header, right | Switch between plans of the case and open plan management (new/duplicate/rename/approve/compare/send). |
+| Control | Symbol | Effect |
+|---------|--------|--------|
+| Return to start screen | ![back](img/ui-back-btn.png) | Header, top left. All changes are already saved — there is no separate save action. |
+| Back / Next | ![navigation](img/ui-easy-nav.png) | Move one step backward / forward in the workflow order. |
+| Help — this step | ![help](img/ui-easy-help.png) | Expand the inline instructions for the current step. **F1** opens the larger context-help panel with a link to this manual. |
+| Plan selector | ![plan](img/ui-plan-btn.png) | Switch between plans of the case and open plan management (new/duplicate/rename/approve/compare/send). |
 
 ## 4.2 Case planning
 
