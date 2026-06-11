@@ -129,6 +129,28 @@
 			mesh.position.copy(center);
 			objGroup.add(mesh);
 
+			if (im.abutment) {
+				const a = im.abutment;
+				const ageo = new THREE.CylinderGeometry(a.diameter / 2 * 0.75, im.diameter / 2, a.height, 20);
+				const amat = new THREE.MeshStandardMaterial({
+					color: '#b59ad4',
+					roughness: 0.4,
+					metalness: 0.4
+				});
+				const am = new THREE.Mesh(ageo, amat);
+				am.quaternion.copy(mesh.quaternion);
+				if (a.type === 'angled') {
+					// tilt the abutment around a horizontal axis for an angled emergence
+					const tilt = new THREE.Quaternion().setFromAxisAngle(
+						new THREE.Vector3(1, 0, 0),
+						(a.angle * Math.PI) / 180
+					);
+					am.quaternion.multiply(tilt);
+				}
+				am.position.copy(head.clone().addScaledVector(axis, -a.height / 2));
+				objGroup.add(am);
+			}
+
 			if (im.sleeve) {
 				const s = im.sleeve;
 				const sleeveCenter = head
@@ -185,7 +207,8 @@
 		// rebuild 3D objects when planning objects change
 		void ps.implants.map((i) => [
 			i.x, i.y, i.z, i.ax, i.ay, i.az, i.length, i.diameter, i.visible, i.color,
-			i.sleeve?.diameter, i.sleeve?.height, i.sleeve?.offset
+			i.sleeve?.diameter, i.sleeve?.height, i.sleeve?.offset,
+			i.abutment?.type, i.abutment?.height, i.abutment?.angle
 		]);
 		void ps.nerves.map((n) => [
 			n.points.length, n.diameter, n.visible, n.color,

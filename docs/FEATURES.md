@@ -210,7 +210,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P2] Tooth-position relabel via header Properties (label-only change)
 - [x] [P2] Localizer double-click to add implant at point
 - [ ] [P2] Object groups: create dialog (two-list picker + hotkeys), group move modes (none / implants only / all objects), batch visibility/abutments/sleeves
-- [ ] [P3] Abutments: catalog tab on implant add; Edit Abutments dialog (database/user-defined/none; all-vs-selected prompt)
+- [~] [P3] Abutments: catalog tab on implant add; Edit Abutments dialog (database/user-defined/none; all-vs-selected prompt) — partial: preset abutments per implant (straight/angled), 2D/3D render, report column
 - [ ] [P3] Group abutment assignment with automatic angulated-abutment selection (axis parallelization, All-on-4/6)
 - [ ] [P3] Abutment rotational alignment tab (drag around implant axis)
 - [ ] [P3] User-defined abutment editor (emergence profile + mesostructure, height/Ø per segment, inclination 0–45°, rotation, handles)

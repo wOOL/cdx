@@ -30,6 +30,8 @@
 		drillLength,
 		implantColor,
 		toothLabel,
+		ABUTMENT_PRESETS,
+		abutmentLabel,
 		type Notation
 	} from '$lib/implantLibrary';
 	import { composeMat4, icp, kabsch } from '$lib/registration';
@@ -1740,6 +1742,21 @@
 						<button class="btn" title="Change implant system or size" onclick={openChangeImplantDialog}>
 							Change…
 						</button>
+						<select
+							title="Abutment"
+							value={abutmentLabel(selectedImplant.abutment)}
+							onchange={(e) => {
+								if (!selectedImplant || !ps) return;
+								const preset = ABUTMENT_PRESETS.find((p) => p.name === e.currentTarget.value);
+								ps.markEdit();
+								selectedImplant.abutment = preset?.spec ? { ...preset.spec } : null;
+								ps.saveImplant(selectedImplant.id);
+							}}
+						>
+							{#each ABUTMENT_PRESETS as p (p.name)}
+								<option value={p.name}>Abutment: {p.name}</option>
+							{/each}
+						</select>
 						{#if ps.implants.length > 1}
 							<button class="btn" title="Align axis with the other implant" onclick={parallelizeImplant}>
 								∥ Parallelize

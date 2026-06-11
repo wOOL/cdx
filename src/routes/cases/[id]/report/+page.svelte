@@ -6,12 +6,22 @@
 	import { drawPanoOverlay } from '$lib/client/planTools';
 	import ReportCross from '$lib/components/viewers/ReportCross.svelte';
 	import {
+		abutmentLabel,
 		drillLength,
 		drillSequence,
 		toothLabel,
+		type AbutmentSpec,
 		type Notation,
 		type SleeveSpec
 	} from '$lib/implantLibrary';
+
+	function parseAbutment(s: string): AbutmentSpec | null {
+		try {
+			return s ? JSON.parse(s) : null;
+		} catch {
+			return null;
+		}
+	}
 
 	let { data } = $props();
 
@@ -109,6 +119,7 @@
 							<th>Sleeve ⌀ / H</th>
 							<th>Offset</th>
 							<th>Drill length</th>
+							<th>Abutment</th>
 							<th>Head position (mm)</th>
 						</tr>
 					</thead>
@@ -123,6 +134,7 @@
 								<td>{sleeve ? `⌀${sleeve.diameter.toFixed(1)} / ${sleeve.height.toFixed(1)}` : '—'}</td>
 								<td>{sleeve ? `${sleeve.offset.toFixed(0)} mm` : '—'}</td>
 								<td>{sleeve ? `${drillLength(im.length, sleeve).toFixed(1)} mm` : '—'}</td>
+								<td>{abutmentLabel(parseAbutment(im.abutment))}</td>
 								<td class="mono">
 									{im.x.toFixed(1)}, {im.y.toFixed(1)}, {im.z.toFixed(1)}
 								</td>

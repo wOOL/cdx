@@ -24,11 +24,13 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		if (f in body) updated[f] = String(body[f]);
 	}
 	if ('sleeve' in body) updated.sleeve = body.sleeve ? JSON.stringify(body.sleeve) : '';
+	if ('abutment' in body) updated.abutment = body.abutment ? JSON.stringify(body.abutment) : '';
 	if ('visible' in body) updated.visible = body.visible ? 1 : 0;
 
 	db.query(
 		`UPDATE implants SET tooth=?2, manufacturer=?3, line=?4, article=?5, diameter=?6, length=?7,
-			x=?8, y=?9, z=?10, ax=?11, ay=?12, az=?13, rotation=?14, color=?15, sleeve=?16, visible=?17
+			x=?8, y=?9, z=?10, ax=?11, ay=?12, az=?13, rotation=?14, color=?15, sleeve=?16, visible=?17,
+			abutment=?18
 		 WHERE id=?1`
 	).run(
 		id,
@@ -47,7 +49,8 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		updated.rotation,
 		updated.color,
 		updated.sleeve,
-		updated.visible
+		updated.visible,
+		updated.abutment
 	);
 	return json({ implant: getImplant(id) });
 };

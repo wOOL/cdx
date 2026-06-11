@@ -176,6 +176,10 @@ const MIGRATIONS: string[] = [
 	// 6 — model generation parameters (e.g. segmentation threshold)
 	`
 	ALTER TABLE models ADD COLUMN params TEXT NOT NULL DEFAULT '';
+	`,
+	// 7 — abutment planning per implant
+	`
+	ALTER TABLE implants ADD COLUMN abutment TEXT NOT NULL DEFAULT '';
 	`
 ];
 

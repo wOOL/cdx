@@ -2,7 +2,7 @@ import type { Dataset, Implant, Measurement, Model, Nerve, Plan } from '$lib/typ
 import { SliceCache } from './sliceCache';
 import { sampleCurve, type Vec2 } from '$lib/curve';
 import { add, scale, segPolylineDistance, type Vec3 } from '$lib/geometry';
-import type { SleeveSpec } from '$lib/implantLibrary';
+import type { AbutmentSpec, SleeveSpec } from '$lib/implantLibrary';
 
 export interface WindowPreset {
 	name: string;
@@ -60,6 +60,7 @@ export interface ImplantData {
 	color: string;
 	visible: boolean;
 	sleeve: SleeveSpec | null;
+	abutment: AbutmentSpec | null;
 }
 
 export interface ModelData {
@@ -294,8 +295,14 @@ export class PlanningState {
 		});
 		this.implants = implants.map((im) => {
 			let sleeve: SleeveSpec | null = null;
+			let abutment: AbutmentSpec | null = null;
 			try {
 				if (im.sleeve) sleeve = JSON.parse(im.sleeve);
+			} catch {
+				// none
+			}
+			try {
+				if (im.abutment) abutment = JSON.parse(im.abutment);
 			} catch {
 				// none
 			}
@@ -316,7 +323,8 @@ export class PlanningState {
 				rotation: im.rotation,
 				color: im.color,
 				visible: !!im.visible,
-				sleeve
+				sleeve,
+				abutment
 			};
 		});
 	}
@@ -546,7 +554,14 @@ export class PlanningState {
 		});
 		if (!res.ok) return null;
 		const { implant } = await res.json();
-		const data: ImplantData = { ...body, id: implant.id, rotation: 0, visible: true, sleeve: null };
+		const data: ImplantData = {
+			...body,
+			id: implant.id,
+			rotation: 0,
+			visible: true,
+			sleeve: null,
+			abutment: null
+		};
 		this.implants.push(data);
 		this.selectedImplantId = data.id;
 		return data;

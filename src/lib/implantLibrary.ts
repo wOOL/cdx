@@ -138,6 +138,33 @@ export function drillLength(implantLength: number, sleeve: SleeveSpec): number {
 	return implantLength + sleeve.offset + sleeve.height;
 }
 
+// ---------------- abutments ----------------
+
+export interface AbutmentSpec {
+	type: 'straight' | 'angled';
+	/** angulation in degrees (0 for straight) */
+	angle: number;
+	/** height above the implant shoulder, mm */
+	height: number;
+	/** prosthetic platform diameter, mm */
+	diameter: number;
+}
+
+export const ABUTMENT_PRESETS: { name: string; spec: AbutmentSpec | null }[] = [
+	{ name: 'None', spec: null },
+	{ name: 'Straight 4 mm', spec: { type: 'straight', angle: 0, height: 4, diameter: 4.5 } },
+	{ name: 'Straight 5.5 mm', spec: { type: 'straight', angle: 0, height: 5.5, diameter: 4.5 } },
+	{ name: 'Angled 17° / 4 mm', spec: { type: 'angled', angle: 17, height: 4, diameter: 4.5 } },
+	{ name: 'Angled 30° / 4 mm', spec: { type: 'angled', angle: 30, height: 4, diameter: 4.5 } }
+];
+
+export function abutmentLabel(a: AbutmentSpec | null): string {
+	if (!a) return 'None';
+	return a.type === 'straight'
+		? `Straight ${a.height.toFixed(1)} mm`
+		: `Angled ${a.angle.toFixed(0)}° / ${a.height.toFixed(1)} mm`;
+}
+
 // ---------------- drill protocols ----------------
 
 export interface DrillStep {

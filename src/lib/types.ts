@@ -106,6 +106,7 @@ export interface Implant {
 	rotation: number;
 	color: string;
 	sleeve: string;
+	abutment: string;
 	visible: number;
 	created_at: string;
 }

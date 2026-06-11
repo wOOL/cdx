@@ -80,6 +80,54 @@ export function sleeveEnds(im: ImplantData): { bottom: Vec3; top: Vec3 } | null 
 	};
 }
 
+/** abutment ends: shoulder (= head) → top, mm */
+export function abutmentEnds(im: ImplantData): { top: Vec3 } | null {
+	if (!im.abutment) return null;
+	const h = im.abutment.height;
+	return {
+		top: { x: im.x - im.ax * h, y: im.y - im.ay * h, z: im.z - im.az * h }
+	};
+}
+
+function drawAbutmentGlyph(
+	ctx: CanvasRenderingContext2D,
+	shoulder: { x: number; y: number },
+	top: { x: number; y: number },
+	halfWidthPx: number,
+	angled: boolean,
+	selected: boolean
+) {
+	const dx = top.x - shoulder.x;
+	const dy = top.y - shoulder.y;
+	const len = Math.hypot(dx, dy) || 1;
+	const nx = -dy / len;
+	const ny = dx / len;
+	ctx.beginPath();
+	if (angled) {
+		// bent profile: straight lower half, kinked upper half
+		const mid = { x: shoulder.x + dx * 0.5, y: shoulder.y + dy * 0.5 };
+		const kx = mid.x + dx * 0.5 - nx * halfWidthPx * 1.1;
+		const ky = mid.y + dy * 0.5 - ny * halfWidthPx * 1.1;
+		ctx.moveTo(shoulder.x + nx * halfWidthPx, shoulder.y + ny * halfWidthPx);
+		ctx.lineTo(mid.x + nx * halfWidthPx * 0.8, mid.y + ny * halfWidthPx * 0.8);
+		ctx.lineTo(kx + nx * halfWidthPx * 0.6, ky + ny * halfWidthPx * 0.6);
+		ctx.lineTo(kx - nx * halfWidthPx * 0.6, ky - ny * halfWidthPx * 0.6);
+		ctx.lineTo(mid.x - nx * halfWidthPx * 0.8, mid.y - ny * halfWidthPx * 0.8);
+		ctx.lineTo(shoulder.x - nx * halfWidthPx, shoulder.y - ny * halfWidthPx);
+	} else {
+		ctx.moveTo(shoulder.x + nx * halfWidthPx, shoulder.y + ny * halfWidthPx);
+		ctx.lineTo(top.x + nx * halfWidthPx * 0.7, top.y + ny * halfWidthPx * 0.7);
+		ctx.lineTo(top.x - nx * halfWidthPx * 0.7, top.y - ny * halfWidthPx * 0.7);
+		ctx.lineTo(shoulder.x - nx * halfWidthPx, shoulder.y - ny * halfWidthPx);
+	}
+	ctx.closePath();
+	ctx.fillStyle = 'rgba(196, 168, 220, 0.35)';
+	ctx.fill();
+	ctx.strokeStyle = selected ? '#d8c2f0' : '#b59ad4';
+	ctx.lineWidth = selected ? 1.8 : 1.2;
+	ctx.stroke();
+}
+
 function drawSleeveGlyph(
 	ctx: CanvasRenderingContext2D,
 	bottom: { x: number; y: number },
@@ -194,6 +242,20 @@ export function drawPanoOverlay(
 					map.toCanvas(b.u, b.zmm),
 					map.toCanvas(tp.u, tp.zmm),
 					(im.sleeve.diameter / 2) * map.pxPerMMx,
+					ps.selectedImplantId === im.id
+				);
+			}
+		}
+		const ae = abutmentEnds(im);
+		if (ae && im.abutment) {
+			const tp = ps.toPano(ae.top);
+			if (h && tp) {
+				drawAbutmentGlyph(
+					ctx,
+					map.toCanvas(h.u, h.zmm),
+					map.toCanvas(tp.u, tp.zmm),
+					(im.abutment.diameter / 2) * map.pxPerMMx,
+					im.abutment.type === 'angled',
 					ps.selectedImplantId === im.id
 				);
 			}
@@ -467,6 +529,18 @@ export function drawCrossOverlay(
 				map.toCanvas(b.w, b.zmm),
 				map.toCanvas(tp.w, tp.zmm),
 				(im.sleeve.diameter / 2) * map.pxPerMMx,
+				ps.selectedImplantId === im.id
+			);
+		}
+		const ae = abutmentEnds(im);
+		if (ae && im.abutment) {
+			const tp = projectToSection(frame, ae.top);
+			drawAbutmentGlyph(
+				ctx,
+				map.toCanvas(h.w, h.zmm),
+				map.toCanvas(tp.w, tp.zmm),
+				(im.abutment.diameter / 2) * map.pxPerMMx,
+				im.abutment.type === 'angled',
 				ps.selectedImplantId === im.id
 			);
 		}
