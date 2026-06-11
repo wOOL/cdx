@@ -205,6 +205,65 @@ const MIGRATIONS: string[] = [
 		created_at TEXT NOT NULL DEFAULT (datetime('now'))
 	);
 	CREATE INDEX idx_audit_time ON audit(created_at);
+	`,
+	// 11 — collaboration: contacts + plan transfers
+	`
+	CREATE TABLE contacts (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		code TEXT NOT NULL UNIQUE,
+		name TEXT NOT NULL DEFAULT '',
+		email TEXT NOT NULL DEFAULT '',
+		kind TEXT NOT NULL DEFAULT 'clinician',
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
+	CREATE TABLE transfers (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		number TEXT NOT NULL UNIQUE,
+		plan_id INTEGER,
+		contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+		direction TEXT NOT NULL DEFAULT 'out',
+		state TEXT NOT NULL DEFAULT 'uploaded',
+		service TEXT NOT NULL DEFAULT '',
+		comment TEXT NOT NULL DEFAULT '',
+		payload_path TEXT NOT NULL DEFAULT '',
+		unread INTEGER NOT NULL DEFAULT 0,
+		created_at TEXT NOT NULL DEFAULT (datetime('now')),
+		updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
+	CREATE INDEX idx_transfers_state ON transfers(state);
+	`,
+	// 12 — account tiers, export credits, TOTP MFA
+	`
+	ALTER TABLE users ADD COLUMN tier TEXT NOT NULL DEFAULT 'pro';
+	ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT 20;
+	ALTER TABLE users ADD COLUMN totp_secret TEXT NOT NULL DEFAULT '';
+	`,
+	// 13 — dataset lock + import metadata; plan sent/stale flags
+	`
+	ALTER TABLE datasets ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE datasets ADD COLUMN import_warnings TEXT NOT NULL DEFAULT '';
+	ALTER TABLE datasets ADD COLUMN gray_lo INTEGER NOT NULL DEFAULT -1000;
+	ALTER TABLE datasets ADD COLUMN gray_hi INTEGER NOT NULL DEFAULT 3000;
+	ALTER TABLE plans ADD COLUMN sent INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE plans ADD COLUMN guide_stale INTEGER NOT NULL DEFAULT 0;
+	`,
+	// 14 — custom sleeve systems + catalog uploads
+	`
+	CREATE TABLE custom_sleeves (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		data TEXT NOT NULL DEFAULT '{}',
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
+	CREATE TABLE catalogs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		kind TEXT NOT NULL DEFAULT 'implant',
+		name TEXT NOT NULL,
+		version TEXT NOT NULL DEFAULT '1',
+		data TEXT NOT NULL DEFAULT '[]',
+		outdated INTEGER NOT NULL DEFAULT 0,
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
 	`
 ];
 

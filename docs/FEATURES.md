@@ -285,7 +285,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] EASY Step 4: Finish (protocol selector, page arrows, Print + Save to PDF) — partial: single protocol; browser print
 - [x] [P2] EASY contextual help panel per step (collapsible, content authored per step)
 - [x] [P2] Mode switching: EASY ↔ EXPERT on same dataset without data loss
-- [ ] [P2] EASY temporary measurements mode in implant step
+- [x] [P2] EASY temporary measurements mode in implant step
 - [ ] [P3] EASY zoom hotkeys (Ctrl +/−/0) + Ctrl-click recent dataset opens in EASY
 - [ ] [P3] Toolbar customization (right-click Adjust, drag in/out, preset reset)
 - [ ] [P4] Treatment Evaluation module: study list, scanbody-scan and postop-CT study types, region matching, implant alignment, deviation report + CSV export
@@ -300,7 +300,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Surgical protocol report: per-implant drill sequence from data-driven protocol definitions (position, drills with Ø/color, implant, depth stop/H-position) — partial: drill sequences per sleeve system; no bone classes
 - [~] [P1] Print menu (Plan > Print ▸ / toolbar Print dropdown) wired to all protocols — partial: single report + print button
 - [~] [P2] Protocol definition data model per sleeve system (ordered steps, conditions on implant Ø/length, 3 bone classes) + "no protocol available" notice — partial: static catalog, conditions on implant diameter only
-- [ ] [P2] Bone-class rows (soft/medium/hard), handle/length glyph coding, cortical-only marks, manual-step marking
+- [~] [P2] Bone-class rows (soft/medium/hard), handle/length glyph coding, cortical-only marks, manual-step marking — partial: bone-class column + cortical-only steps; no glyph coding
 - [~] [P2] Print preview pane (page nav, zoom, download, close) + direct-to-PDF path — partial: HTML preview; no page nav/zoom
 - [ ] [P2] Print All batch dialog with persisted document selection
 - [ ] [P2] Screen copy (current screen capture to PDF/PNG)
@@ -336,7 +336,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Screenshot tab: filename scheme (default/anonymized/user-defined + placeholders), storage target, format, save notification — partial: scheme with placeholders; no storage-target/format options
 - [ ] [P2] Management console page: account profile, password change, language placeholder, subscription/credits display
 - [ ] [P3] Teams: invite members, roles, per-patient/dataset permissions (read/modify/delete; most restrictive wins; owner override)
-- [ ] [P3] Audit log (finalize, export, share, delete, anonymize events) with viewer UI
+- [x] [P3] Audit log (finalize, export, share, delete, anonymize events) with viewer UI
 - [ ] [P3] Catalog admin UI (upload catalog versions, edit protocol definitions, flag outdated items)
 - [ ] [P3] Context-sensitive help system (F1, per-dialog "?" content) + help site
 - [ ] [P4] i18n framework + additional UI locales (DE/FR/IT/NL/HU)
