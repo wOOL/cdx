@@ -48,6 +48,26 @@ interface:
   order list manages incoming service requests with sequence-controlled processing
   (chapter 5.4 for plan states; transfer states are shown with colored bars).
 
+### The CAD workstation
+
+For prosthetic design work without leaving the browser, a full CAD application (Chili3D,
+embedded under its AGPL-3.0 license — the *source* link in the header serves the exact
+corresponding source) runs at **`/cad`**:
+
+![CAD workstation with case anatomy loaded](img/cad-workstation.png)
+
+- **Send to CAD** — pick the case in the sidebar and click any mesh model (scan, bone
+  segmentation, guide). The anatomy loads at full resolution as reference geometry; large
+  meshes are handled natively, the planning-side file is never modified.
+- Design in the CAD: sketches, solids, booleans — the usual parametric toolset, suited to
+  bars, plates, bases and custom abutment blanks.
+- **Attach CAD design to case** — exports every visible body as STL and attaches it to the
+  case as a wax-up model (audited). It then appears in the object tree of the planning
+  workspace like any other model.
+
+> 💡 Both applications run in the same browser session against the same case data — sending
+> a model and getting the design back takes seconds, with no file shuttling.
+
 ## 7.3 Measurement functions
 
 The measurement rail sits in the left panel (*Measure (axial view)*); right-click it to

@@ -4,6 +4,7 @@
 	let { onclose }: { onclose: () => void } = $props();
 
 	const LIBRARIES = [
+		{ name: 'Chili3D (embedded CAD, pinned 0.6.1)', license: 'AGPL-3.0', url: 'https://github.com/xiangechen/chili3d' },
 		{ name: 'three.js', license: 'MIT', url: 'https://threejs.org' },
 		{ name: 'dicom-parser', license: 'MIT', url: 'https://github.com/cornerstonejs/dicomParser' },
 		{ name: 'fflate', license: 'MIT', url: 'https://github.com/101arrowz/fflate' },

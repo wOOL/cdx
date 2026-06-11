@@ -146,8 +146,9 @@ There is nothing to install on the workstation — operators only need the URL a
 Server deployment:
 
 ```bash
+git submodule update --init   # embedded CAD (vendor/chili3d, pinned release)
 bun install
-bun run build
+bun run build                 # also builds the CAD workstation (build:cad)
 PORT=3000 ORIGIN=https://your-host bun run build/index.js
 ```
 

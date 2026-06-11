@@ -23,6 +23,9 @@
 		} else if (msg?.type === 'cdx-loaded') {
 			busy = false;
 			status = 'Model loaded into the CAD document';
+		} else if (msg?.type === 'cdx-load-failed') {
+			busy = false;
+			status = `Load failed: ${msg.reason ?? 'unknown'}`;
 		} else if (msg?.type === 'cdx-export-failed') {
 			busy = false;
 			status = `Export failed: ${msg.reason ?? 'unknown'}`;
@@ -98,6 +101,10 @@
 			</select>
 
 			<div class="panel-header inner">Send to CAD</div>
+			<p class="faint">
+				Large meshes are decimated to ≤48k triangles for the CAD kernel; the planning-side
+				model is never modified.
+			</p>
 			{#each data.models as m (m.id)}
 				<button class="model-row" disabled={!bridgeReady || busy} onclick={() => openModel(m)}>
 					<Icon name="volume" size={14} />
