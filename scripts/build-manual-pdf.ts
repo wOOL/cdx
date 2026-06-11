@@ -17,11 +17,23 @@ const files = readdirSync(DIR)
 	.filter((f) => /^\d{2}-.*\.md$/.test(f))
 	.sort();
 
+/** Inline every img/foo.png as a base64 data URI — avoids any file:// / network
+ *  image-loading race (the images become part of the HTML itself). */
+function inlineImages(html: string): string {
+	return html
+		// the renderer marks images loading="lazy" — lazy images below the initial
+		// viewport never load in a headless print, so force eager
+		.replace(/\sloading="lazy"/g, ' loading="eager"')
+		.replace(/src="img\/([^"]+)"/g, (_m, name) => {
+			const bytes = readFileSync(join(DIR, 'img', name));
+			return `src="data:image/png;base64,${bytes.toString('base64')}"`;
+		});
+}
+
 const chapters = files
 	.map((f, i) => {
 		const md = readFileSync(join(DIR, f), 'utf-8');
-		// keep img/foo.png relative — the build HTML lives in docs/manual/
-		const html = renderMarkdown(md);
+		const html = inlineImages(renderMarkdown(md));
 		return `<section class="chapter"${i === 0 ? ' data-first' : ''}>${html}</section>`;
 	})
 	.join('\n');
@@ -68,7 +80,31 @@ writeFileSync(buildPath, doc);
 const browser = await chromium.launch();
 try {
 	const page = await browser.newPage();
-	await page.goto(`file://${buildPath}`, { waitUntil: 'networkidle' });
+	await page.goto(`file://${buildPath}`, { waitUntil: 'load' });
+	// images are inline data URIs; give the renderer a moment to decode, then
+	// confirm they all decoded (hard 30 s cap so this can never hang)
+	const loaded = await page.evaluate(
+		() =>
+			Promise.race([
+				(async () => {
+					const imgs = Array.from(document.images);
+					await Promise.all(
+						imgs.map((i) =>
+							i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })
+						)
+					);
+					return { total: imgs.length, ok: imgs.filter((i) => i.naturalWidth > 0).length };
+				})(),
+				new Promise<{ total: number; ok: number }>((r) =>
+					setTimeout(() => r({ total: -1, ok: -1 }), 30000)
+				)
+			])
+	);
+	console.log(`images: ${loaded.ok}/${loaded.total} decoded`);
+	if (loaded.total < 0 || loaded.ok !== loaded.total) {
+		console.error('not all images decoded (or timed out) — aborting, no PDF written');
+		process.exit(1);
+	}
 	await page.pdf({
 		path: join(DIR, 'coDiagnostiX-Web-Manual.pdf'),
 		format: 'A4',
