@@ -1842,7 +1842,45 @@
 		{ key: 'annotation', label: 'Text annotation' },
 		{ key: 'auxline', label: 'Auxiliary line' }
 	];
+	// pinnable quick actions (desktop: right-click toolbar → Adjust, drag background functions)
+	const QUICK_ACTIONS = [
+		{ key: 'center-implant', label: '🎯 Center implant', hint: 'Center all views on the selected implant' },
+		{ key: 'screenshot', label: '📷 Screen copy', hint: 'Snapshot all views (F8)' },
+		{ key: 'lock-plan', label: '🔒 Lock plan', hint: 'Toggle plan write-protection' },
+		{ key: 'fine-position', label: '⊞ Fine position', hint: 'Fine positioning of the selected implant' },
+		{ key: 'sidebar', label: '◧ Sidebar', hint: 'Hide/show the sidebar (F9)' }
+	];
+	let pinnedActions = $state<string[]>([]);
+	function savePinnedActions() {
+		localStorage.setItem('cdx_toolbar_quick', JSON.stringify($state.snapshot(pinnedActions)));
+	}
+	function runQuickAction(key: string) {
+		if (!ps) return;
+		if (key === 'center-implant') {
+			const im = ps.implants.find((i) => i.id === ps?.selectedImplantId) ?? ps.implants[0];
+			if (!im) return;
+			ps.selectedImplantId = im.id;
+			ps.cursor.x = Math.round(im.x / ps.ds.spacing_x);
+			ps.cursor.y = Math.round(im.y / ps.ds.spacing_y);
+			ps.cursor.z = Math.max(0, Math.min(ps.ds.slices - 1, Math.round(im.z / ps.ds.spacing_z)));
+			ps.clampCursor();
+		} else if (key === 'screenshot') {
+			screenCopy();
+		} else if (key === 'lock-plan') {
+			togglePlanFlag('locked');
+		} else if (key === 'fine-position') {
+			implantFineOpen = !implantFineOpen;
+		} else if (key === 'sidebar') {
+			sidebarHidden = !sidebarHidden;
+		}
+	}
 	$effect(() => {
+		try {
+			const savedQ = JSON.parse(localStorage.getItem('cdx_toolbar_quick') ?? '[]');
+			if (Array.isArray(savedQ)) pinnedActions = savedQ.filter((k) => typeof k === 'string');
+		} catch {
+			pinnedActions = [];
+		}
 		try {
 			const saved = JSON.parse(localStorage.getItem('cdx_toolbar_measure') ?? '[]');
 			if (Array.isArray(saved)) hiddenTools = saved.filter((k) => typeof k === 'string');
@@ -3396,6 +3434,9 @@
 					>
 						Perio chart…
 					</button>
+					{#each QUICK_ACTIONS.filter((q) => pinnedActions.includes(q.key)) as q (q.key)}
+						<button class="btn" title={q.hint} onclick={() => runQuickAction(q.key)}>{q.label}</button>
+					{/each}
 					<div
 						class="measure-row"
 						id="measure-tools"
@@ -4977,8 +5018,9 @@
 {#if showToolbarAdjust}
 	<div class="backdrop2" role="presentation" onclick={() => (showToolbarAdjust = false)}>
 		<div class="panel pe-dialog" role="dialog" onclick={(e) => e.stopPropagation()}>
-			<div class="dialog-title">Adjust toolbar — measurement tools</div>
+			<div class="dialog-title">Adjust toolbar</div>
 			<div class="dialog-body">
+				<div class="dialog-hint">Measurement tools</div>
 				{#each MEASURE_TOOLS as mt (mt.key)}
 					<label class="pa-row2">
 						<input
@@ -4992,6 +5034,22 @@
 							}}
 						/>
 						{mt.label}
+					</label>
+				{/each}
+				<div class="dialog-hint">Quick actions pinned to the toolbar</div>
+				{#each QUICK_ACTIONS as q (q.key)}
+					<label class="pa-row2" title={q.hint}>
+						<input
+							type="checkbox"
+							checked={pinnedActions.includes(q.key)}
+							onchange={(e) => {
+								pinnedActions = e.currentTarget.checked
+									? [...pinnedActions, q.key]
+									: pinnedActions.filter((k) => k !== q.key);
+								savePinnedActions();
+							}}
+						/>
+						{q.label}
 					</label>
 				{/each}
 			</div>

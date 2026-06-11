@@ -101,18 +101,28 @@
 		uMvp: WebGLUniformLocation | null;
 		uModel: WebGLUniformLocation | null;
 		uColor: WebGLUniformLocation | null;
+		uAlpha: WebGLUniformLocation | null;
 	} | null = null;
-	// src tracks the uploaded Float32Array so editor ops (same id, new soup) re-upload
-	const buffers = new Map<
-		number,
-		{ pos: WebGLBuffer; nrm: WebGLBuffer; count: number; src: Float32Array }
-	>();
-	// flat-color program for overlay points / polylines
+	// src tracks the uploaded Float32Array so editor ops (same id, new soup) re-upload;
+	// edge holds the lazily built gl.LINES buffer of the triangle edges (wireframe modes)
+	interface MeshBuf {
+		pos: WebGLBuffer;
+		nrm: WebGLBuffer;
+		count: number;
+		src: Float32Array;
+		edge: WebGLBuffer | null;
+		edgeCount: number;
+		edgeSrc: Float32Array | null;
+	}
+	const buffers = new Map<number, MeshBuf>();
+	// flat-color program for overlay points / polylines and wireframe edges
 	let oProg: WebGLProgram | null = null;
 	let oLoc: {
 		aPos: number;
 		uMvp: WebGLUniformLocation | null;
+		uModel: WebGLUniformLocation | null;
 		uColor: WebGLUniformLocation | null;
+		uAlpha: WebGLUniformLocation | null;
 		uSize: WebGLUniformLocation | null;
 	} | null = null;
 	let oBuf: WebGLBuffer | null = null;
@@ -213,24 +223,27 @@
 	const FS = `
 		precision mediump float;
 		uniform vec3 uColor;
+		uniform float uAlpha;
 		varying vec3 vNrm;
 		void main() {
 			vec3 n = normalize(vNrm);
 			float d = abs(n.y) * 0.55 + abs(n.z) * 0.25 + abs(n.x) * 0.10;
-			gl_FragColor = vec4(uColor * (0.30 + 0.70 * d), 1.0);
+			gl_FragColor = vec4(uColor * (0.30 + 0.70 * d), uAlpha);
 		}`;
 	const OVS = `
 		attribute vec3 aPos;
 		uniform mat4 uMvp;
+		uniform mat4 uModel;
 		uniform float uSize;
 		void main() {
-			gl_Position = uMvp * vec4(aPos, 1.0);
+			gl_Position = uMvp * uModel * vec4(aPos, 1.0);
 			gl_PointSize = uSize;
 		}`;
 	const OFS = `
 		precision mediump float;
 		uniform vec3 uColor;
-		void main() { gl_FragColor = vec4(uColor, 1.0); }`;
+		uniform float uAlpha;
+		void main() { gl_FragColor = vec4(uColor, uAlpha); }`;
 
 	function initGl(): void {
 		if (!canvas || gl) return;
@@ -251,7 +264,8 @@
 			aNrm: gl.getAttribLocation(prog, 'aNrm'),
 			uMvp: gl.getUniformLocation(prog, 'uMvp'),
 			uModel: gl.getUniformLocation(prog, 'uModel'),
-			uColor: gl.getUniformLocation(prog, 'uColor')
+			uColor: gl.getUniformLocation(prog, 'uColor'),
+			uAlpha: gl.getUniformLocation(prog, 'uAlpha')
 		};
 		oProg = gl.createProgram()!;
 		gl.attachShader(oProg, compile(gl.VERTEX_SHADER, OVS));
@@ -260,7 +274,9 @@
 		oLoc = {
 			aPos: gl.getAttribLocation(oProg, 'aPos'),
 			uMvp: gl.getUniformLocation(oProg, 'uMvp'),
+			uModel: gl.getUniformLocation(oProg, 'uModel'),
 			uColor: gl.getUniformLocation(oProg, 'uColor'),
+			uAlpha: gl.getUniformLocation(oProg, 'uAlpha'),
 			uSize: gl.getUniformLocation(oProg, 'uSize')
 		};
 		oBuf = gl.createBuffer();
@@ -319,6 +335,54 @@
 		return [cam.cx + cam.dist * cp * sy, cam.cy - cam.dist * cp * cy, cam.cz + cam.dist * sp];
 	}
 
+	const IDENT = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+
+	/** gl.LINES soup of every triangle's three edges (a-b, b-c, c-a). */
+	function edgeLines(p: Float32Array): Float32Array {
+		const out = new Float32Array(p.length * 2);
+		let o = 0;
+		for (let i = 0; i + 8 < p.length; i += 9) {
+			for (const [s, t] of [
+				[0, 3],
+				[3, 6],
+				[6, 0]
+			]) {
+				out[o++] = p[i + s];
+				out[o++] = p[i + s + 1];
+				out[o++] = p[i + s + 2];
+				out[o++] = p[i + t];
+				out[o++] = p[i + t + 1];
+				out[o++] = p[i + t + 2];
+			}
+		}
+		return out;
+	}
+
+	/** Upload (or re-upload after an edit) the pos/nrm VBOs of a mesh. */
+	function ensureBuffers(m: { id: number; positions: Float32Array | null }): MeshBuf | null {
+		if (!gl || !m.positions) return null;
+		let buf = buffers.get(m.id);
+		if (!buf || buf.src !== m.positions) {
+			const pos = buf?.pos ?? gl.createBuffer()!;
+			gl.bindBuffer(gl.ARRAY_BUFFER, pos);
+			gl.bufferData(gl.ARRAY_BUFFER, m.positions, gl.STATIC_DRAW);
+			const nrm = buf?.nrm ?? gl.createBuffer()!;
+			gl.bindBuffer(gl.ARRAY_BUFFER, nrm);
+			gl.bufferData(gl.ARRAY_BUFFER, flatNormals(m.positions), gl.STATIC_DRAW);
+			buf = {
+				pos,
+				nrm,
+				count: m.positions.length / 3,
+				src: m.positions,
+				edge: buf?.edge ?? null,
+				edgeCount: 0,
+				edgeSrc: null // stale — rebuilt lazily when a wireframe mode needs it
+			};
+			buffers.set(m.id, buf);
+		}
+		return buf;
+	}
+
 	function draw(): void {
 		if (!canvas || !gl || !prog || !loc) return;
 		const cw = canvas.width;
@@ -333,45 +397,93 @@
 		const proj = perspective(35, cw / Math.max(1, ch), cam.dist * 0.01, cam.dist * 10);
 		const mvp = mul4(proj, view);
 
-		gl.useProgram(prog);
-		gl.uniformMatrix4fv(loc.uMvp, false, mvp);
-		const ident = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+		// surfaces (skipped entirely in wireframe-only mode); opaque meshes
+		// first, then translucent ones (blended, depth-write off)
+		if (viewMode !== 'wire') {
+			gl.useProgram(prog);
+			gl.uniformMatrix4fv(loc.uMvp, false, mvp);
+			for (const translucent of [false, true]) {
+				for (const m of meshes) {
+					if (!m.visible || !m.positions || m.positions.length < 9) continue;
+					const alpha = m.opacity ?? 1;
+					if ((alpha < 1) !== translucent) continue;
+					const buf = ensureBuffers(m);
+					if (!buf) continue;
+					gl.uniformMatrix4fv(loc.uModel, false, m.transform ? new Float32Array(m.transform) : IDENT);
+					gl.uniform3fv(loc.uColor, hexToRgb(m.color));
+					gl.uniform1f(loc.uAlpha, alpha);
+					if (translucent) {
+						gl.enable(gl.BLEND);
+						gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+						gl.depthMask(false);
+					}
+					if (m.raised) {
+						// pull the highlight towards the camera so it wins z-fighting
+						// against the identical base-mesh triangles underneath
+						gl.enable(gl.POLYGON_OFFSET_FILL);
+						gl.polygonOffset(-1.5, -1.5);
+					} else if (viewMode === 'edges') {
+						// push the fill back so the edge lines win the depth test
+						gl.enable(gl.POLYGON_OFFSET_FILL);
+						gl.polygonOffset(1.0, 1.0);
+					}
+					gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
+					gl.enableVertexAttribArray(loc.aPos);
+					gl.vertexAttribPointer(loc.aPos, 3, gl.FLOAT, false, 0, 0);
+					gl.bindBuffer(gl.ARRAY_BUFFER, buf.nrm);
+					gl.enableVertexAttribArray(loc.aNrm);
+					gl.vertexAttribPointer(loc.aNrm, 3, gl.FLOAT, false, 0, 0);
+					gl.drawArrays(gl.TRIANGLES, 0, buf.count);
+					if (m.raised || viewMode === 'edges') gl.disable(gl.POLYGON_OFFSET_FILL);
+					if (translucent) {
+						gl.disable(gl.BLEND);
+						gl.depthMask(true);
+					}
+				}
+			}
+		}
 
-		for (const m of meshes) {
-			if (!m.visible || !m.positions || m.positions.length < 9) continue;
-			let buf = buffers.get(m.id);
-			if (!buf || buf.src !== m.positions) {
-				const pos = buf?.pos ?? gl.createBuffer()!;
-				gl.bindBuffer(gl.ARRAY_BUFFER, pos);
-				gl.bufferData(gl.ARRAY_BUFFER, m.positions, gl.STATIC_DRAW);
-				const nrm = buf?.nrm ?? gl.createBuffer()!;
-				gl.bindBuffer(gl.ARRAY_BUFFER, nrm);
-				gl.bufferData(gl.ARRAY_BUFFER, flatNormals(m.positions), gl.STATIC_DRAW);
-				buf = { pos, nrm, count: m.positions.length / 3, src: m.positions };
-				buffers.set(m.id, buf);
+		// wireframe: triangle edges as gl.LINES, depth-tested (dark over the
+		// shaded surface in 'edges' mode, full mesh color in 'wire' mode)
+		if (viewMode !== 'surface' && oProg && oLoc) {
+			gl.useProgram(oProg);
+			gl.uniformMatrix4fv(oLoc.uMvp, false, mvp);
+			gl.uniform1f(oLoc.uSize, 1);
+			for (const m of meshes) {
+				if (!m.visible || !m.positions || m.positions.length < 9) continue;
+				const buf = ensureBuffers(m);
+				if (!buf) continue;
+				if (!buf.edge || buf.edgeSrc !== m.positions) {
+					buf.edge = buf.edge ?? gl.createBuffer()!;
+					gl.bindBuffer(gl.ARRAY_BUFFER, buf.edge);
+					gl.bufferData(gl.ARRAY_BUFFER, edgeLines(m.positions), gl.STATIC_DRAW);
+					buf.edgeCount = (m.positions.length / 9) * 6;
+					buf.edgeSrc = m.positions;
+				}
+				gl.uniformMatrix4fv(oLoc.uModel, false, m.transform ? new Float32Array(m.transform) : IDENT);
+				const [r, g, b] = hexToRgb(m.color);
+				const k = viewMode === 'edges' ? 0.35 : 1;
+				gl.uniform3f(oLoc.uColor, r * k, g * k, b * k);
+				const alpha = m.opacity ?? 1;
+				gl.uniform1f(oLoc.uAlpha, alpha);
+				if (alpha < 1) {
+					gl.enable(gl.BLEND);
+					gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+				}
+				gl.bindBuffer(gl.ARRAY_BUFFER, buf.edge);
+				gl.enableVertexAttribArray(oLoc.aPos);
+				gl.vertexAttribPointer(oLoc.aPos, 3, gl.FLOAT, false, 0, 0);
+				gl.drawArrays(gl.LINES, 0, buf.edgeCount);
+				if (alpha < 1) gl.disable(gl.BLEND);
 			}
-			gl.uniformMatrix4fv(loc.uModel, false, m.transform ? new Float32Array(m.transform) : ident);
-			gl.uniform3fv(loc.uColor, hexToRgb(m.color));
-			if (m.raised) {
-				// pull the highlight towards the camera so it wins z-fighting
-				// against the identical base-mesh triangles underneath
-				gl.enable(gl.POLYGON_OFFSET_FILL);
-				gl.polygonOffset(-1.5, -1.5);
-			}
-			gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
-			gl.enableVertexAttribArray(loc.aPos);
-			gl.vertexAttribPointer(loc.aPos, 3, gl.FLOAT, false, 0, 0);
-			gl.bindBuffer(gl.ARRAY_BUFFER, buf.nrm);
-			gl.enableVertexAttribArray(loc.aNrm);
-			gl.vertexAttribPointer(loc.aNrm, 3, gl.FLOAT, false, 0, 0);
-			gl.drawArrays(gl.TRIANGLES, 0, buf.count);
-			if (m.raised) gl.disable(gl.POLYGON_OFFSET_FILL);
 		}
 
 		// overlays: flat-colored points / polylines, always visible (no depth)
 		if (oProg && oLoc && oBuf && overlays.length) {
 			gl.useProgram(oProg);
 			gl.uniformMatrix4fv(oLoc.uMvp, false, mvp);
+			gl.uniformMatrix4fv(oLoc.uModel, false, IDENT);
+			gl.uniform1f(oLoc.uAlpha, 1);
 			gl.disable(gl.DEPTH_TEST);
 			gl.bindBuffer(gl.ARRAY_BUFFER, oBuf);
 			gl.enableVertexAttribArray(oLoc.aPos);
@@ -508,11 +620,15 @@
 	}
 
 	$effect(() => {
-		// track: size, reset, camera, overlays and per-mesh visible/positions/transform
+		// track: size, reset, camera, view mode, overlays and per-mesh visible/positions/transform
 		void wrapW;
 		void cam.yaw;
 		void cam.pitch;
 		void cam.dist;
+		void cam.cx;
+		void cam.cy;
+		void cam.cz;
+		void viewMode;
 		for (const ov of overlays) {
 			void ov.points.length;
 			void ov.color;
@@ -523,6 +639,7 @@
 			void m.visible;
 			void m.transform;
 			void m.raised;
+			void m.opacity;
 			if (m.positions) loadedCount++;
 		}
 		if (!canvas) return;
@@ -536,11 +653,77 @@
 		draw();
 	});
 
+	/** Current model-view-projection (same math as draw), or null before the first fit. */
+	function currentMvp(): Float32Array | null {
+		if (!canvas || !fitted || cam.dist === 0) return null;
+		const eye = cameraEye();
+		const view = lookAt(eye, [cam.cx, cam.cy, cam.cz], [0, 0, 1]);
+		const proj = perspective(
+			35,
+			canvas.width / Math.max(1, canvas.height),
+			cam.dist * 0.01,
+			cam.dist * 10
+		);
+		return mul4(proj, view);
+	}
+
+	/** Index of the editPoint within `px` canvas pixels of (x, y), or -1. */
+	function nearestEditPoint(x: number, y: number, px = 12): number {
+		if (!editPoints?.length || !canvas) return -1;
+		const m = currentMvp();
+		if (!m) return -1;
+		let best = -1;
+		let bestD = px * px;
+		for (let i = 0; i < editPoints.length; i++) {
+			const p = editPoints[i];
+			const cw = m[3] * p.x + m[7] * p.y + m[11] * p.z + m[15];
+			if (cw <= 0) continue;
+			const sx = ((m[0] * p.x + m[4] * p.y + m[8] * p.z + m[12]) / cw / 2 + 0.5) * canvas.width;
+			const sy = (0.5 - (m[1] * p.x + m[5] * p.y + m[9] * p.z + m[13]) / cw / 2) * canvas.height;
+			const d = (sx - x) * (sx - x) + (sy - y) * (sy - y);
+			if (d < bestD) {
+				bestD = d;
+				best = i;
+			}
+		}
+		return best;
+	}
+
 	let drag: { x: number; y: number } | null = null;
 	let dragDist = 0;
+	let dragMode: 'orbit' | 'paint' | 'point' = 'orbit';
+	let dragPointIdx = -1;
+	let downHit: MeshPickHit | null = null;
+	let paintLast: MeshPickHit | null = null;
+
 	function down(e: PointerEvent): void {
+		if (e.button === 2) {
+			// right-click near an editable point removes it (in contextmenu) — no orbit
+			if (onpointremove && nearestEditPoint(e.offsetX, e.offsetY) >= 0) return;
+		}
 		drag = { x: e.clientX, y: e.clientY };
 		dragDist = 0;
+		dragMode = 'orbit';
+		dragPointIdx = -1;
+		downHit = null;
+		paintLast = null;
+		if (e.button === 0) {
+			if (editPoints?.length && onpointdrag) {
+				const idx = nearestEditPoint(e.offsetX, e.offsetY);
+				if (idx >= 0) {
+					dragMode = 'point';
+					dragPointIdx = idx;
+				}
+			}
+			if (dragMode === 'orbit' && paintActive && onpaint) {
+				// a left-drag that STARTS on the mesh paints; empty background still orbits
+				const hit = pickAt(e.offsetX, e.offsetY);
+				if (hit) {
+					dragMode = 'paint';
+					downHit = hit;
+				}
+			}
+		}
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 	}
 	function move(e: PointerEvent): void {
@@ -549,12 +732,44 @@
 		const dy = e.clientY - drag.y;
 		drag = { x: e.clientX, y: e.clientY };
 		dragDist += Math.abs(dx) + Math.abs(dy);
+		if (dragMode === 'point') {
+			if (dragPointIdx >= 0 && onpointdrag) {
+				const hit = pickAt(e.offsetX, e.offsetY);
+				if (hit) onpointdrag(dragPointIdx, hit);
+			}
+			return;
+		}
+		if (dragMode === 'paint') {
+			if (dragDist <= 4) return; // still within click tolerance
+			if (!paintLast && downHit) {
+				onpaint?.(downHit);
+				paintLast = downHit;
+			}
+			const hit = pickAt(e.offsetX, e.offsetY);
+			if (hit && paintLast) {
+				// throttle: re-apply once the cursor moved far enough on the surface
+				const step = Math.max(0.05, paintStepMm);
+				const d = Math.hypot(hit.x - paintLast.x, hit.y - paintLast.y, hit.z - paintLast.z);
+				if (d >= step) {
+					onpaint?.(hit);
+					paintLast = hit;
+				}
+			}
+			return;
+		}
 		cam.yaw += dx * 0.008;
 		cam.pitch = Math.max(-1.4, Math.min(1.4, cam.pitch - dy * 0.008));
 	}
 	function up(e: PointerEvent): void {
 		const wasDrag = dragDist > 4;
+		const mode = dragMode;
 		drag = null;
+		dragMode = 'orbit';
+		if (mode === 'point') return;
+		if (mode === 'paint' && wasDrag) {
+			onpaintend?.();
+			return;
+		}
 		// a click (not an orbit drag) in pick mode resolves to a mesh point
 		if (!wasDrag && pickActive && onpick) {
 			onpick(pickAt(e.offsetX, e.offsetY));
@@ -562,10 +777,35 @@
 	}
 	function cancel(): void {
 		drag = null;
+		dragMode = 'orbit';
 	}
 	function wheel(e: WheelEvent): void {
 		e.preventDefault();
+		if (e.ctrlKey && onToolWheel) {
+			// ctrl+wheel adjusts the active tool's radius; plain wheel keeps zooming
+			onToolWheel(e.deltaY > 0 ? -1 : 1);
+			return;
+		}
 		cam.dist = Math.max(10, Math.min(3000, cam.dist * (e.deltaY > 0 ? 1.1 : 0.9)));
+	}
+	function dblclick(e: MouseEvent): void {
+		const hit = pickAt(e.offsetX, e.offsetY);
+		if (ondblpick?.(hit)) return;
+		// double-click on the surface re-pivots the orbit ("turning point");
+		// Reset view (fitView) restores the centroid pivot
+		if (hit) {
+			cam.cx = hit.x;
+			cam.cy = hit.y;
+			cam.cz = hit.z;
+		}
+	}
+	function contextmenu(e: MouseEvent): void {
+		if (!onpointremove) return;
+		const idx = nearestEditPoint(e.offsetX, e.offsetY);
+		if (idx >= 0) {
+			e.preventDefault();
+			onpointremove(idx);
+		}
 	}
 </script>
 
@@ -578,6 +818,8 @@
 		onpointerup={up}
 		onpointercancel={cancel}
 		onwheel={wheel}
+		ondblclick={dblclick}
+		oncontextmenu={contextmenu}
 	></canvas>
 </div>
 
