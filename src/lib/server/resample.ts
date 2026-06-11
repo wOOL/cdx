@@ -38,26 +38,28 @@ export function rotateVolume(
 	pitch: number,
 	roll: number
 ): Int16Array {
+	return rotateVolumeByMatrix(vol, dims, spacing, rotationMatrix(yaw, pitch, roll));
+}
+
+/** Same resample, but with an explicit row-major 3×3 anatomy rotation (e.g. an inverse). */
+export function rotateVolumeByMatrix(
+	vol: Int16Array,
+	dims: [number, number, number],
+	spacing: [number, number, number],
+	R: number[]
+): Int16Array {
 	const [nx, ny, nz] = dims;
 	const [sx, sy, sz] = spacing;
 
-	const cosY = Math.cos(yaw * DEG);
-	const sinY = Math.sin(yaw * DEG);
-	const cosP = Math.cos(pitch * DEG);
-	const sinP = Math.sin(pitch * DEG);
-	const cosR = Math.cos(roll * DEG);
-	const sinR = Math.sin(roll * DEG);
-
-	// R = Rz(yaw)·Ry(pitch)·Rx(roll)
-	const r00 = cosY * cosP;
-	const r01 = cosY * sinP * sinR - sinY * cosR;
-	const r02 = cosY * sinP * cosR + sinY * sinR;
-	const r10 = sinY * cosP;
-	const r11 = sinY * sinP * sinR + cosY * cosR;
-	const r12 = sinY * sinP * cosR - cosY * sinR;
-	const r20 = -sinP;
-	const r21 = cosP * sinR;
-	const r22 = cosP * cosR;
+	const r00 = R[0];
+	const r01 = R[1];
+	const r02 = R[2];
+	const r10 = R[3];
+	const r11 = R[4];
+	const r12 = R[5];
+	const r20 = R[6];
+	const r21 = R[7];
+	const r22 = R[8];
 
 	// inverse mapping (output → source) is the transpose
 	const t00 = r00, t01 = r10, t02 = r20;

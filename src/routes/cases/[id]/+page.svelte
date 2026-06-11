@@ -573,6 +573,18 @@
 			e.preventDefault();
 		} else if (e.key === 'Delete' && ps.selectedImplantId) {
 			deleteSelectedImplant();
+		} else if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+			e.preventDefault();
+			zoomSig = { seq: zoomSig.seq + 1, f: 1.2 };
+		} else if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+			e.preventDefault();
+			zoomSig = { seq: zoomSig.seq + 1, f: 1 / 1.2 };
+		} else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+			e.preventDefault();
+			zoomSig = { seq: zoomSig.seq + 1, f: 0 };
+		} else if (e.key === 'F8') {
+			e.preventDefault();
+			screenCopy();
 		} else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
 			e.preventDefault();
 			if (e.shiftKey) ps.redo();
@@ -598,6 +610,35 @@
 			e.preventDefault();
 			hotkeysOpen = !hotkeysOpen;
 		}
+	}
+
+	let zoomSig = $state({ seq: 0, f: 1 });
+
+	/** F8 screen copy: composite every visible view canvas into one snapshot */
+	async function screenCopy() {
+		if (!ps) return;
+		const grid = document.querySelector('.view-grid');
+		if (!grid) return;
+		const gridBox = grid.getBoundingClientRect();
+		const composite = document.createElement('canvas');
+		composite.width = Math.round(gridBox.width);
+		composite.height = Math.round(gridBox.height);
+		const ctx = composite.getContext('2d')!;
+		ctx.fillStyle = '#000';
+		ctx.fillRect(0, 0, composite.width, composite.height);
+		for (const c of grid.querySelectorAll('canvas')) {
+			const box = (c as HTMLCanvasElement).getBoundingClientRect();
+			if (box.width === 0 || box.height === 0) continue;
+			ctx.drawImage(
+				c as HTMLCanvasElement,
+				box.left - gridBox.left,
+				box.top - gridBox.top,
+				box.width,
+				box.height
+			);
+		}
+		const { snapshotToLibrary } = await import('$lib/client/render2d');
+		await snapshotToLibrary(composite, ps.snapshotName('screen'), ps.ds.case_id);
 	}
 
 	let hotkeysOpen = $state(false);
@@ -931,7 +972,7 @@
 	let pcsAngles = $state({ yaw: 0, pitch: 0, roll: 0 });
 	let pcsBusy = $state(false);
 
-	async function applyPcs() {
+	async function applyPcs(reset = false) {
 		if (!ps) return;
 		ps.flushSaves();
 		pcsBusy = true;
@@ -939,7 +980,7 @@
 			const res = await fetch(`/api/datasets/${ps.ds.id}/align`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(pcsAngles)
+				body: JSON.stringify(reset ? { reset: true } : pcsAngles)
 			});
 			if (!res.ok) {
 				const body = await res.json().catch(() => null);
@@ -1662,6 +1703,9 @@
 							<div class="density-foot muted">
 								Ø {densityInfo.mean} HU · {boneClass(densityInfo.mean)} · head→apex
 							</div>
+							<div class="density-foot faint" title="CBCT grayscale values are not calibrated Hounsfield units">
+								Note: CBCT HU values are approximate
+							</div>
 						</div>
 					{/if}
 					<label for="measure-tools">Measure (axial view)</label>
@@ -2013,6 +2057,9 @@
 					{#if ps.nerveEditMode}
 						<span class="muted">Click in the panoramic or cross-section view to add nerve points</span>
 					{/if}
+					<span class="warn-text" title="The displayed nerve course is a manual marking and may deviate from the real canal — verify against the image data in all views.">
+						<Icon name="warning" size={12} /> Verify the nerve course manually
+					</span>
 				{:else if stage === 'implant'}
 					<button class="btn primary" onclick={openImplantDialog}>
 						<Icon name="implant" size={14} /> Add implant
@@ -2462,8 +2509,17 @@
 		</p>
 	</div>
 	<div class="dialog-actions">
+		<button
+			type="button"
+			class="btn"
+			disabled={pcsBusy}
+			title="Undo all applied PCS rotations (restores the original orientation)"
+			onclick={() => applyPcs(true)}
+		>
+			Reset to default
+		</button>
 		<button type="button" class="btn" onclick={() => pcsDialog?.close()}>Cancel</button>
-		<button type="button" class="btn primary" disabled={pcsBusy} onclick={applyPcs}>
+		<button type="button" class="btn primary" disabled={pcsBusy} onclick={() => applyPcs(false)}>
 			{pcsBusy ? 'Resampling…' : 'Apply rotation'}
 		</button>
 	</div>

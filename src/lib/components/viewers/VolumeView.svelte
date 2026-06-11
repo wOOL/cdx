@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import * as THREE from 'three';
 	import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+	import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js';
 	import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 	import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
 	import type { PlanningState } from '$lib/client/planning.svelte';
@@ -42,6 +43,11 @@
 	// clip planes bound to the axial slice / cross-section position
 	let clipAxial = $state(false);
 	let clipCross = $state(false);
+	// red/cyan stereo rendering
+	let stereo = $state(false);
+	let stereoEffect: AnaglyphEffect | null = null;
+	// current anatomical view direction (orientation indicator)
+	let viewDir = $state('');
 
 	let material: THREE.ShaderMaterial | null = null;
 	let redraw: (() => void) | null = null;
@@ -545,6 +551,7 @@
 				renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 				renderer.localClippingEnabled = true;
 				renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+				stereoEffect = new AnaglyphEffect(renderer);
 				container.appendChild(renderer.domElement);
 
 				const maxExt = Math.max(ex, ey, ez);
@@ -595,7 +602,22 @@
 					const inv = new THREE.Matrix4().copy(mesh.matrixWorld).invert();
 					const camLocal = camera.position.clone().applyMatrix4(inv);
 					material.uniforms.u_camPos.value.copy(camLocal);
-					renderer.render(scene, camera);
+					if (stereo && stereoEffect) stereoEffect.render(scene, camera);
+					else renderer.render(scene, camera);
+
+					// orientation indicator: which anatomical side faces the camera
+					const p = camera.position;
+					const el = Math.asin(p.y / (p.length() || 1));
+					const az = Math.atan2(p.x, p.z);
+					let dir: string;
+					if (el > 1.05) dir = 'Superior';
+					else if (el < -1.05) dir = 'Inferior';
+					else {
+						const deg = ((az * 180) / Math.PI + 360) % 360;
+						dir = deg < 45 || deg >= 315 ? 'Anterior' : deg < 135 ? 'Left' : deg < 225 ? 'Posterior' : 'Right';
+					}
+					const festive = new Date().getMonth() === 11 ? '🦌 ' : '';
+					viewDir = `${festive}${dir}`;
 				};
 				redraw = draw;
 
@@ -607,6 +629,7 @@
 					const h = container.clientHeight;
 					if (w === 0 || h === 0) return;
 					renderer.setSize(w, h);
+					stereoEffect?.setSize(w, h);
 					camera.aspect = w / h;
 					camera.updateProjectionMatrix();
 					draw();
@@ -656,6 +679,9 @@
 		<div class="vol-status muted">3D unavailable: {loadError}</div>
 	{/if}
 	<div class="view-label">3D</div>
+	{#if viewDir}
+		<div class="view-dir">{viewDir}</div>
+	{/if}
 	<div class="vol-controls">
 		<button
 			class="clip-btn"
@@ -668,6 +694,15 @@
 			class:clip-on={clipCross}
 			title="Vertical cut at the cross-section"
 			onclick={() => (clipCross = !clipCross)}>◧</button
+		>
+		<button
+			class="clip-btn"
+			class:clip-on={stereo}
+			title="Red/cyan stereo 3D (anaglyph glasses)"
+			onclick={() => {
+				stereo = !stereo;
+				redraw?.();
+			}}>👓</button
 		>
 		<select
 			value=""
@@ -758,5 +793,17 @@
 	.clip-on {
 		color: var(--accent-bright);
 		border-color: var(--accent);
+	}
+	.view-dir {
+		position: absolute;
+		bottom: 6px;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 10px;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--text-dim);
+		pointer-events: none;
+		z-index: 2;
 	}
 </style>

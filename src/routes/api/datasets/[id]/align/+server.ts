@@ -5,9 +5,9 @@ import { unlink } from 'node:fs/promises';
 import { caseRel, db, resolveData } from '$lib/server/db';
 import { getDataset } from '$lib/server/db/repo';
 import { evictVolume, loadVolume } from '$lib/server/volumeCache';
-import { rotateVolume, rotationMatrix } from '$lib/server/resample';
+import { rotateVolumeByMatrix, rotationMatrix } from '$lib/server/resample';
 import { buildPreview } from '$lib/server/dicom/import';
-import { listPlans, logAudit } from '$lib/server/db/repo';
+import { getSettings, listPlans, logAudit, setSetting } from '$lib/server/db/repo';
 import type { Model, Plan } from '$lib/types';
 
 function angle(v: unknown): number {
@@ -29,16 +29,37 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	const yaw = angle(body.yaw);
 	const pitch = angle(body.pitch);
 	const roll = angle(body.roll);
-	if (yaw === 0 && pitch === 0 && roll === 0) error(400, 'nothing to do');
+	const reset = body.reset === true;
+
+	// cumulative anatomy rotation applied so far (row-major 3×3), for reset-to-default
+	const pcsKey = `pcs_rot_${ds.id}`;
+	const stored = getSettings()[pcsKey];
+	let cumulative: number[] = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+	try {
+		const parsed = stored ? JSON.parse(stored) : null;
+		if (Array.isArray(parsed) && parsed.length === 9) cumulative = parsed;
+	} catch {
+		// identity
+	}
+	const isIdentity = (m: number[]) =>
+		Math.abs(m[0] - 1) + Math.abs(m[4] - 1) + Math.abs(m[8] - 1) + Math.abs(m[1]) + Math.abs(m[2]) + Math.abs(m[3]) + Math.abs(m[5]) + Math.abs(m[6]) + Math.abs(m[7]) < 1e-9;
+
+	let R: number[];
+	if (reset) {
+		if (isIdentity(cumulative)) error(400, 'nothing to reset');
+		// inverse of a rotation is its transpose
+		R = [cumulative[0], cumulative[3], cumulative[6], cumulative[1], cumulative[4], cumulative[7], cumulative[2], cumulative[5], cumulative[8]];
+	} else {
+		if (yaw === 0 && pitch === 0 && roll === 0) error(400, 'nothing to do');
+		R = rotationMatrix(yaw, pitch, roll);
+	}
 
 	const vol = await loadVolume(ds);
-	const rotated = rotateVolume(
+	const rotated = rotateVolumeByMatrix(
 		vol,
 		[ds.cols, ds.rows, ds.slices],
 		[ds.spacing_x, ds.spacing_y, ds.spacing_z],
-		yaw,
-		pitch,
-		roll
+		R
 	);
 
 	const preview = buildPreview({
@@ -75,9 +96,19 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	await unlink(resolveData(ds.volume_path)).catch(() => {});
 	await unlink(resolveData(ds.preview_path)).catch(() => {});
 
+	// persist the cumulative rotation for reset-to-default
+	if (reset) {
+		setSetting(pcsKey, '');
+	} else {
+		const next = new Array(9).fill(0);
+		for (let r = 0; r < 3; r++)
+			for (let col = 0; col < 3; col++)
+				for (let k = 0; k < 3; k++) next[r * 3 + col] += R[r * 3 + k] * cumulative[k * 3 + col];
+		setSetting(pcsKey, JSON.stringify(next));
+	}
+
 	// rotate every planned object of this case the same way the anatomy moved:
 	// p' = c + R·(p − c), axes v' = R·v
-	const R = rotationMatrix(yaw, pitch, roll);
 	const c = {
 		x: ((ds.cols - 1) / 2) * ds.spacing_x,
 		y: ((ds.rows - 1) / 2) * ds.spacing_y,
@@ -192,6 +223,11 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		db.query('UPDATE models SET transform = ?2 WHERE id = ?1').run(m.id, JSON.stringify(next));
 	}
 
-	logAudit(locals.user, 'dataset.align', `dataset:${ds.id}`, `yaw ${yaw}° pitch ${pitch}° roll ${roll}°`);
+	logAudit(
+		locals.user,
+		'dataset.align',
+		`dataset:${ds.id}`,
+		reset ? 'reset to default orientation' : `yaw ${yaw}° pitch ${pitch}° roll ${roll}°`
+	);
 	return json({ dataset: getDataset(ds.id) });
 };

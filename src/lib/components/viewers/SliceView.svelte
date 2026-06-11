@@ -29,7 +29,20 @@
 		onImageDblClick?: (px: number, py: number) => boolean;
 		/** reactive value(s) the overlay depends on — read in the redraw effect */
 		overlayDeps?: unknown;
+		/** external zoom command: f > 0 multiplies, f === 0 resets (seq triggers) */
+		zoomSignal?: { seq: number; f: number };
 	} = $props();
+
+	let lastZoomSeq = 0;
+	$effect(() => {
+		if (!zoomSignal || zoomSignal.seq === lastZoomSeq) return;
+		lastZoomSeq = zoomSignal.seq;
+		zoom = zoomSignal.f === 0 ? 1 : Math.max(0.2, Math.min(10, zoom * zoomSignal.f));
+		if (zoomSignal.f === 0) {
+			panX = 0;
+			panY = 0;
+		}
+	});
 
 	// display-only horizontal mirror (axial L/R convention switch)
 	let mirrored = $state(false);
