@@ -438,6 +438,7 @@
 <div class="slice-view" bind:this={container}>
 	<canvas
 		bind:this={canvas}
+		style:cursor={ps.measureTool !== 'none' ? 'copy' : undefined}
 		onpointerdown={onPointerDown}
 		onpointermove={onPointerMove}
 		onpointerup={onPointerUp}
