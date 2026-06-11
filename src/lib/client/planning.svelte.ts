@@ -154,6 +154,21 @@ export class PlanningState {
 
 	nerveSafety = $state(NERVE_SAFETY_MM);
 	implantSafety = $state(IMPLANT_SAFETY_MM);
+	/** snapshot name template with {patient} {case} {view} {date} placeholders */
+	snapshotScheme = '{view}_{date}';
+	snapshotContext = { patient: '', caseTitle: '' };
+
+	snapshotName(view: string): string {
+		const today = new Date().toISOString().slice(0, 10);
+		return (
+			this.snapshotScheme
+				.replaceAll('{patient}', this.snapshotContext.patient)
+				.replaceAll('{case}', this.snapshotContext.caseTitle)
+				.replaceAll('{view}', view)
+				.replaceAll('{date}', today)
+				.replace(/[^\w\-. ]+/g, '_') || view
+		);
+	}
 
 	warnings = $derived.by(() => {
 		const out: SafetyWarning[] = [];
@@ -227,6 +242,7 @@ export class PlanningState {
 		if (Number(settings.nerve_safety_mm) > 0) this.nerveSafety = Number(settings.nerve_safety_mm);
 		if (Number(settings.implant_safety_mm) > 0)
 			this.implantSafety = Number(settings.implant_safety_mm);
+		if (settings.snapshot_scheme) this.snapshotScheme = settings.snapshot_scheme;
 		this.slices = new SliceCache(ds.id);
 		this.cursor = {
 			x: Math.floor(ds.cols / 2),

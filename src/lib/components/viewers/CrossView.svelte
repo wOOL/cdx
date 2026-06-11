@@ -266,7 +266,7 @@
 			title="Snapshot → image library (Alt+click to download)"
 			onclick={async (e) => {
 				if (!canvas) return;
-				if (await handleSnapshot(e, canvas, `${orientation}_${effU.toFixed(0)}mm`, ps.ds.case_id)) {
+				if (await handleSnapshot(e, canvas, ps.snapshotName(`${orientation}-${effU.toFixed(0)}mm`), ps.ds.case_id)) {
 					snapSaved = true;
 					setTimeout(() => (snapSaved = false), 1200);
 				}

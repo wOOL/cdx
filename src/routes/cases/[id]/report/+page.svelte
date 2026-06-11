@@ -62,6 +62,9 @@
 	<article class="report">
 		<header class="report-head">
 			<div>
+				{#if data.settings.logo_enabled === '1'}
+					<img class="report-logo" src="/api/logo" alt="Practice logo" />
+				{/if}
 				<h1>Surgical protocol</h1>
 				<div class="sub">coDiagnostiX Web — guided surgery plan</div>
 				{#if data.settings.practice_name || data.settings.practitioner}
@@ -331,6 +334,12 @@
 		margin-top: 12px;
 		font-size: 12px;
 		color: #334;
+	}
+	.report-logo {
+		max-height: 48px;
+		max-width: 220px;
+		margin-bottom: 8px;
+		display: block;
 	}
 	.practice-addr {
 		white-space: pre-line;

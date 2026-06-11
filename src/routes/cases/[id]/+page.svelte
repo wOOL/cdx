@@ -108,19 +108,23 @@
 		if (next !== 'data' && !hasVolume) return;
 		stage = next;
 	}
-	let ps = $derived(
-		data.datasets[0]
-			? new PlanningState(
-					data.datasets[0],
-					data.plan,
-					data.nerves,
-					data.implants,
-					data.models,
-					data.measurements,
-					data.settings
-				)
-			: null
-	);
+	let ps = $derived.by(() => {
+		if (!data.datasets[0]) return null;
+		const s = new PlanningState(
+			data.datasets[0],
+			data.plan,
+			data.nerves,
+			data.implants,
+			data.models,
+			data.measurements,
+			data.settings
+		);
+		s.snapshotContext = {
+			patient: `${data.patient.last_name}-${data.patient.first_name}`.replace(/^-|-$/g, ''),
+			caseTitle: data.caseData.title
+		};
+		return s;
+	});
 
 	let modelsVersion = $derived(ps ? JSON.stringify(ps.models) : '');
 

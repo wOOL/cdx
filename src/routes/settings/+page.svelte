@@ -18,7 +18,7 @@
 </header>
 
 <div class="settings-wrap">
-	<form class="panel settings-form" method="POST" action="?/save" use:enhance>
+	<form class="panel settings-form" method="POST" action="?/save" enctype="multipart/form-data" use:enhance>
 		<div class="panel-header">Practice information</div>
 		<div class="settings-body">
 			<p class="muted">Shown on printed surgical protocols and reports.</p>
@@ -35,6 +35,26 @@
 			<div>
 				<label for="s-address">Address</label>
 				<textarea id="s-address" name="practice_address" rows="2" style="width:100%">{data.settings.practice_address}</textarea>
+			</div>
+		</div>
+
+		<div class="panel-header">Report logo & snapshots</div>
+		<div class="settings-body">
+			<div class="field-row">
+				<div>
+					<label for="s-logo">Practice logo (PNG, shown on printed reports)</label>
+					<input id="s-logo" name="logo" type="file" accept="image/png" style="width:100%" />
+				</div>
+				<div>
+					<label class="checkbox-inline" for="s-logo-en">
+						<input id="s-logo-en" name="logo_enabled" type="checkbox" checked={data.settings.logo_enabled === '1'} />
+						Include logo on reports
+					</label>
+				</div>
+			</div>
+			<div>
+				<label for="s-snap">Snapshot name scheme — placeholders: {'{patient} {case} {view} {date}'}</label>
+				<input id="s-snap" name="snapshot_scheme" value={data.settings.snapshot_scheme} style="width:100%" />
 			</div>
 		</div>
 
@@ -163,6 +183,16 @@
 	}
 	.audit-panel {
 		margin-top: 16px;
+	}
+	.checkbox-inline {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		text-transform: none;
+		letter-spacing: 0;
+		font-size: 12px;
+		color: var(--text);
+		margin-top: 22px;
 	}
 	.audit-body {
 		padding: 12px;
