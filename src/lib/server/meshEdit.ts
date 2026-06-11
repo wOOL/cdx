@@ -74,11 +74,22 @@
  *               projection plane, so strongly non-planar margin lines or
  *               surfaces that fold over the loop normal cut imprecisely
  *               near the line.
- *   combine   — concatenates another model's triangle soup into this one,
+ *   combine   — merges another model's triangle soup into this one,
  *               transform-aware: the other mesh is mapped through
  *               inv(selfTransform) · otherTransform so both shells stay
- *               where the planning views show them. Shells are merely
- *               concatenated (no boolean union).
+ *               where the planning views show them. mode 'merge' (default)
+ *               merely concatenates the shells (no boolean union). mode
+ *               'subtract' is an approximate CSG difference A − B for
+ *               visualization/planning (e.g. subtracting an AI-segmented
+ *               tooth incl. root from a jaw scan leaves the extraction
+ *               socket): triangles of this mesh whose centroid lies inside
+ *               the other shell are removed, and the other shell's
+ *               triangles whose centroid lies inside this mesh are added
+ *               with flipped winding (the socket walls). Inside tests are
+ *               +X ray-parity queries accelerated by a uniform grid over
+ *               the tested mesh (degenerate edge/vertex/graze hits retry
+ *               once with a jittered ray origin). No edge intersections
+ *               are computed, so the cut is accurate to ~1 triangle.
  *
  * applyMeshEditOps() replays an ordered op list against a pristine
  * baseline; the list is client-held, so undo/redo are pop/re-push + replay
@@ -107,8 +118,11 @@ export type MeshEditOpName =
 
 export interface MeshEditOp {
 	op: MeshEditOpName;
-	/** wax knife: 'flatten' = smooth + negative offset, 'add' = smooth + positive offset */
-	mode?: 'flatten' | 'add';
+	/**
+	 * wax knife: 'flatten' = smooth + negative offset, 'add' = smooth + positive offset;
+	 * combine: 'merge' = concatenate (default), 'subtract' = approximate CSG difference A − B
+	 */
+	mode?: 'flatten' | 'add' | 'merge' | 'subtract';
 	/** wax knife offset preset (A 0.1 / B 0.2 / C 0.35 / D 0.5 mm, default B) */
 	strength?: 'A' | 'B' | 'C' | 'D';
 	center?: Vec3;
@@ -1256,7 +1270,220 @@ function mulMat4(a: number[], b: number[]): number[] {
 
 const IDENT4 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 
-function opCombine(positions: Float32Array, modelId: number, ctx?: MeshEditContext): MeshEditResult {
+// ---------------------------------------------------------------------------
+// Point-in-mesh parity test (uniform grid + ray casting along +X)
+// ---------------------------------------------------------------------------
+
+/**
+ * Acceleration structure for "is this point inside the (closed) mesh" parity
+ * queries: triangles are binned by their y/z bounding box into a uniform 2D
+ * grid over the mesh's y/z extent — exactly the column of cells a +X parity
+ * ray traverses — so a query only tests the triangles sharing its y/z cell.
+ * Equivalent to walking a 3D grid's cells along +X, without per-query
+ * mailboxing (each triangle appears at most once per y/z cell).
+ */
+interface ParityGrid {
+	pos: Float32Array;
+	minX: number;
+	maxX: number;
+	minY: number;
+	maxY: number;
+	minZ: number;
+	maxZ: number;
+	ny: number;
+	nz: number;
+	invCy: number;
+	invCz: number;
+	/** CSR layout: triangles of cell c are cellTris[cellStart[c] .. cellStart[c+1]) */
+	cellStart: Int32Array;
+	cellTris: Int32Array;
+	/** ray-origin offsets (different per axis so diagonal grazes break too) */
+	jitterY: number;
+	jitterZ: number;
+}
+
+function buildParityGrid(pos: Float32Array): ParityGrid | null {
+	const triCount = (pos.length / 9) | 0;
+	if (triCount === 0) return null;
+	let minX = Infinity;
+	let minY = Infinity;
+	let minZ = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	let maxZ = -Infinity;
+	for (let i = 0; i + 2 < pos.length; i += 3) {
+		const x = pos[i];
+		const y = pos[i + 1];
+		const z = pos[i + 2];
+		if (x < minX) minX = x;
+		if (x > maxX) maxX = x;
+		if (y < minY) minY = y;
+		if (y > maxY) maxY = y;
+		if (z < minZ) minZ = z;
+		if (z > maxZ) maxZ = z;
+	}
+	const spanY = Math.max(maxY - minY, 1e-6);
+	const spanZ = Math.max(maxZ - minZ, 1e-6);
+	// ~4 triangles per occupied cell on a uniform mesh, capped for memory
+	const res = Math.max(1, Math.min(256, Math.ceil(Math.sqrt(triCount / 4))));
+	const ny = res;
+	const nz = res;
+	const invCy = ny / spanY;
+	const invCz = nz / spanZ;
+	const cells = ny * nz;
+	const clampY = (v: number): number => (v < 0 ? 0 : v >= ny ? ny - 1 : v);
+	const clampZ = (v: number): number => (v < 0 ? 0 : v >= nz ? nz - 1 : v);
+
+	// pass 1: entries per cell (a triangle lands in every y/z cell its bbox touches)
+	const counts = new Int32Array(cells);
+	for (let t = 0; t < triCount; t++) {
+		const i = t * 9;
+		const y0 = Math.min(pos[i + 1], pos[i + 4], pos[i + 7]);
+		const y1 = Math.max(pos[i + 1], pos[i + 4], pos[i + 7]);
+		const z0 = Math.min(pos[i + 2], pos[i + 5], pos[i + 8]);
+		const z1 = Math.max(pos[i + 2], pos[i + 5], pos[i + 8]);
+		const cy0 = clampY(Math.floor((y0 - minY) * invCy));
+		const cy1 = clampY(Math.floor((y1 - minY) * invCy));
+		const cz0 = clampZ(Math.floor((z0 - minZ) * invCz));
+		const cz1 = clampZ(Math.floor((z1 - minZ) * invCz));
+		for (let cz = cz0; cz <= cz1; cz++) {
+			for (let cy = cy0; cy <= cy1; cy++) counts[cz * ny + cy]++;
+		}
+	}
+	// pass 2: prefix sum → cell ranges
+	const cellStart = new Int32Array(cells + 1);
+	for (let c = 0; c < cells; c++) cellStart[c + 1] = cellStart[c] + counts[c];
+	// pass 3: fill (counts becomes the per-cell write cursor)
+	const cellTris = new Int32Array(cellStart[cells]);
+	counts.set(cellStart.subarray(0, cells));
+	for (let t = 0; t < triCount; t++) {
+		const i = t * 9;
+		const y0 = Math.min(pos[i + 1], pos[i + 4], pos[i + 7]);
+		const y1 = Math.max(pos[i + 1], pos[i + 4], pos[i + 7]);
+		const z0 = Math.min(pos[i + 2], pos[i + 5], pos[i + 8]);
+		const z1 = Math.max(pos[i + 2], pos[i + 5], pos[i + 8]);
+		const cy0 = clampY(Math.floor((y0 - minY) * invCy));
+		const cy1 = clampY(Math.floor((y1 - minY) * invCy));
+		const cz0 = clampZ(Math.floor((z0 - minZ) * invCz));
+		const cz1 = clampZ(Math.floor((z1 - minZ) * invCz));
+		for (let cz = cz0; cz <= cz1; cz++) {
+			for (let cy = cy0; cy <= cy1; cy++) cellTris[counts[cz * ny + cy]++] = t;
+		}
+	}
+	return {
+		pos,
+		minX,
+		maxX,
+		minY,
+		maxY,
+		minZ,
+		maxZ,
+		ny,
+		nz,
+		invCy,
+		invCz,
+		cellStart,
+		cellTris,
+		jitterY: spanY * 1.3e-5 + 1e-6,
+		jitterZ: spanZ * 2.9e-5 + 2e-6
+	};
+}
+
+const PARITY_BARY_EPS = 1e-7; // barycentric edge/vertex tolerance
+const PARITY_T_EPS = 1e-6; // mm — "ray origin sits on the surface" tolerance
+
+/**
+ * Count crossings of the ray (px,py,pz) + t·(1,0,0), t > 0, with the gridded
+ * mesh (Möller–Trumbore specialized to the +X direction, no allocations).
+ * `strict` returns -1 on a degenerate hit (edge/vertex hit, origin on the
+ * surface, or an in-plane graze) so the caller can retry with a jittered
+ * origin; the non-strict retry counts with plain comparisons.
+ */
+function countCrossingsX(g: ParityGrid, px: number, py: number, pz: number, strict: boolean): number {
+	let cy = Math.floor((py - g.minY) * g.invCy);
+	let cz = Math.floor((pz - g.minZ) * g.invCz);
+	if (cy < 0) cy = 0;
+	else if (cy >= g.ny) cy = g.ny - 1;
+	if (cz < 0) cz = 0;
+	else if (cz >= g.nz) cz = g.nz - 1;
+	const cell = cz * g.ny + cy;
+	const start = g.cellStart[cell];
+	const end = g.cellStart[cell + 1];
+	const pos = g.pos;
+	let crossings = 0;
+	for (let k = start; k < end; k++) {
+		const i = g.cellTris[k] * 9;
+		const ax = pos[i];
+		const ay = pos[i + 1];
+		const az = pos[i + 2];
+		const e1x = pos[i + 3] - ax;
+		const e1y = pos[i + 4] - ay;
+		const e1z = pos[i + 5] - az;
+		const e2x = pos[i + 6] - ax;
+		const e2y = pos[i + 7] - ay;
+		const e2z = pos[i + 8] - az;
+		const sx = px - ax;
+		const sy = py - ay;
+		const sz = pz - az;
+		// det = dir · (e1 × e2) with dir = (1,0,0) — depends on the triangle only
+		const det = e1z * e2y - e1y * e2z;
+		if (det > -1e-12 && det < 1e-12) {
+			// ray parallel to the triangle plane: degenerate only if it grazes it
+			if (strict) {
+				const nx = e1y * e2z - e1z * e2y;
+				const nyv = e1z * e2x - e1x * e2z;
+				const nzv = e1x * e2y - e1y * e2x;
+				const nl = Math.sqrt(nx * nx + nyv * nyv + nzv * nzv);
+				if (nl > 1e-12 && Math.abs(sx * nx + sy * nyv + sz * nzv) / nl < PARITY_T_EPS) return -1;
+			}
+			continue;
+		}
+		const f = 1 / det;
+		const u = f * (sz * e2y - sy * e2z);
+		if (u < -PARITY_BARY_EPS || u > 1 + PARITY_BARY_EPS) continue;
+		const v = f * (sy * e1z - sz * e1y);
+		if (v < -PARITY_BARY_EPS || u + v > 1 + PARITY_BARY_EPS) continue;
+		const qx = sy * e1z - sz * e1y;
+		const qy = sz * e1x - sx * e1z;
+		const qz = sx * e1y - sy * e1x;
+		const t = f * (e2x * qx + e2y * qy + e2z * qz);
+		if (strict) {
+			if (t <= -PARITY_T_EPS) continue; // graze strictly behind cannot affect parity ahead
+			if (t < PARITY_T_EPS) return -1; // origin (centroid) lies on the surface
+			if (u < PARITY_BARY_EPS || v < PARITY_BARY_EPS || u + v > 1 - PARITY_BARY_EPS) return -1;
+			crossings++;
+		} else if (t > PARITY_T_EPS && u >= 0 && v >= 0 && u + v <= 1) {
+			crossings++;
+		}
+	}
+	return crossings;
+}
+
+/** Odd +X ray parity = inside. Degenerate hits retry once with a jittered origin. */
+function insideParityGrid(g: ParityGrid | null, px: number, py: number, pz: number): boolean {
+	if (
+		!g ||
+		px < g.minX - PARITY_T_EPS ||
+		px > g.maxX + PARITY_T_EPS ||
+		py < g.minY - PARITY_T_EPS ||
+		py > g.maxY + PARITY_T_EPS ||
+		pz < g.minZ - PARITY_T_EPS ||
+		pz > g.maxZ + PARITY_T_EPS
+	) {
+		return false; // outside the bbox ⇒ outside the mesh
+	}
+	const first = countCrossingsX(g, px, py, pz, true);
+	if (first >= 0) return (first & 1) === 1;
+	const second = countCrossingsX(g, px, py + g.jitterY, pz + g.jitterZ, false);
+	return (second & 1) === 1;
+}
+
+function opCombine(
+	positions: Float32Array,
+	modelId: number,
+	mode: 'merge' | 'subtract',
+	ctx?: MeshEditContext
+): MeshEditResult {
 	if (!ctx?.loadModel) throw new Error('combine is not available in this context');
 	const src = ctx.loadModel(modelId);
 	if (!src) throw new Error(`Model ${modelId} not found in this case`);
@@ -1264,21 +1491,87 @@ function opCombine(positions: Float32Array, modelId: number, ctx?: MeshEditConte
 	const selfT = ctx.selfTransform && ctx.selfTransform.length === 16 ? ctx.selfTransform : IDENT4;
 	const otherT = src.transform && src.transform.length === 16 ? src.transform : IDENT4;
 	const M = mulMat4(invertMat4(selfT), otherT);
-	const out = new Float32Array(positions.length + src.positions.length);
-	out.set(positions, 0);
-	const o = positions.length;
 	const p = src.positions;
+	const other = new Float32Array(p.length);
 	for (let i = 0; i + 2 < p.length; i += 3) {
 		const x = p[i];
 		const y = p[i + 1];
 		const z = p[i + 2];
-		out[o + i] = M[0] * x + M[4] * y + M[8] * z + M[12];
-		out[o + i + 1] = M[1] * x + M[5] * y + M[9] * z + M[13];
-		out[o + i + 2] = M[2] * x + M[6] * y + M[10] * z + M[14];
+		other[i] = M[0] * x + M[4] * y + M[8] * z + M[12];
+		other[i + 1] = M[1] * x + M[5] * y + M[9] * z + M[13];
+		other[i + 2] = M[2] * x + M[6] * y + M[10] * z + M[14];
 	}
+
+	if (mode !== 'subtract') {
+		const out = new Float32Array(positions.length + other.length);
+		out.set(positions, 0);
+		out.set(other, positions.length);
+		return {
+			positions: out,
+			report: { op: 'combine', mode: 'merge', sourceModel: modelId, addedTriangles: p.length / 9 }
+		};
+	}
+
+	// subtract A − B: drop A's triangles inside B …
+	const gridB = buildParityGrid(other);
+	const triA = (positions.length / 9) | 0;
+	const keepA = new Uint8Array(triA);
+	let removed = 0;
+	for (let t = 0; t < triA; t++) {
+		const i = t * 9;
+		const cx = (positions[i] + positions[i + 3] + positions[i + 6]) / 3;
+		const cy = (positions[i + 1] + positions[i + 4] + positions[i + 7]) / 3;
+		const cz = (positions[i + 2] + positions[i + 5] + positions[i + 8]) / 3;
+		if (insideParityGrid(gridB, cx, cy, cz)) removed++;
+		else keepA[t] = 1;
+	}
+	// … and add B's triangles inside A, inverted (they become the socket walls)
+	const gridA = buildParityGrid(positions);
+	const triB = (other.length / 9) | 0;
+	const addB = new Uint8Array(triB);
+	let added = 0;
+	for (let t = 0; t < triB; t++) {
+		const i = t * 9;
+		const cx = (other[i] + other[i + 3] + other[i + 6]) / 3;
+		const cy = (other[i + 1] + other[i + 4] + other[i + 7]) / 3;
+		const cz = (other[i + 2] + other[i + 5] + other[i + 8]) / 3;
+		if (insideParityGrid(gridA, cx, cy, cz)) {
+			addB[t] = 1;
+			added++;
+		}
+	}
+	const out = new Float32Array((triA - removed + added) * 9);
+	let o = 0;
+	for (let t = 0; t < triA; t++) {
+		if (!keepA[t]) continue;
+		out.set(positions.subarray(t * 9, t * 9 + 9), o);
+		o += 9;
+	}
+	for (let t = 0; t < triB; t++) {
+		if (!addB[t]) continue;
+		const i = t * 9;
+		// keep vertex 0, swap vertices 1 and 2 → winding (and facet normal) flips
+		out[o] = other[i];
+		out[o + 1] = other[i + 1];
+		out[o + 2] = other[i + 2];
+		out[o + 3] = other[i + 6];
+		out[o + 4] = other[i + 7];
+		out[o + 5] = other[i + 8];
+		out[o + 6] = other[i + 3];
+		out[o + 7] = other[i + 4];
+		out[o + 8] = other[i + 5];
+		o += 9;
+	}
+	if (out.length === 0) throw new Error('Subtract removed the entire mesh');
 	return {
 		positions: out,
-		report: { op: 'combine', sourceModel: modelId, addedTriangles: p.length / 9 }
+		report: {
+			op: 'combine',
+			mode: 'subtract',
+			sourceModel: modelId,
+			removedTriangles: removed,
+			addedTriangles: added
+		}
 	};
 }
 
@@ -1295,7 +1588,13 @@ export function applyMeshEdit(
 	if (positions.length < 9) throw new Error('Mesh is empty');
 	switch (op.op) {
 		case 'smooth':
-			return opSmooth(positions, op.center ?? null, op.radius ?? 5, op.mode, op.strength);
+			return opSmooth(
+				positions,
+				op.center ?? null,
+				op.radius ?? 5,
+				op.mode === 'flatten' || op.mode === 'add' ? op.mode : undefined,
+				op.strength
+			);
 		case 'remesh':
 			return opRemesh(positions, op.center ?? null, op.radius ?? 5);
 		case 'fillHoles':
@@ -1337,7 +1636,7 @@ export function applyMeshEdit(
 			return opPlaneCut(positions, op.axis ?? { x: 0, y: 0, z: 1 }, op.d!);
 		case 'combine':
 			if (op.modelId == null) throw new Error('combine requires modelId');
-			return opCombine(positions, op.modelId, ctx);
+			return opCombine(positions, op.modelId, op.mode === 'subtract' ? 'subtract' : 'merge', ctx);
 		default:
 			throw new Error(`Unknown op '${(op as { op: string }).op}'`);
 	}

@@ -24,9 +24,14 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 	const body = await request.json().catch(() => ({}));
 	const updated: Record<string, string | number> = { ...implant };
+	// a position-locked implant ignores geometry changes until unlocked in the same request
+	const unlocking = 'locked' in body && !body.locked;
+	const geometryFrozen = !!implant.locked && !unlocking;
 	for (const f of NUM_FIELDS) {
+		if (geometryFrozen) break;
 		if (f in body && Number.isFinite(Number(body[f]))) updated[f] = Number(body[f]);
 	}
+	if ('locked' in body) updated.locked = body.locked ? 1 : 0;
 	for (const f of STR_FIELDS) {
 		if (f in body) updated[f] = String(body[f]);
 	}
@@ -37,7 +42,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	db.query(
 		`UPDATE implants SET tooth=?2, manufacturer=?3, line=?4, article=?5, diameter=?6, length=?7,
 			x=?8, y=?9, z=?10, ax=?11, ay=?12, az=?13, rotation=?14, color=?15, sleeve=?16, visible=?17,
-			abutment=?18
+			abutment=?18, locked=?19
 		 WHERE id=?1`
 	).run(
 		id,
@@ -57,7 +62,8 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		updated.color,
 		updated.sleeve,
 		updated.visible,
-		updated.abutment
+		updated.abutment,
+		updated.locked ?? 0
 	);
 	markGuideStale(implant.plan_id);
 	return json({ implant: getImplant(id) });

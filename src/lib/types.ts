@@ -113,6 +113,7 @@ export interface Implant {
 	az: number;
 	rotation: number;
 	color: string;
+	locked: number;
 	sleeve: string;
 	abutment: string;
 	visible: number;
@@ -126,6 +127,7 @@ export interface Measurement {
 	points: string;
 	value: number;
 	label: string;
+	name: string;
 	created_at: string;
 }
 

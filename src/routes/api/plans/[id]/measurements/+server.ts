@@ -16,15 +16,16 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		: 'distance';
 	const measurement = db
 		.query(
-			`INSERT INTO measurements (plan_id, type, points, value, label)
-			 VALUES (?1, ?2, ?3, ?4, ?5) RETURNING *`
+			`INSERT INTO measurements (plan_id, type, points, value, label, name)
+			 VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING *`
 		)
 		.get(
 			planId,
 			type,
 			JSON.stringify(body.points ?? []),
 			Number(body.value) || 0,
-			String(body.label ?? '')
+			String(body.label ?? ''),
+			String(body.name ?? '')
 		) as Measurement;
 	return json({ measurement });
 };

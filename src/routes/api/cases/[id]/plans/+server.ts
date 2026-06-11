@@ -9,7 +9,7 @@ export const GET: RequestHandler = async ({ params }) => {
 	return json({ plans: listPlans(caseId) });
 };
 
-/** Body: { name, copyFrom?: planId } */
+/** Body: { name, copyFrom?: planId, parts?: { nerves?, implants?, measurements? } } */
 export const POST: RequestHandler = async ({ params, request }) => {
 	const caseId = Number(params.id);
 	const c = getCase(caseId);
@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
 	let plan: Plan | null;
 	if (body.copyFrom) {
-		plan = duplicatePlan(Number(body.copyFrom), name);
+		plan = duplicatePlan(Number(body.copyFrom), name, body.parts);
 		if (!plan) error(404, 'Source plan not found');
 	} else {
 		plan = db

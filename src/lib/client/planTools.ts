@@ -7,8 +7,19 @@ import type { ViewTransform, ReconInfo, ToolPointerEvent } from './render2d';
 import type { PlanningState, ImplantData } from './planning.svelte';
 import { indexAtLength } from '$lib/curve';
 import { dot, len, norm, sub, type Vec3 } from '$lib/geometry';
+import { toothLabel, type Notation } from '$lib/implantLibrary';
 
 // ---------------- shared drawing ----------------
+
+/** overlay line-width multiplier (settings: line_scale), set by each draw entry */
+let LS = 1;
+
+function hexAlpha(hex: string, alpha: number): string {
+	const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
+	if (!m) return hex;
+	const n = parseInt(m[1], 16);
+	return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
 
 function drawImplantGlyph(
 	ctx: CanvasRenderingContext2D,
@@ -36,14 +47,14 @@ function drawImplantGlyph(
 	ctx.fillStyle = c + '55';
 	ctx.fill();
 	ctx.strokeStyle = c;
-	ctx.lineWidth = selected ? 2 : 1.2;
+	ctx.lineWidth = (selected ? 2 : 1.2) * LS;
 	ctx.stroke();
 
 	// platform line
 	ctx.beginPath();
 	ctx.moveTo(head.x + nx * halfWidthPx, head.y + ny * halfWidthPx);
 	ctx.lineTo(head.x - nx * halfWidthPx, head.y - ny * halfWidthPx);
-	ctx.lineWidth = 2.5;
+	ctx.lineWidth = 2.5 * LS;
 	ctx.stroke();
 
 	if (opts?.crestal) {
@@ -82,6 +93,21 @@ function drawImplantGlyph(
 			ctx.stroke();
 		}
 	}
+}
+
+/** tooth-position tag next to the implant head (settings notation), when enabled */
+function drawToothTag(
+	ctx: CanvasRenderingContext2D,
+	ps: PlanningState,
+	im: ImplantData,
+	x: number,
+	y: number
+) {
+	if (!ps.showImplantToothNumbers || !im.tooth) return;
+	const label = toothLabel(im.tooth, (ps.settings?.notation as Notation) || 'fdi');
+	ctx.font = `bold ${ps.labelSize}px Inter, sans-serif`;
+	ctx.fillStyle = im.color;
+	ctx.fillText(label, x + 6, y - 6);
 }
 
 function implantApex(im: ImplantData): Vec3 {
@@ -150,7 +176,7 @@ function drawAbutmentGlyph(
 	ctx.fillStyle = 'rgba(196, 168, 220, 0.35)';
 	ctx.fill();
 	ctx.strokeStyle = selected ? '#d8c2f0' : '#b59ad4';
-	ctx.lineWidth = selected ? 1.8 : 1.2;
+	ctx.lineWidth = (selected ? 1.8 : 1.2) * LS;
 	ctx.stroke();
 }
 
@@ -167,7 +193,7 @@ function drawSleeveGlyph(
 	const nx = -dy / len;
 	const ny = dx / len;
 	ctx.strokeStyle = selected ? '#bfe2f2' : '#9ab8c8';
-	ctx.lineWidth = selected ? 2 : 1.4;
+	ctx.lineWidth = (selected ? 2 : 1.4) * LS;
 	ctx.beginPath();
 	// two walls + caps
 	ctx.moveTo(bottom.x + nx * halfWidthPx, bottom.y + ny * halfWidthPx);
@@ -208,6 +234,7 @@ export function drawPanoOverlay(
 	t: ViewTransform,
 	info: ReconInfo
 ) {
+	LS = ps.lineScale;
 	const map = panoMap(ps, t, info);
 
 	// nerves
@@ -282,13 +309,18 @@ export function drawPanoOverlay(
 		,
 			{ crestal: ps.showCrestalPlanes, selectionBox: ps.showSelectionBox }
 		);
+		{
+			const q = map.toCanvas(h.u, h.zmm);
+			drawToothTag(ctx, ps, im, q.x, q.y);
+		}
 		if (ps.showImplantAxes) {
-			const ext1 = ps.toPano({ x: im.x - im.ax * 8, y: im.y - im.ay * 8, z: im.z - im.az * 8 });
+			const X = ps.implantAxisExt;
+			const ext1 = ps.toPano({ x: im.x - im.ax * X, y: im.y - im.ay * X, z: im.z - im.az * X });
 			const apex3 = implantApex(im);
 			const ext2 = ps.toPano({
-				x: apex3.x + im.ax * 8,
-				y: apex3.y + im.ay * 8,
-				z: apex3.z + im.az * 8
+				x: apex3.x + im.ax * X,
+				y: apex3.y + im.ay * X,
+				z: apex3.z + im.az * X
 			});
 			if (ext1 && ext2) {
 				const q1 = map.toCanvas(ext1.u, ext1.zmm);
@@ -436,11 +468,13 @@ export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 			const dApex = Math.hypot(a.u - e.u, a.zmm - e.zmm);
 			const isSelected = ps.selectedImplantId === im.id;
 			if (isSelected && dHead < 1.8) {
+				if (im.locked) return true;
 				ps.markEdit();
 				panoDrag = { kind: 'implant-head', index: -1, implantId: im.id, lastU: e.u, lastZ: e.zmm };
 				return true;
 			}
 			if (isSelected && dApex < 1.8) {
+				if (im.locked) return true;
 				ps.markEdit();
 				panoDrag = { kind: 'implant-apex', index: -1, implantId: im.id, lastU: e.u, lastZ: e.zmm };
 				return true;
@@ -448,8 +482,9 @@ export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 			// distance from point to implant body segment in pano space
 			const bodyDist = pointSegDist(e.u, e.zmm, h.u, h.zmm, a.u, a.zmm);
 			if (bodyDist < im.diameter / 2 + 1) {
-				ps.markEdit();
 				ps.selectedImplantId = im.id;
+				if (im.locked) return true;
+				ps.markEdit();
 				panoDrag = { kind: 'implant-body', index: -1, implantId: im.id, lastU: e.u, lastZ: e.zmm };
 				return true;
 			}
@@ -554,6 +589,7 @@ export function drawCrossOverlay(
 	atU?: number,
 	frameOverride?: SectionFrame
 ) {
+	LS = ps.lineScale;
 	const frame = frameOverride ?? crossFrame(ps, atU);
 	if (!frame) return;
 	const map = crossMap(ps, t, info);
@@ -610,6 +646,10 @@ export function drawCrossOverlay(
 		,
 			{ crestal: ps.showCrestalPlanes, selectionBox: ps.showSelectionBox }
 		);
+		{
+			const q = map.toCanvas(h.w, h.zmm);
+			drawToothTag(ctx, ps, im, q.x, q.y);
+		}
 		const se = sleeveEnds(im);
 		if (se && im.sleeve) {
 			const b = projectToSection(frame, se.bottom);
@@ -725,18 +765,21 @@ export function crossTool(ps: PlanningState, e: CrossToolEvent): boolean {
 			const dApex = Math.hypot(a.w - e.w, a.zmm - e.zmm);
 			const isSelected = ps.selectedImplantId === im.id;
 			if (isSelected && dHead < 1.8) {
+				if (im.locked) return true;
 				ps.markEdit();
 				crossDrag = { kind: 'implant-head', implantId: im.id, lastW: e.w, lastZ: e.zmm };
 				return true;
 			}
 			if (isSelected && dApex < 1.8) {
+				if (im.locked) return true;
 				ps.markEdit();
 				crossDrag = { kind: 'implant-apex', implantId: im.id, lastW: e.w, lastZ: e.zmm };
 				return true;
 			}
 			if (pointSegDist(e.w, e.zmm, h.w, h.zmm, a.w, a.zmm) < im.diameter / 2 + 1) {
-				ps.markEdit();
 				ps.selectedImplantId = im.id;
+				if (im.locked) return true;
+				ps.markEdit();
 				crossDrag = { kind: 'implant-body', implantId: im.id, lastW: e.w, lastZ: e.zmm };
 				return true;
 			}
@@ -799,6 +842,7 @@ export function drawAxialObjects(
 	ctx: CanvasRenderingContext2D,
 	t: ViewTransform
 ) {
+	LS = ps.lineScale;
 	const sx = ps.ds.spacing_x;
 	const sy = ps.ds.spacing_y;
 	const zmm = ps.cursor.z * ps.ds.spacing_z;
@@ -844,10 +888,11 @@ export function drawAxialObjects(
 		ctx.arc(q.x, q.y, Math.max(2, r), 0, Math.PI * 2);
 		const c = warns.has(im.id) ? '#d05050' : im.color;
 		ctx.strokeStyle = c;
-		ctx.lineWidth = ps.selectedImplantId === im.id ? 2.5 : 1.5;
+		ctx.lineWidth = (ps.selectedImplantId === im.id ? 2.5 : 1.5) * LS;
 		ctx.stroke();
 		ctx.fillStyle = c + '44';
 		ctx.fill();
+		drawToothTag(ctx, ps, im, q.x + Math.max(2, r), q.y);
 	}
 }
 
@@ -999,6 +1044,7 @@ export function drawMeasurements(
 	ctx: CanvasRenderingContext2D,
 	t: ViewTransform
 ) {
+	LS = ps.lineScale;
 	const sx = ps.ds.spacing_x;
 	const sy = ps.ds.spacing_y;
 	const zmm = ps.cursor.z * ps.ds.spacing_z;
@@ -1009,9 +1055,9 @@ export function drawMeasurements(
 
 	const drawSet = (points: Vec3[], label: string, faded: boolean, segLabels = false) => {
 		if (!points.length) return;
-		ctx.strokeStyle = faded ? 'rgba(122, 140, 240, 0.5)' : 'rgba(122, 140, 240, 0.95)';
+		ctx.strokeStyle = hexAlpha(ps.measureColor, faded ? 0.5 : 0.95);
 		ctx.fillStyle = ctx.strokeStyle;
-		ctx.lineWidth = 1.5;
+		ctx.lineWidth = 1.5 * LS;
 		ctx.beginPath();
 		points.forEach((p, i) => {
 			const q = toCanvas(p);
@@ -1026,7 +1072,7 @@ export function drawMeasurements(
 			ctx.fill();
 		}
 		if (segLabels) {
-			ctx.font = '10px Inter, sans-serif';
+			ctx.font = `${Math.max(8, ps.labelSize - 1)}px Inter, sans-serif`;
 			ctx.fillStyle = '#bfc8ff';
 			for (let i = 1; i < points.length; i++) {
 				const a = toCanvas(points[i - 1]);
@@ -1037,7 +1083,7 @@ export function drawMeasurements(
 		}
 		if (label) {
 			const q = toCanvas(points[points.length - 1]);
-			ctx.font = '11px Inter, sans-serif';
+			ctx.font = `${ps.labelSize}px Inter, sans-serif`;
 			ctx.fillStyle = '#dfe4ff';
 			ctx.fillText(label, q.x + 8, q.y - 6);
 		}
@@ -1048,15 +1094,15 @@ export function drawMeasurements(
 		if (!m.points.every((p) => Math.abs(p.z - zmm) < 1.01)) continue;
 		if (m.type === 'annotation') {
 			const q = toCanvas(m.points[0]);
-			ctx.fillStyle = '#d05050';
+			ctx.fillStyle = ps.annotationColor;
 			ctx.beginPath();
 			ctx.arc(q.x, q.y, 3.5, 0, Math.PI * 2);
 			ctx.fill();
-			ctx.font = '11px Inter, sans-serif';
+			ctx.font = `${ps.labelSize}px Inter, sans-serif`;
 			ctx.fillText(m.label, q.x + 8, q.y + 4);
 			continue;
 		}
-		drawSet(m.points, m.label, false, m.type === 'polyline');
+		drawSet(m.points, (m.name ? m.name + ': ' : '') + m.label, false, m.type === 'polyline');
 	}
 	if (ps.pendingMeasure.length) drawSet(ps.pendingMeasure, '…', true, ps.measureTool === 'polyline');
 }

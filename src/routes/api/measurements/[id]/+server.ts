@@ -10,11 +10,14 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	if (!row) error(404, 'Measurement not found');
 	if (getPlan(row.plan_id)?.locked) error(409, 'Plan is locked');
 	const body = await request.json().catch(() => ({}));
-	db.query(`UPDATE measurements SET points = ?2, value = ?3, label = ?4 WHERE id = ?1`).run(
+	db.query(
+		`UPDATE measurements SET points = ?2, value = ?3, label = ?4, name = ?5 WHERE id = ?1`
+	).run(
 		row.id,
 		JSON.stringify(body.points ?? []),
 		Number(body.value) || 0,
-		String(body.label ?? '')
+		String(body.label ?? ''),
+		String(body.name ?? '')
 	);
 	return json({ ok: true });
 };

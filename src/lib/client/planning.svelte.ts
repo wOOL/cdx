@@ -60,6 +60,8 @@ export interface ImplantData {
 	rotation: number;
 	color: string;
 	visible: boolean;
+	/** position lock: implant cannot be moved/resized; sleeve & guide stay editable */
+	locked: boolean;
 	sleeve: SleeveSpec | null;
 	abutment: AbutmentSpec | null;
 }
@@ -85,6 +87,8 @@ export interface MeasurementData {
 	points: Vec3[];
 	value: number;
 	label: string;
+	/** user-given name, shown before the value label (renamable in the tree) */
+	name: string;
 }
 
 export interface SafetyWarning {
@@ -128,6 +132,7 @@ export class PlanningState {
 	ww = $state(1800);
 	crosshairVisible = $state(true);
 	showImplantAxes = $state(false);
+	showImplantToothNumbers = $state(false);
 	locked = $state(false);
 
 	// panoramic curve — control points in mm (volume-local), defined on axial slice curveZ
@@ -160,6 +165,16 @@ export class PlanningState {
 	/** raw settings rows (read-only lookups, e.g. smooth_transitions) */
 	settings: Record<string, string> = {};
 	measureDecimals = $state(1);
+	/** color of annotation markers/text in 2D views (settings: annotation_color) */
+	annotationColor = $state('#d05050');
+	/** px font size of measurement/annotation labels in 2D views (settings: label_size) */
+	labelSize = $state(11);
+	/** color of measurement lines in 2D views (settings: measure_color) */
+	measureColor = $state('#7a8cf0');
+	/** overlay line-width multiplier (settings: line_scale) */
+	lineScale = $state(1);
+	/** how far the dashed implant-axis extension reaches beyond head/apex, mm (settings: implant_axis_mm) */
+	implantAxisExt = $state(8);
 	nerveSafety = $state(NERVE_SAFETY_MM);
 	implantSafety = $state(IMPLANT_SAFETY_MM);
 	/** snapshot name template with {patient} {case} {view} {date} placeholders */
@@ -256,6 +271,16 @@ export class PlanningState {
 		const dec = Number(settings.measure_decimals);
 		if (Number.isInteger(dec) && dec >= 0 && dec <= 3) this.measureDecimals = dec;
 		if (settings.snapshot_scheme) this.snapshotScheme = settings.snapshot_scheme;
+		if (/^#[0-9a-fA-F]{6}$/.test(settings.annotation_color ?? ''))
+			this.annotationColor = settings.annotation_color;
+		const lsz = Number(settings.label_size);
+		if (Number.isFinite(lsz) && lsz >= 8 && lsz <= 20) this.labelSize = lsz;
+		if (/^#[0-9a-fA-F]{6}$/.test(settings.measure_color ?? ''))
+			this.measureColor = settings.measure_color;
+		const lsc = Number(settings.line_scale);
+		if (Number.isFinite(lsc) && lsc >= 0.5 && lsc <= 3) this.lineScale = lsc;
+		const axe = Number(settings.implant_axis_mm);
+		if (Number.isFinite(axe) && axe >= 0 && axe <= 30) this.implantAxisExt = axe;
 		this.slices = new SliceCache(ds.id);
 		this.cursor = {
 			x: Math.floor(ds.cols / 2),
@@ -294,7 +319,8 @@ export class PlanningState {
 			type: m.type,
 			points: JSON.parse(m.points || '[]'),
 			value: m.value,
-			label: m.label
+			label: m.label,
+			name: m.name ?? ''
 		}));
 		this.models = models.map((m) => {
 			let transform: number[] | null = null;
@@ -351,6 +377,7 @@ export class PlanningState {
 				az: im.az,
 				rotation: im.rotation,
 				color: im.color,
+				locked: !!im.locked,
 				visible: !!im.visible,
 				sleeve,
 				abutment
@@ -602,6 +629,7 @@ export class PlanningState {
 			id: implant.id,
 			rotation: 0,
 			visible: true,
+			locked: false,
 			sleeve: null,
 			abutment: null
 		};
@@ -634,22 +662,28 @@ export class PlanningState {
 		type: MeasurementData['type'],
 		points: Vec3[],
 		value: number,
-		label: string
+		label: string,
+		name = ''
 	): Promise<void> {
 		const res = await fetch(`/api/plans/${this.planId}/measurements`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ type, points, value, label })
+			body: JSON.stringify({ type, points, value, label, name })
 		});
 		if (!res.ok) return;
 		const { measurement } = await res.json();
-		this.measurements.push({ id: measurement.id, type, points, value, label });
+		this.measurements.push({ id: measurement.id, type, points, value, label, name });
 	}
 
 	saveMeasurement(id: number) {
 		const m = this.measurements.find((m) => m.id === id);
 		if (!m) return;
-		const payload = { points: m.points.map((p) => ({ ...p })), value: m.value, label: m.label };
+		const payload = {
+			points: m.points.map((p) => ({ ...p })),
+			value: m.value,
+			label: m.label,
+			name: m.name
+		};
 		this.debounced(`measurement:${id}`, () => {
 			fetch(`/api/measurements/${id}`, {
 				method: 'PATCH',

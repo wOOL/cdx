@@ -264,6 +264,14 @@ const MIGRATIONS: string[] = [
 		outdated INTEGER NOT NULL DEFAULT 0,
 		created_at TEXT NOT NULL DEFAULT (datetime('now'))
 	);
+	`,
+	// 15 — user-renamable measurements (custom name shown before the value label)
+	`
+	ALTER TABLE measurements ADD COLUMN name TEXT NOT NULL DEFAULT '';
+	`,
+	// 16 — per-implant position lock
+	`
+	ALTER TABLE implants ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;
 	`
 ];
 

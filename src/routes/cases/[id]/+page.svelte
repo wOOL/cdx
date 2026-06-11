@@ -949,15 +949,26 @@
 		await goto(`/cases/${data.caseData.id}?plan=${body.planId}`, { invalidateAll: true });
 	}
 
-	async function duplicatePlanAction() {
+	let dupDialogOpen = $state(false);
+	let dupName = $state('');
+	let dupParts = $state({ nerves: true, implants: true, measurements: true });
+
+	function duplicatePlanAction() {
 		planMenuOpen = false;
 		ps?.flushSaves();
-		const name = prompt('Name for the new plan:', `${data.plan.name} (copy)`);
+		dupName = `${data.plan.name} (copy)`;
+		dupParts = { nerves: true, implants: true, measurements: true };
+		dupDialogOpen = true;
+	}
+
+	async function duplicatePlanConfirm() {
+		const name = dupName.trim();
 		if (!name) return;
+		dupDialogOpen = false;
 		const res = await fetch(`/api/cases/${data.caseData.id}/plans`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ name, copyFrom: data.plan.id })
+			body: JSON.stringify({ name, copyFrom: data.plan.id, parts: { ...dupParts } })
 		});
 		if (res.ok) {
 			const { plan } = await res.json();
@@ -3205,7 +3216,22 @@
 				{#each ps?.measurements ?? [] as m (m.id)}
 					<div class="tree-item">
 						<Icon name={m.type === 'angle' ? 'angle' : 'ruler'} size={14} />
-						<span class="tree-item-label">{m.label || m.type}</span>
+						<span class="tree-item-label" title={m.name ? `${m.name}: ${m.label}` : m.label}
+							>{m.name ? `${m.name}: ${m.label}` : m.label || m.type}</span
+						>
+						<button
+							class="tree-eye"
+							title="Rename measurement"
+							onclick={() => {
+								if (!ps) return;
+								const v = prompt('Measurement name', m.name);
+								if (v === null) return;
+								m.name = v.trim();
+								ps.saveMeasurement(m.id);
+							}}
+						>
+							<Icon name="edit" size={13} />
+						</button>
 						<button class="tree-eye" title="Delete" onclick={() => ps?.deleteMeasurement(m.id)}>
 							<Icon name="trash" size={13} />
 						</button>
@@ -3243,6 +3269,10 @@
 					<label class="checkbox-row">
 						<input type="checkbox" bind:checked={ps.showImplantAxes} />
 						<span>Implant axes</span>
+					</label>
+					<label class="checkbox-row">
+						<input type="checkbox" bind:checked={ps.showImplantToothNumbers} />
+						Tooth numbers on implants
 					</label>
 					<label class="checkbox-row">
 						<input type="checkbox" bind:checked={ps.showCrestalPlanes} />
@@ -3808,7 +3838,7 @@
 							<span class="dot" style="background:{n.color}"></span>
 							<button
 								class="chip-label"
-								title="Edit nerve points"
+								title="Edit nerve points (double-click to rename)"
 								onclick={() => {
 									if (!ps) return;
 									if (ps.activeNerveId === n.id) {
@@ -3817,6 +3847,13 @@
 										ps.activeNerveId = n.id;
 										ps.nerveEditMode = true;
 									}
+								}}
+								ondblclick={() => {
+									if (!ps) return;
+									const v = prompt('Nerve name', n.name);
+									if (!v?.trim()) return;
+									n.name = v.trim();
+									ps.saveNerve(n.id);
 								}}>{n.name}</button
 							>
 							<input
@@ -3898,6 +3935,23 @@
 								onclick={() => stepNervePoint(pn, +1)}
 							>
 								Next point ▶
+							</button>
+							<button
+								class="btn"
+								title="Delete this nerve point (a canal keeps at least two points)"
+								disabled={pn.points.length <= 2}
+								onclick={() => {
+									if (!ps?.lastNervePoint || pn.points.length <= 2) return;
+									ps.markEdit();
+									pn.points.splice(ps.lastNervePoint.index, 1);
+									ps.lastNervePoint = {
+										nerveId: pn.id,
+										index: Math.min(ps.lastNervePoint.index, pn.points.length - 1)
+									};
+									ps.saveNerve(pn.id);
+								}}
+							>
+								✕ Delete point
 							</button>
 							<button
 								class="btn"
@@ -4020,6 +4074,32 @@
 						<button class="btn" title="Change implant system or size" onclick={openChangeImplantDialog}>
 							Change…
 						</button>
+						<button
+							class="btn"
+							class:primary={selectedImplant.locked}
+							title={selectedImplant.locked
+								? 'Position locked — sleeve and guide stay editable. Click to unlock.'
+								: 'Lock the implant position (confirmed with the surgeon); sleeve and guide stay editable'}
+							onclick={() => {
+								if (!selectedImplant || !ps) return;
+								selectedImplant.locked = !selectedImplant.locked;
+								ps.saveImplant(selectedImplant.id);
+							}}
+						>
+							{selectedImplant.locked ? '🔒 Locked' : '🔓 Lock'}
+						</button>
+						<input
+							type="color"
+							class="implant-color"
+							title="Implant display color"
+							value={selectedImplant.color}
+							onchange={(e) => {
+								if (!selectedImplant || !ps) return;
+								ps.markEdit();
+								selectedImplant.color = e.currentTarget.value;
+								ps.saveImplant(selectedImplant.id);
+							}}
+						/>
 						<select
 							title="Abutment"
 							value={abutmentLabel(selectedImplant.abutment)}
@@ -4668,6 +4748,32 @@
 		}}
 		onclose={() => (showAbutmentEditor = false)}
 	/>
+{/if}
+
+{#if dupDialogOpen}
+	<div class="modal-backdrop" role="presentation" onclick={() => (dupDialogOpen = false)}>
+		<div class="modal-card" role="dialog" aria-label="Copy plan" onclick={(e) => e.stopPropagation()}>
+			<div class="dialog-title">Copy plan</div>
+			<label class="mp-row">
+				<span>Name</span>
+				<input type="text" bind:value={dupName} />
+			</label>
+			<div class="dialog-hint">Choose what to copy into the new plan:</div>
+			<label class="checkbox-row">
+				<input type="checkbox" bind:checked={dupParts.implants} /> Implants (incl. sleeves & abutments)
+			</label>
+			<label class="checkbox-row">
+				<input type="checkbox" bind:checked={dupParts.nerves} /> Nerve canals
+			</label>
+			<label class="checkbox-row">
+				<input type="checkbox" bind:checked={dupParts.measurements} /> Measurements & annotations
+			</label>
+			<div class="dialog-actions">
+				<button class="btn" onclick={() => (dupDialogOpen = false)}>Cancel</button>
+				<button class="btn primary" disabled={!dupName.trim()} onclick={duplicatePlanConfirm}>Create copy</button>
+			</div>
+		</div>
+	</div>
 {/if}
 
 {#if showVirtualTeeth && ps}

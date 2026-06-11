@@ -167,6 +167,12 @@ function validateOps(raw: unknown): MeshEditOp[] {
 				const id = Number(o.modelId);
 				if (!Number.isInteger(id) || id <= 0) error(400, `${at}: combine requires modelId`);
 				op.modelId = id;
+				if (o.mode != null) {
+					if (o.mode !== 'merge' && o.mode !== 'subtract') {
+						error(400, `${at}: mode must be 'merge' | 'subtract'`);
+					}
+					op.mode = o.mode;
+				}
 				break;
 			}
 		}

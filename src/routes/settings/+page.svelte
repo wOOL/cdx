@@ -124,6 +124,33 @@
 					<input id="s-smooth" name="smooth_transitions" type="checkbox" checked={data.settings.smooth_transitions !== '0'} />
 					Smooth animated view transitions (zoom, maximize)
 				</label>
+				<div class="field-row">
+					<div>
+						<label for="s-ann-color">Annotation color (2D views)</label>
+						<input id="s-ann-color" name="annotation_color" type="color" value={data.settings.annotation_color} />
+					</div>
+					<div>
+						<label for="s-label-size">Measurement &amp; annotation text size (px)</label>
+						<input id="s-label-size" name="label_size" type="number" min="8" max="20" value={data.settings.label_size} style="width:100%" />
+					</div>
+					<div>
+						<label for="s-meas-color">Measurement line color</label>
+						<input id="s-meas-color" name="measure_color" type="color" value={data.settings.measure_color} />
+					</div>
+					<div>
+						<label for="s-line-scale">Overlay line thickness (for presentations)</label>
+						<select id="s-line-scale" name="line_scale" value={data.settings.line_scale} style="width:100%">
+							<option value="1">Normal</option>
+							<option value="1.25">Thicker (1.25×)</option>
+							<option value="1.5">Thick (1.5×)</option>
+							<option value="2">Presentation (2×)</option>
+						</select>
+					</div>
+					<div>
+						<label for="s-axis-mm">Implant axis extension (mm)</label>
+						<input id="s-axis-mm" name="implant_axis_mm" type="number" min="0" max="30" value={data.settings.implant_axis_mm} style="width:100%" />
+					</div>
+				</div>
 			</div>
 		</div>
 

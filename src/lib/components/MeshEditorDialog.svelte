@@ -53,7 +53,7 @@
 			| 'erase'
 			| 'marginCut'
 			| 'combine';
-		mode?: 'flatten' | 'add';
+		mode?: 'flatten' | 'add' | 'merge' | 'subtract';
 		strength?: 'A' | 'B' | 'C' | 'D';
 		center?: Vec3;
 		radius?: number;
@@ -110,7 +110,7 @@
 		{ key: 'wax', label: 'Wax knife', hint: 'Click the mesh to smooth locally — optionally removing or adding material.' },
 		{ key: 'eraser', label: 'Eraser', hint: 'Click the mesh to delete triangles around the point; deep erase cuts through.' },
 		{ key: 'margin', label: 'Cut along margin line', hint: 'Click point by point along the margin, then cut away one side.' },
-		{ key: 'combine', label: 'Combine', hint: 'Merge another model of this case into this mesh (alignment-aware).' }
+		{ key: 'combine', label: 'Combine', hint: 'Merge another model of this case into this mesh, or subtract it to remove the overlap (alignment-aware).' }
 	];
 
 	const base = `/api/models/${modelId}/edit`;
@@ -162,6 +162,7 @@
 	let marginPts = $state<Vec3[]>([]);
 	// combine
 	let combineId = $state<number | null>(null);
+	let combineMode = $state<'merge' | 'subtract'>('merge');
 
 	// ------------------------------------------------------------- derived
 	const activeHint = $derived(TOOLS.find((t) => t.key === tool)?.hint ?? '');
@@ -745,10 +746,31 @@
 											<option value={s.id}>{s.name} ({s.kind})</option>
 										{/each}
 									</select>
+									<div class="me-seg">
+										<button class="btn small" class:primary={combineMode === 'merge'} onclick={() => (combineMode = 'merge')}>
+											Merge (add)
+										</button>
+										<button class="btn small" class:primary={combineMode === 'subtract'} onclick={() => (combineMode = 'subtract')}>
+											Subtract (remove overlap)
+										</button>
+									</div>
+									{#if combineMode === 'subtract'}
+										<div class="me-note">
+											Removes this mesh's surface inside the selected model and adds the inverted
+											overlap walls — e.g. subtract a segmented tooth from the jaw scan to leave
+											the extraction socket.
+										</div>
+									{/if}
 									<button
 										class="btn small"
 										disabled={!!busy || combineId == null}
-										onclick={() => pushOp({ op: 'combine', modelId: combineId! }, 'Combine')}
+										onclick={() =>
+											pushOp(
+												combineMode === 'subtract'
+													? { op: 'combine', modelId: combineId!, mode: 'subtract' }
+													: { op: 'combine', modelId: combineId! },
+												combineMode === 'subtract' ? 'Subtract' : 'Combine'
+											)}
 									>
 										Apply operation
 									</button>
