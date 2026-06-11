@@ -73,7 +73,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 36 | Exporting a Plan *(10)* | verifying | (OS file association → GAPS; plan export/import present) |
 | 37 | Hotkeys *(8)* | verifying | ⌨ hotkeys button (mouse path to the list) |
 | 38 | Inserting Logo in Printouts *(13)* | verifying | logo accepts PNG/JPEG/BMP/WebP |
-| 39 | Locking implant positions *(–)* | pending | |
+| 39 | Locking implant positions *(7)* | verifying | per-implant lock + bulk Lock implants + tree padlocks |
 | 40 | Moving implants *(–)* | pending | |
 | 41 | Surgical Guide Visualization *(–)* | pending | |
 | 42 | Transparent Segmentation *(–)* | pending | |

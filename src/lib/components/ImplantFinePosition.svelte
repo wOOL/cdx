@@ -118,7 +118,7 @@
 			</div>
 			<label class="ifp-step">
 				step (°)
-				<input type="number" min="0.5" step="0.5" bind:value={rStep} />
+				<input type="number" min="0.1" step="0.1" bind:value={rStep} />
 			</label>
 			<div class="ifp-row">
 				<span>Pivot</span>
