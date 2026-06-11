@@ -60,6 +60,45 @@ export function toImage(t: ViewTransform, cx: number, cy: number): { px: number;
 	return { px: cx / t.scaleX - 0.5 - t.ox / t.scaleX, py: cy / t.scaleY - 0.5 - t.oy / t.scaleY };
 }
 
+/** 10 mm scale bar, bottom-right. pxPerMM = canvas pixels per millimetre. */
+export function drawScaleBar(
+	ctx: CanvasRenderingContext2D,
+	pxPerMM: number,
+	canvasW: number,
+	canvasH: number
+): void {
+	const px = pxPerMM * 10;
+	if (px < 20 || px > canvasW * 0.8) return;
+	const x1 = canvasW - px - 14;
+	const y = canvasH - 26;
+	ctx.strokeStyle = 'rgba(216, 220, 228, 0.75)';
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(x1, y);
+	ctx.lineTo(x1 + px, y);
+	ctx.moveTo(x1, y - 3);
+	ctx.lineTo(x1, y + 3);
+	ctx.moveTo(x1 + px, y - 3);
+	ctx.lineTo(x1 + px, y + 3);
+	ctx.stroke();
+	ctx.fillStyle = 'rgba(216, 220, 228, 0.75)';
+	ctx.font = '10px Inter, sans-serif';
+	ctx.fillText('10 mm', x1 + px / 2 - 14, y - 5);
+}
+
+/** Trigger a PNG download of a canvas. */
+export function downloadCanvas(canvas: HTMLCanvasElement, name: string): void {
+	canvas.toBlob((blob) => {
+		if (!blob) return;
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${name}.png`;
+		a.click();
+		URL.revokeObjectURL(url);
+	});
+}
+
 /** Apply window/level to a raw image, drawing into (and resizing) the given offscreen canvas. */
 export function windowInto(
 	offscreen: HTMLCanvasElement,

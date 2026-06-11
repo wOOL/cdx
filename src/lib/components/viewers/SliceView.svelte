@@ -2,7 +2,12 @@
 	import type { PlanningState } from '$lib/client/planning.svelte';
 	import type { Plane, Slice } from '$lib/client/sliceCache';
 
-	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
+	import {
+		downloadCanvas,
+		drawScaleBar,
+		type ToolPointerEvent,
+		type ViewTransform
+	} from '$lib/client/render2d';
 
 	let {
 		state: ps,
@@ -175,6 +180,8 @@
 			ctx.fillText(`${hoverHU} HU`, 8, ch - 22);
 		}
 
+		drawScaleBar(ctx, t.scaleX / spacingW, cw, ch);
+
 		// orientation labels
 		ctx.fillStyle = 'rgba(138, 145, 160, 0.9)';
 		ctx.font = '10px Inter, sans-serif';
@@ -343,6 +350,11 @@
 		ondblclick={resetView}
 	></canvas>
 	<div class="view-label">{label || plane}</div>
+	<button
+		class="snap-btn"
+		title="Save view snapshot (PNG)"
+		onclick={() => canvas && downloadCanvas(canvas, `${plane}_${sliceIndex + 1}`)}>📷</button
+	>
 	<input
 		class="slice-slider"
 		type="range"
@@ -376,6 +388,22 @@
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
 		pointer-events: none;
+	}
+	.snap-btn {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 24px;
+		height: 22px;
+		border-radius: 3px;
+		background: var(--bg-2);
+		border: 1px solid var(--border);
+		font-size: 11px;
+		opacity: 0;
+		transition: opacity 0.15s;
+	}
+	.slice-view:hover .snap-btn {
+		opacity: 0.8;
 	}
 	.slice-slider {
 		position: absolute;

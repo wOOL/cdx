@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PlanningState } from '$lib/client/planning.svelte';
 	import {
+		downloadCanvas,
+		drawScaleBar,
 		fitTransform,
 		windowInto,
 		type RawImage,
@@ -115,6 +117,7 @@
 		ctx.fillStyle = 'rgba(216, 220, 228, 0.85)';
 		ctx.font = '11px Inter, sans-serif';
 		ctx.fillText(`${ps.crossU.toFixed(1)} mm`, 8, canvas.height - 8);
+		drawScaleBar(ctx, t.scaleX / stepMM, canvas.width, canvas.height);
 	}
 
 	$effect(() => {
@@ -200,6 +203,11 @@
 		oncontextmenu={(e) => e.preventDefault()}
 	></canvas>
 	<div class="view-label">Panoramic</div>
+	<button
+		class="snap-btn"
+		title="Save view snapshot (PNG)"
+		onclick={() => canvas && downloadCanvas(canvas, 'panoramic')}>📷</button
+	>
 	{#if !ps.curve}
 		<div class="pano-hint muted">
 			Define the panoramic curve: enable <strong>Draw curve</strong> and click along the dental arch
@@ -241,5 +249,21 @@
 		text-align: center;
 		padding: 20px;
 		pointer-events: none;
+	}
+	.snap-btn {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 24px;
+		height: 22px;
+		border-radius: 3px;
+		background: var(--bg-2);
+		border: 1px solid var(--border);
+		font-size: 11px;
+		opacity: 0;
+		transition: opacity 0.15s;
+	}
+	.pano-view:hover .snap-btn {
+		opacity: 0.8;
 	}
 </style>

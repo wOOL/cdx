@@ -285,6 +285,21 @@
 	let selectedImplant = $derived(ps?.implants.find((i) => i.id === ps?.selectedImplantId) ?? null);
 
 	// ---------- implant fine controls ----------
+	function stepImplantDim(field: 'diameter' | 'length', dir: 1 | -1) {
+		if (!ps || !selectedImplant || ps.locked) return;
+		const line = IMPLANT_LIBRARY.find(
+			(l) => l.manufacturer === selectedImplant?.manufacturer && l.line === selectedImplant?.line
+		);
+		if (!line) return;
+		const list = field === 'diameter' ? line.diameters : line.lengths;
+		const idx = list.indexOf(selectedImplant[field]);
+		const next = list[(idx < 0 ? 0 : idx) + dir];
+		if (next == null) return;
+		selectedImplant[field] = next;
+		selectedImplant.article = articleName(line, selectedImplant.diameter, selectedImplant.length);
+		ps.saveImplant(selectedImplant.id);
+	}
+
 	function nudgeImplantDepth(deltaMM: number) {
 		if (!ps || !selectedImplant || ps.locked) return;
 		selectedImplant.x += selectedImplant.ax * deltaMM;
@@ -1126,6 +1141,16 @@
 							<strong>{selectedImplant.tooth ? `Tooth ${selectedImplant.tooth} — ` : ''}</strong>
 							{selectedImplant.manufacturer} {selectedImplant.article}
 						</span>
+						<span class="stepper">
+							<button class="btn" title="Smaller diameter" onclick={() => stepImplantDim('diameter', -1)}>‹</button>
+							⌀{selectedImplant.diameter.toFixed(1)}
+							<button class="btn" title="Larger diameter" onclick={() => stepImplantDim('diameter', 1)}>›</button>
+						</span>
+						<span class="stepper">
+							<button class="btn" title="Shorter" onclick={() => stepImplantDim('length', -1)}>‹</button>
+							L{selectedImplant.length.toFixed(1)}
+							<button class="btn" title="Longer" onclick={() => stepImplantDim('length', 1)}>›</button>
+						</span>
 						<button class="btn" title="Move 0.5 mm shallower (against axis)" onclick={() => nudgeImplantDepth(-0.5)}>
 							▲ 0.5
 						</button>
@@ -1442,11 +1467,23 @@
 <footer class="status-bar">
 	<span class="faint">coDiagnostiX Web — planning workspace</span>
 	<span class="hint-text"><Icon name="chevron" size={11} /> {nextHint}</span>
+	{#if ps?.liveDistances}
+		{@const ld = ps.liveDistances}
+		{#if ld.nerve != null}
+			<span class="dist-chip" class:dist-bad={ld.nerve < ps.nerveSafety}>
+				nerve {ld.nerve.toFixed(1)} mm
+			</span>
+		{/if}
+		{#if ld.implant != null}
+			<span class="dist-chip" class:dist-bad={ld.implant < ps.implantSafety}>
+				implant {ld.implant.toFixed(1)} mm
+			</span>
+		{/if}
+	{/if}
 	{#if ps && ps.warnings.length}
 		<span class="warn-text">
 			<Icon name="warning" size={13} />
 			{ps.warnings.length} safety distance warning{ps.warnings.length === 1 ? '' : 's'}
-			({ps.warnings.map((w) => `${w.kind} ${w.distance.toFixed(1)}mm`).join(', ')})
 		</span>
 	{/if}
 	<div class="spacer"></div>
@@ -1687,6 +1724,26 @@
 		align-items: center;
 		gap: 4px;
 		color: var(--accent-bright);
+	}
+	.dist-chip {
+		padding: 0 8px;
+		border-radius: 9px;
+		border: 1px solid #2a6e3c;
+		color: var(--green);
+		font-size: 11px;
+	}
+	.dist-chip.dist-bad {
+		border-color: var(--red);
+		color: var(--red);
+	}
+	.stepper {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		font-size: 12px;
+	}
+	.stepper .btn {
+		padding: 2px 7px;
 	}
 	.stage-bar .tool-btn {
 		position: relative;

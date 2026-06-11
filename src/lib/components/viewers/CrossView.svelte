@@ -2,6 +2,8 @@
 	import type { PlanningState } from '$lib/client/planning.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import {
+		downloadCanvas,
+		drawScaleBar,
 		fitTransform,
 		windowInto,
 		type RawImage,
@@ -115,6 +117,7 @@
 		ctx.fillStyle = 'rgba(216, 220, 228, 0.85)';
 		ctx.font = '11px Inter, sans-serif';
 		ctx.fillText(`@ ${ps.crossU.toFixed(1)} mm`, 8, canvas.height - 8);
+		drawScaleBar(ctx, t.scaleX / stepMM, canvas.width, canvas.height);
 		if (orientation === 'cross') {
 			// B/L orientation: normal points left of travel; with a counterclockwise-drawn
 			// arch (right→left), the normal points buccally (outward)
@@ -202,6 +205,12 @@
 	>
 		{orientation === 'cross' ? '⊥' : '∥'}
 	</button>
+	<button
+		class="orient-toggle snap-pos"
+		title="Save view snapshot (PNG)"
+		onclick={() => canvas && downloadCanvas(canvas, `${orientation}_${ps.crossU.toFixed(0)}mm`)}
+		>📷</button
+	>
 	{#if !ps.curve}
 		<div class="cross-hint muted">Requires a panoramic curve.</div>
 	{/if}
@@ -257,5 +266,9 @@
 	.orient-toggle:hover {
 		color: var(--text);
 		border-color: var(--accent-dim);
+	}
+	.snap-pos {
+		right: 32px;
+		font-size: 11px;
 	}
 </style>

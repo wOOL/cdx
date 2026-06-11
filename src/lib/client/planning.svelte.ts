@@ -150,6 +150,28 @@ export class PlanningState {
 		return out;
 	});
 
+	/** live clearances for the selected implant (surface-to-surface, mm) */
+	liveDistances = $derived.by(() => {
+		const im = this.implants.find((i) => i.id === this.selectedImplantId);
+		if (!im) return null;
+		const { head, apex } = implantSegment(im);
+		let nerve: number | null = null;
+		for (const n of this.nerves) {
+			if (n.points.length === 0) continue;
+			const d = segPolylineDistance(head, apex, n.points) - im.diameter / 2 - n.diameter / 2;
+			nerve = nerve == null ? d : Math.min(nerve, d);
+		}
+		let implant: number | null = null;
+		for (const o of this.implants) {
+			if (o.id === im.id) continue;
+			const s2 = implantSegment(o);
+			const d =
+				segPolylineDistance(head, apex, [s2.head, s2.apex]) - im.diameter / 2 - o.diameter / 2;
+			implant = implant == null ? d : Math.min(implant, d);
+		}
+		return { nerve, implant };
+	});
+
 	constructor(
 		ds: Dataset,
 		plan: Plan,
