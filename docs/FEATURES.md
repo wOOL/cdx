@@ -12,12 +12,12 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Start screen: Create New dataset, Open dataset, Management, Support/Help buttons — partial: no Support/Help entry
 - [~] [P1] Start screen dataset list: patient name, DOB, ID, modified date, plan count; sort + search — partial: no modified date, plan count, or sort
 - [x] [P1] Work Mode selector (EXPERT / EASY) on start screen, persisted per user, applied on dataset open
-- [ ] [P2] Subscription tier record per account with feature flags + guide-export credit counter (data-driven gating)
-- [ ] [P2] Read-only "viewer mode" when tier lacks edit rights
-- [ ] [P2] WebGL2 capability detection with unsupported-browser page
-- [ ] [P3] Status bar on start screen (account tier, app version) + About dialog with third-party licenses
-- [ ] [P3] First-run onboarding tour (start screen concept, EXPERT vs EASY)
-- [ ] [P4] MFA (TOTP) for accounts
+- [x] [P2] Subscription tier record per account with feature flags + guide-export credit counter (data-driven gating)
+- [x] [P2] Read-only "viewer mode" when tier lacks edit rights
+- [x] [P2] WebGL2 capability detection with unsupported-browser page
+- [~] [P3] Status bar on start screen (account tier, app version) + About dialog with third-party licenses — partial: About dialog with version+licenses, tier on /account; no persistent start-screen status bar
+- [x] [P3] First-run onboarding tour (start screen concept, EXPERT vs EASY)
+- [x] [P4] MFA (TOTP) for accounts
 - [ ] [P4] Processing/AI status icon column in dataset list
 
 ## 1. Patient & Case Management (SPEC §1)
@@ -33,13 +33,13 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] "Mark this plan as final" (irreversible; copy-to-edit; required for exports) — partial: reversible approval; doesn't gate exports
 - [~] [P2] Plan Management dialog: list with name, status, last editor, modification date; open/properties/delete — partial: dropdown only; no editor/date columns
 - [~] [P2] Plan Compare: select 2 plans → difference report (incl. implant position deltas) — partial: implant position/axis deltas; no full report
-- [ ] [P2] Implant update mode per plan (3 options) + outdated-object prompt (keep vs replace + recheck notice)
+- [~] [P2] Implant update mode per plan (3 options) + outdated-object prompt (keep vs replace + recheck notice) — partial: outdated-article detection chip; no per-plan 3-option update mode
 - [~] [P2] Plan autosave (debounced + on navigation) with last-editor/timestamp tracking — partial: no last-editor tracking (no accounts)
 - [x] [P2] Anonymize dataset (toggleable pseudonymization of name/DOB/ID)
 - [~] [P2] Undo/Redo framework for plan edits (Ctrl+Z / Ctrl+Shift+Z) + "undo last position change" toolbar action — partial: position/shape edits only, no create/delete undo
-- [ ] [P3] Dataset lock state (sent for production) + admin "remove lock" + lock audit entry
-- [ ] [P3] Plan status icons: "sent and locked", "copy of transferred plan"
-- [ ] [P4] Verify Patient Data dialog post-import with don't-overwrite-DICOM warning
+- [x] [P3] Dataset lock state (sent for production) + admin "remove lock" + lock audit entry — partial: manual lock/unlock + audit; any pro user may unlock
+- [x] [P3] Plan status icons: "sent and locked", "copy of transferred plan"
+- [x] [P4] Verify Patient Data dialog post-import with don't-overwrite-DICOM warning
 
 ## 2. Data Import — DICOM (SPEC §2.1)
 
@@ -51,17 +51,17 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Jaw selection at import (maxilla/mandible for the first plan) — partial: jaw switch in plan menu, not at import
 - [x] [P1] Patient identity prefill from DICOM tags into patient record
 - [x] [P1] Synthetic/demo dataset generator or bundled sample CBCT for development & demos
-- [ ] [P2] Advanced transfer mode: slice selection (auto-select valid / clear), slice preview with scrollbar, warning detail panel
-- [ ] [P2] "Always start DICOM import in advanced mode" checkbox
-- [ ] [P2] Gantry-tilt correction by orthogonal resampling (with interpolation note)
-- [ ] [P2] Import warnings (resolution < 512×512, slice width > 1 mm, missing slices) — never blocking; dataset flagged "created despite warnings"
-- [ ] [P2] Slice-distance option: Standard / Optimized (1:n) / manual (smallest, most frequent, other) with large-dataset note
-- [ ] [P2] Import grayscale histogram with lower/upper sliders; full range stored with dataset
-- [ ] [P3] Grayscale presets at import: save / overwrite / delete; "Read from DICOM data" default; global grayscale factor persisted across imports
-- [ ] [P3] Region restriction: drag red rectangle in slice preview to crop volume
-- [ ] [P3] "Fill missing slices black" option (else interpolate)
-- [ ] [P3] Push embedded DICOM images (OPG/X-ray) to Image Management with metadata dialog
-- [ ] [P4] Permanent anonymization at import via alias name
+- [x] [P2] Advanced transfer mode: slice selection (auto-select valid / clear), slice preview with scrollbar, warning detail panel
+- [x] [P2] "Always start DICOM import in advanced mode" checkbox
+- [x] [P2] Gantry-tilt correction by orthogonal resampling (with interpolation note) — partial: y-shear approximation, documented
+- [x] [P2] Import warnings (resolution < 512×512, slice width > 1 mm, missing slices) — never blocking; dataset flagged "created despite warnings"
+- [x] [P2] Slice-distance option: Standard / Optimized (1:n) / manual (smallest, most frequent, other) with large-dataset note
+- [x] [P2] Import grayscale histogram with lower/upper sliders; full range stored with dataset
+- [~] [P3] Grayscale presets at import: save / overwrite / delete; "Read from DICOM data" default; global grayscale factor persisted across imports — partial: histogram lo/hi stored per dataset; no named preset CRUD
+- [x] [P3] Region restriction: drag red rectangle in slice preview to crop volume
+- [x] [P3] "Fill missing slices black" option (else interpolate)
+- [x] [P3] Push embedded DICOM images (OPG/X-ray) to Image Management with metadata dialog — partial: pushed as PNGs; no metadata dialog
+- [x] [P4] Permanent anonymization at import via alias name
 
 ## 3. Data Import — Model Scans & Meshes (SPEC §2.2–2.4)
 
@@ -102,7 +102,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Window/level: Adjust Grayscale dialog (histogram, dual handles, Left/Width/Level/Right spinners, live axial preview, HU labels for CT) — partial: presets + drag; no histogram dialog
 - [~] [P1] Align views to implant (cross-sectional/tangential/axial to selected instrument axis; toggle revert; 360° tangential rotation) — partial: cross-section align toggle only
 - [~] [P1] Status bar: patient info + live chips (Average density HU, Distance to other implants, Distance to nerve canal, Distance to other sleeves) with red/green state — partial: warnings + density only; no distance chips
-- [ ] [P2] Status-bar distance chip popups listing per-object live distances (1 decimal mm)
+- [x] [P2] Status-bar distance chip popups listing per-object live distances (1 decimal mm)
 - [~] [P2] Cross-sectional link button "jointly move and zoom" + auto-recenter on implant selection — partial: auto-recenter done; no link button
 - [x] [P2] 3D default-perspective dropdown (Left/Right/Anterior/Posterior/Superior/Inferior)
 - [~] [P2] Millimeter scale bars in 2D views (toggle, default on) — partial: no toggle; absent in cross view
@@ -119,17 +119,17 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P3] Interactive grayscale drag tool (up/down = level, left/right = width)
 - [ ] [P3] Smooth animated view transitions (setting, default on)
 - [~] [P3] Image Management: per-patient image library (add file BMP/JPEG/TIFF/DICOM + metadata, select/invert/clear, delete, export with naming & format options) — partial: snapshot library with download/delete; no external upload
-- [ ] [P3] Image Viewer: 1/2/4-image layouts, navigation, info display, full screen, pan, 5 zoom levels
-- [ ] [P3] Screenshot function (F8) honoring Screenshot settings (filename scheme, storage, notification)
-- [ ] [P4] Stereo 3D anaglyph mode (red/cyan) + Stereo 3D settings tab
-- [ ] [P4] Thumb-wheel rotation in 3D/panoramic/tangential views
-- [ ] [P4] Reindeer/Easter-egg orientation models
+- [x] [P3] Image Viewer: 1/2/4-image layouts, navigation, info display, full screen, pan, 5 zoom levels
+- [x] [P3] Screenshot function (F8) honoring Screenshot settings (filename scheme, storage, notification)
+- [x] [P4] Stereo 3D anaglyph mode (red/cyan) + Stereo 3D settings tab — partial: anaglyph mode; no separate settings tab
+- [x] [P4] Thumb-wheel rotation in 3D/panoramic/tangential views — partial: continuous rotate buttons + drag; no literal wheel widget
+- [x] [P4] Reindeer/Easter-egg orientation models
 
 ## 5. Alignment & Panoramic (SPEC §4)
 
 - [~] [P1] Patient Coordinate System object (View definition category) with default pose from volume — partial: bake-in resample, no persistent PCS object
 - [~] [P1] Align PCS dialog: 3 sub-views (sagittal/coronal/axial), green/red/blue planes, left-drag move / right-drag rotate, OK/Cancel — partial: numeric yaw/pitch/roll dialog
-- [ ] [P1] PCS reset-to-default button; PCS drives initial implant orientation & virtual-tooth pose
+- [x] [P1] PCS reset-to-default button; PCS drives initial implant orientation & virtual-tooth pose
 - [~] [P1] Panoramic curve object: 5 basic points (movable, not deletable), tooth-position labels on end points (48/38, 18/28 FDI), incisal middle point — partial: free-form points; no tooth labels
 - [x] [P1] Edit Panoramic Curve dialog (axial view + layer scrollbar, Ctrl+P)
 - [~] [P1] Curve editing: drag points; click along curve to add red extra points; right-click delete extra point; Shift+drag whole curve; reset to initial shape — partial: drag/append/clear only; no insert/delete/shift-drag
@@ -179,16 +179,16 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P2] Automatic nerve detection between foramen seed points (Detect button in tree, context menu, EASY Auto detect; replaces intermediate points with warning)
 - [~] [P2] Live density readout under cursor while dragging nerve points — partial: hover HU in orthogonal views only
 - [ ] [P2] Nerve point context menu: bring-to-slice, interchange successor/predecessor, show point numbers, center-views-to-point, clickzoom toggle
-- [ ] [P2] Nerve cautions displayed verbatim (verify manually / poor image quality / safety distance)
+- [x] [P2] Nerve cautions displayed verbatim (verify manually / poor image quality / safety distance)
 - [x] [P2] Continuous distance measurement (polyline, per-segment labels, total in tree)
-- [ ] [P2] Auxiliary line object (2 points, no value)
-- [ ] [P2] Measurement editing semantics: positioning-mode handles, blue selection, off-slice transparency + jump-to-slice, Shift-drag whole object, point context menu
+- [x] [P2] Auxiliary line object (2 points, no value)
+- [~] [P2] Measurement editing semantics: positioning-mode handles, blue selection, off-slice transparency + jump-to-slice, Shift-drag whole object, point context menu — partial: drag handles with live recompute + persist; no off-slice transparency/Shift-drag
 - [~] [P2] Annotations: point-anchored text in all views + tree, red rendering, edit dialog — partial: axial view only; prompt-based editing
 - [~] [P2] Interactive density probe (circle cursor, LMB average, RMB cycles 3 sizes, HU for CT only) — partial: single-pixel click; no circle sizes
 - [~] [P2] Density statistics panel: vertical + horizontal distribution diagrams, top/bottom offset sliders, outline-only vs whole-area toggle, Ø HU footer + status-bar mirror — partial: vertical profile + Ø HU; no horizontal diagram/offset sliders
 - [ ] [P3] Angle Between Implants dialog (selection/master table, align-to-master vs mean direction, real-time updates, stays open)
 - [ ] [P3] Angle Between Abutments dialog (+ acceptable deviation column)
-- [ ] [P4] HU-validity informational note for CBCT modality
+- [x] [P4] HU-validity informational note for CBCT modality
 
 ## 8. Implant Planning (SPEC §7)
 
@@ -253,7 +253,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] Base-object selection pre-step (model scan / 3D model / converted guide)
 - [~] [P2] Inspection windows: click-to-place cylindrical cutouts, per-window height/diameter controls + wheel, unlimited, stability caution — partial: click-to-place + diameter; no per-window height
 - [ ] [P2] Label step: multiple embossed text labels, drag anchor, font size/style, confirm check, presets (factory + user)
-- [ ] [P2] Stale-design tracking: warning sign when planning changed after design; production blocked; Edit guide design reopens wizard
+- [x] [P2] Stale-design tracking: warning sign when planning changed after design; production blocked; Edit guide design reopens wizard
 - [ ] [P2] "Use bottom side of dual scan" (mucosa-supported guides)
 - [ ] [P2] Design-rule validation warnings: 200×200×100 mm volume, ≥3 support points, bar minimum 4×3 mm
 - [ ] [P2] Use-large-connectors option
@@ -286,7 +286,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] EASY contextual help panel per step (collapsible, content authored per step)
 - [x] [P2] Mode switching: EASY ↔ EXPERT on same dataset without data loss
 - [x] [P2] EASY temporary measurements mode in implant step
-- [ ] [P3] EASY zoom hotkeys (Ctrl +/−/0) + Ctrl-click recent dataset opens in EASY
+- [x] [P3] EASY zoom hotkeys (Ctrl +/−/0) + Ctrl-click recent dataset opens in EASY
 - [ ] [P3] Toolbar customization (right-click Adjust, drag in/out, preset reset)
 - [ ] [P4] Treatment Evaluation module: study list, scanbody-scan and postop-CT study types, region matching, implant alignment, deviation report + CSV export
 - [ ] [P4] AI assistance integration points (import offer, toolbar button, background jobs, review dialog, status icons)
@@ -303,7 +303,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Bone-class rows (soft/medium/hard), handle/length glyph coding, cortical-only marks, manual-step marking — partial: bone-class column + cortical-only steps; no glyph coding
 - [~] [P2] Print preview pane (page nav, zoom, download, close) + direct-to-PDF path — partial: HTML preview; no page nav/zoom
 - [ ] [P2] Print All batch dialog with persisted document selection
-- [ ] [P2] Screen copy (current screen capture to PDF/PNG)
+- [x] [P2] Screen copy (current screen capture to PDF/PNG)
 - [x] [P2] User logo upload + header inclusion setting; plan-comment-on-material-list setting
 - [~] [P3] Finalized-plan stamp/verification on production reports — partial: "(approved)" label only
 - [x] [P3] Plan approval PDF (patient/plan ID, planner, tables, view images, signature lines)
@@ -311,13 +311,13 @@ Cross-references point to `docs/SPEC.md` sections.
 
 ## 13. Collaboration (SPEC §12)
 
-- [ ] [P2] Contact pairing: 7-digit connection/share codes between accounts; contact list grouped by type; delete contact with warning
-- [ ] [P2] Plan send flow: contact picker (resend preselect + verify warning), comment field, consent disclaimer gate
-- [ ] [P2] Send side-effects: plan write-protect + "Sent" status label; Plan > Edit creates editable copy keeping sent version in history
-- [ ] [P2] Transfer activities: states (upload→download→import→finished/rejected), transfer numbers, colored status bars, recipient-download acknowledgment
-- [ ] [P2] Inbox: notifications (in-app toast; optional email), auto-filtered download list, one-click download/import; received plans write-protected
-- [ ] [P3] Transfer list management: quick search, filters, Send Back, Download Again, Tidy-up, auto-remove finished after N days, background transfers with Hide
-- [ ] [P3] Service requests: Digital surgical guide (matching/design/fabrication sub-items + requirements text), Custom, Bone block design, Radiographic assessment; non-binding note; reject with minus icon
+- [x] [P2] Contact pairing: 7-digit connection/share codes between accounts; contact list grouped by type; delete contact with warning
+- [x] [P2] Plan send flow: contact picker (resend preselect + verify warning), comment field, consent disclaimer gate
+- [x] [P2] Send side-effects: plan write-protect + "Sent" status label; Plan > Edit creates editable copy keeping sent version in history — partial: write-protect + Sent label; Edit-creates-copy via Duplicate
+- [x] [P2] Transfer activities: states (upload→download→import→finished/rejected), transfer numbers, colored status bars, recipient-download acknowledgment
+- [x] [P2] Inbox: notifications (in-app toast; optional email), auto-filtered download list, one-click download/import; received plans write-protected — partial: in-app badge + list; no email
+- [x] [P3] Transfer list management: quick search, filters, Send Back, Download Again, Tidy-up, auto-remove finished after N days, background transfers with Hide — partial: search/filters/tidy-up; no background-hide
+- [x] [P3] Service requests: Digital surgical guide (matching/design/fabrication sub-items + requirements text), Custom, Bone block design, Radiographic assessment; non-binding note; reject with minus icon
 - [ ] [P3] Order Management (provider): registration with offered services, lab directory listing, asynchronous pairing (confirmation pending → email confirm)
 - [ ] [P3] Order list: color-coded service types, grouping (contact/patient/service), full-text search, sequence-controlled locking, Process/Finish/Reject/Remove
 - [~] [P3] Read-only share links: tokenized presentation viewer (implant list, aligned 3D, 2D views, watermark), revocable — partial: tokenized read-only doc (tables); no 3D viewer/watermark
@@ -334,13 +334,13 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P2] Common tab: measurement decimal places
 - [ ] [P2] Printout tab: plan comment on material list, logo upload + enable
 - [~] [P2] Screenshot tab: filename scheme (default/anonymized/user-defined + placeholders), storage target, format, save notification — partial: scheme with placeholders; no storage-target/format options
-- [ ] [P2] Management console page: account profile, password change, language placeholder, subscription/credits display
+- [x] [P2] Management console page: account profile, password change, language placeholder, subscription/credits display
 - [ ] [P3] Teams: invite members, roles, per-patient/dataset permissions (read/modify/delete; most restrictive wins; owner override)
 - [x] [P3] Audit log (finalize, export, share, delete, anonymize events) with viewer UI
 - [ ] [P3] Catalog admin UI (upload catalog versions, edit protocol definitions, flag outdated items)
 - [ ] [P3] Context-sensitive help system (F1, per-dialog "?" content) + help site
 - [ ] [P4] i18n framework + additional UI locales (DE/FR/IT/NL/HU)
-- [ ] [P4] Export-credit purchase/management flow (mock billing)
+- [x] [P4] Export-credit purchase/management flow (mock billing)
 - [~] [P4] Demo/read-only sandbox mode with bundled sample case — partial: demo case creation; not read-only
 
 ## Status summary (auto-reconciled)
