@@ -544,7 +544,14 @@
 			// original's tooth-driven proposal); fall back to the cross position
 			const u = toothArchU(c, newImplant.tooth) ?? ps.crossU;
 			const i = indexAtLength(c, u);
-			head = { x: c.points[i].x, y: c.points[i].y, z: ps.cursor.z * ps.ds.spacing_z };
+			// default depth: 1 cm below (mandible) / above (maxilla) the occlusal
+			// plane when one is set, like the original; else the current slice
+			let zmm = ps.cursor.z * ps.ds.spacing_z;
+			if (occlusalZ != null) {
+				zmm = data.plan.jaw === 'maxilla' ? occlusalZ + 10 : occlusalZ - 10;
+				zmm = Math.max(0, Math.min((ps.ds.slices - 1) * ps.ds.spacing_z, zmm));
+			}
+			head = { x: c.points[i].x, y: c.points[i].y, z: zmm };
 			ps.crossU = u; // jump the cross-section views to the new implant
 		}
 		pendingHead = null;
@@ -1328,6 +1335,78 @@
 	);
 	let windowMode = $state(false);
 	let windowDiameter = $state(5);
+
+	// occlusal reference plane (z mm, volume-local) — persisted in plan settings;
+	// drives the default implant depth (1 cm below/above per jaw, like the original)
+	let occlusalZ = $state<number | null>(
+		(() => {
+			try {
+				const s = data.plan.settings ? JSON.parse(data.plan.settings) : {};
+				return typeof s.occlusalZ === 'number' ? s.occlusalZ : null;
+			} catch {
+				return null;
+			}
+		})()
+	);
+
+	function saveOcclusalZ() {
+		let settings: Record<string, unknown> = {};
+		try {
+			settings = data.plan.settings ? JSON.parse(data.plan.settings) : {};
+		} catch {
+			settings = {};
+		}
+		settings.occlusalZ = occlusalZ;
+		fetch(`/api/plans/${data.plan.id}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ settings })
+		}).catch(() => {});
+	}
+
+	/** drawn on coronal/sagittal slice views: horizontal occlusal-plane line, draggable */
+	function occlusalOverlay(ctx: CanvasRenderingContext2D, t: ViewTransform) {
+		if (!ps || occlusalZ == null) return;
+		const S = ps.ds.slices;
+		const py = S - 1 - occlusalZ / ps.ds.spacing_z; // slice px (z flipped on these views)
+		const cy = t.oy + (py + 0.5) * t.scaleY;
+		ctx.strokeStyle = 'rgba(240, 200, 60, 0.85)';
+		ctx.setLineDash([7, 4]);
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		ctx.moveTo(0, cy);
+		ctx.lineTo(ctx.canvas.clientWidth || ctx.canvas.width, cy);
+		ctx.stroke();
+		ctx.setLineDash([]);
+		ctx.fillStyle = 'rgba(240, 200, 60, 0.95)';
+		ctx.font = '10px Inter, sans-serif';
+		ctx.fillText('occlusal', 6, cy - 4);
+	}
+
+	let occlusalDragging = false;
+
+	/** near-line vertical drag on coronal/sagittal views moves the occlusal plane */
+	function occlusalTool(e: ToolPointerEvent): boolean {
+		if (!ps || occlusalZ == null || ps.locked) return false;
+		const S = ps.ds.slices;
+		const lineY = S - 1 - occlusalZ / ps.ds.spacing_z;
+		if (e.type === 'down') {
+			if (Math.abs(e.py - lineY) > 4) return false;
+			occlusalDragging = true;
+			return true;
+		}
+		if (e.type === 'move' && occlusalDragging) {
+			const zmm = (S - 1 - e.py) * ps.ds.spacing_z;
+			occlusalZ = Math.max(0, Math.min((S - 1) * ps.ds.spacing_z, zmm));
+			return true;
+		}
+		if (e.type === 'up' && occlusalDragging) {
+			occlusalDragging = false;
+			saveOcclusalZ();
+			return true;
+		}
+		return false;
+	}
 
 	function saveGuideWindows() {
 		let settings: Record<string, unknown> = {};
@@ -3070,6 +3149,18 @@
 					>
 						{pcsDragMode ? 'Rotating in views — drag a slice' : 'Rotate in views'}
 					</button>
+					<button
+						class="btn"
+						class:primary={occlusalZ != null}
+						title="Toggle the occlusal reference plane (set to the current axial slice; drag the yellow line in the coronal/sagittal views to adjust). New implants default to 10 mm below (mandible) / above (maxilla) this plane."
+						onclick={() => {
+							if (!ps) return;
+							occlusalZ = occlusalZ == null ? ps.cursor.z * ps.ds.spacing_z : null;
+							saveOcclusalZ();
+						}}
+					>
+						{occlusalZ == null ? 'Occlusal plane' : `Occlusal ${occlusalZ.toFixed(1)} mm ×`}
+					</button>
 					{#if pcsPending}
 						<span class="muted">
 							yaw {pcsAngles.yaw.toFixed(1)}° · pitch {pcsAngles.pitch.toFixed(1)}° · roll {pcsAngles.roll.toFixed(1)}°
@@ -3792,17 +3883,19 @@
 					<div class="view panel" class:cell-max={maximized === 'acor'} class:cell-hidden={maximized && maximized !== 'acor'}>
 						<SliceView state={ps}
 							zoomSignal={zoomSig} plane="coronal"
-							onToolPointer={pcsRotCoronal}
+							onToolPointer={(e) => occlusalTool(e) || pcsRotCoronal(e)}
+							overlayDraw={occlusalOverlay}
 							previewRotate={pcsAngles.pitch}
-							overlayDeps={[pcsAngles.pitch]} />
+							overlayDeps={[pcsAngles.pitch, occlusalZ]} />
 						{@render maxBtn('acor')}
 					</div>
 					<div class="view panel" class:cell-max={maximized === 'asag'} class:cell-hidden={maximized && maximized !== 'asag'}>
 						<SliceView state={ps}
 							zoomSignal={zoomSig} plane="sagittal"
-							onToolPointer={pcsRotSagittal}
+							onToolPointer={(e) => occlusalTool(e) || pcsRotSagittal(e)}
+							overlayDraw={occlusalOverlay}
 							previewRotate={-pcsAngles.roll}
-							overlayDeps={[pcsAngles.roll]} />
+							overlayDeps={[pcsAngles.roll, occlusalZ]} />
 						{@render maxBtn('asag')}
 					</div>
 				</div>
