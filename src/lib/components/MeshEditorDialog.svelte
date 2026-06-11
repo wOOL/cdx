@@ -495,10 +495,9 @@
 	async function applyBrushOp(hit: MeshPickHit): Promise<boolean> {
 		const p = rv(hit);
 		if (tool === 'wax') {
-			const op: EditOp = { op: 'smooth', center: p, radius: waxRadius };
+			const op: EditOp = { op: 'smooth', center: p, radius: waxRadius, strength: waxStrength };
 			if (waxMode === 'remove' || waxMode === 'add') {
 				op.mode = waxMode === 'remove' ? 'flatten' : 'add';
-				op.strength = waxStrength;
 			}
 			return pushOp(op, 'Wax knife');
 		}
@@ -525,7 +524,12 @@
 	/** Select-area smoothing: all accumulated marks in ONE op (one undo step). */
 	async function applyAreaSmooth(): Promise<void> {
 		if (!areaPts.length || busy) return;
-		if (await pushOp({ op: 'smooth', points: areaPts.map(rv), radius: waxRadius }, 'Smooth area')) {
+		if (
+			await pushOp(
+				{ op: 'smooth', points: areaPts.map(rv), radius: waxRadius, strength: waxStrength },
+				'Smooth area'
+			)
+		) {
 			areaPts = [];
 		}
 	}
@@ -926,20 +930,19 @@
 									<button class="btn small" class:primary={waxMode === 'remove'} onclick={() => (waxMode = 'remove')}>Remove</button>
 									<button class="btn small" class:primary={waxMode === 'add'} onclick={() => (waxMode = 'add')}>Add</button>
 								</div>
-								{#if waxMode === 'remove' || waxMode === 'add'}
-									<div class="me-seg">
-										{#each ['A', 'B', 'C', 'D'] as s (s)}
-											<button
-												class="btn small"
-												class:primary={waxStrength === s}
-												title="Strength {s}"
-												onclick={() => (waxStrength = s as 'A' | 'B' | 'C' | 'D')}
-											>
-												{s}
-											</button>
-										{/each}
-									</div>
-								{/if}
+																<div class="me-seg">
+									{#each ['A', 'B', 'C', 'D'] as s (s)}
+										<button
+											class="btn small"
+											class:primary={waxStrength === s}
+											title="Strength {s}"
+											onclick={() => (waxStrength = s as 'A' | 'B' | 'C' | 'D')}
+										>
+											{s}
+										</button>
+									{/each}
+								</div>
+							
 								<label class="me-field">
 									Radius
 									<input type="range" min="1" max="15" step="0.5" bind:value={waxRadius} />

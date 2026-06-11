@@ -532,7 +532,9 @@ function opSmooth(
 ): MeshEditResult {
 	const w = weld(positions);
 	const sel = selectVerts(w, centers, radius);
-	const moved = smoothVerts(w, sel, 3, SMOOTH_LAMBDA);
+	// pure smoothing: the A–D strength letter scales the iteration count
+	const iters = mode ? 3 : { A: 2, B: 3, C: 5, D: 8 }[strength ?? 'B'];
+	const moved = smoothVerts(w, sel, iters, SMOOTH_LAMBDA);
 	const offset = WAX_STRENGTH_MM[strength ?? 'B'];
 	if (mode === 'flatten' || mode === 'add') {
 		// wax knife: remove (flatten) or add material by offsetting along the normal
@@ -554,7 +556,7 @@ function opSmooth(
 			...(mode ? { strength: strength ?? 'B', offsetMm: offset } : {}),
 			...(centers && centers.length > 1 ? { centers: centers.length } : {}),
 			vertices: moved,
-			iterations: 3
+			iterations: iters
 		}
 	};
 }

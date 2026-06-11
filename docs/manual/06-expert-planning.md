@@ -89,12 +89,13 @@ Open the **Nerve stage** (mandible plans):
 2. Click the entry point at the mental foramen and the exit at the mandibular foramen
    (panoramic, cross-section or axial view). All views center on each point as it is
    placed, so the next click starts from the right slice.
-3. **Automatic detection:** with both seed points placed, click **Auto detect**. A
-   confirmation summarizes the run first — any markers placed **between** the endpoints are
-   kept and the detection is **routed through them as waypoints**, so a difficult canal can
-   be pinned down at known positions before detecting. The software traces the low-density
-   canal and replaces the markers with the detected path, then reminds you: *"Automatic
-   detection — verify the nerve course manually on every slice."*
+3. **Automatic detection:** with both seed points placed, click **Auto detect**. When
+   markers were placed **between** the endpoints, the software first asks whether to
+   **route the detection through them as waypoints** — confirm to pin a difficult canal
+   down at known positions, or decline to detect from the start and end markers alone.
+   The software traces the low-density canal and replaces the markers with the detected
+   path, then reminds you: *"Automatic detection — verify the nerve course manually on
+   every slice."*
 4. **Manual definition:** add further points by clicking in the views — in the
    cross-section and axial views a click-drag places the point and positions it in one
    gesture, and existing points are corrected by dragging them directly in any view. While
@@ -216,7 +217,9 @@ The Align stage also builds 3D anatomy objects from the volume:
 - **Create bone model** — thresholds the bone at the shown HU and surfaces it (the base for
   bone-supported and bone-reduction guides).
 - **Edit segmentation** — the manual mask editor: brush/fill, boundary polylines, slice
-  propagation, undo/redo, volume readout (chapter 7.3 for the auxiliary tools). With the
+  propagation, undo/redo, volume readout (chapter 7.3 for the auxiliary tools). The fill
+  range takes a lower **and an upper HU bound** — cap the range to keep a fill out of
+  metal restorations; the default upper bound (32 767) means no upper limit. With the
   **Fill** tool active, clicking directly on the **3D reconstruction** seeds a *volumetric*
   flood fill: the segment grows through the connected HU range across all slices in one
   click (the classic "spill some paint onto the maxilla" gesture); boundary polylines and
@@ -265,13 +268,26 @@ keep planning, review the results when they arrive.
    results are in, the chip turns green: **✓ AI results ready — review**. Click it to open
    the review wizard.
 3. **Review the proposed data.** The wizard walks through the results with a checklist on
-   the left; a step only appears when the AI produced that kind of data:
+   the left; a step only appears when the AI produced that kind of data, and each entry
+   carries a live count of what was found (*n detected objects*, *n detected nerves*,
+   *n scans to verify*):
 
    ![AI assistant review wizard — 3D objects step](img/ai-review-objects.png)
 
    - **3D objects** — every proposed object as a toggleable pill plus an **FDI tooth
      chart** for the per-tooth segmentations, with a 3D preview of the selection. Only
-     checked objects are imported; empty results cannot be selected.
+     checked objects are imported; empty results cannot be selected. Quick-picks below
+     the chart select whole groups in one click — **+ Upper teeth**, **+ Lower teeth**,
+     **+ Jaws**, **+ Canals** — and *Reset view* recenters the 3D preview.
+   - **Changing a tooth number** — when the AI numbered a tooth wrongly, hover it on the
+     FDI chart and click the small **✎** button (or right-click the tooth) to open the
+     inline picker: *Change tooth nn to* → **Apply**. A target on the **same arch** shifts
+     the contiguous run of neighbouring AI teeth along by the same amount (renumbering
+     24 → 23 while 23–17 exist moves them all by one position); a target on the
+     **opposite arch** relabels only the selected tooth. Conflicting targets are rejected
+     with a message, and the result note states how many neighbours shifted along. The
+     renumbering renames the tooth objects (*AI — Tooth nn*) everywhere — chart, object
+     tree and exports.
    - **Patient coordinate system** — the proposed orientation, shown for verification
      before it is applied (chapter 6.1).
    - **Panoramic curve** — the detected curve with draggable support points and a live
@@ -283,8 +299,11 @@ keep planning, review the results when they arrive.
      **◀ Previous point / Next point ▶**, drag points to correct them, **New point** adds
      one, and **Reset** reverts the canal to the original AI proposal.
    - **Scan alignment** — per-scan verification of the proposed scan-to-volume
-     registration, with overlays on all three planes and an embedded **Fine alignment…**
-     for corrections; **Reset alignment** discards the proposal.
+     registration, with overlays on all three planes (scroll over a view to change its
+     slice; **Reset view** re-centers the three panes) and an embedded **Fine alignment…**
+     for corrections; **Reset alignment** discards the proposal. For a scan the automatic
+     proposal cannot fix, **Manual alignment…** leaves the wizard and jumps straight into
+     the Align stage's point-pair matching with the scan preselected (6.4 above).
 4. **Import reviewed data** applies everything you accepted in one step. The imported
    objects appear in the object tree like any other model.
 
@@ -293,6 +312,27 @@ keep planning, review the results when they arrive.
 > in particular every nerve-canal point — against the slices before importing, and apply
 > the same verification rules as for automatic nerve detection (6.3) and AI segmentation
 > (above).
+
+### Tooth extraction
+
+With the AI tooth segmentations imported, a planned extraction can be simulated on the
+model scan: select the scan in the object tree and click **Tooth extraction…**
+(chapter 5.3). The dialog asks for the **tooth to extract** (one of the AI-segmented teeth
+of the case) and how to treat the **extraction site**:
+
+- **Cut out tooth** — remove the tooth from the scan and leave the opening as it is;
+- **Cut out tooth and close the hole** — remove the tooth and close the cut opening
+  (healed-site look);
+- **Cut out tooth and keep the alveolus** — remove the tooth but keep the socket walls,
+  so the extraction socket stays visible.
+
+**Add extracted tooth to planning** additionally saves the cut-out tooth as a separate
+*Extracted tooth nn* wax-up model — e.g. as the donor object for an auto-transplantation
+evaluation (chapter 6.6) or as a pontic reference.
+
+The operation is non-destructive: the scan and the AI tooth stay untouched, and the result
+is added as a **new** model scan *"… (tooth extraction)"* that can be edited, exported or
+made the base of an immediate-implantation guide like any other scan.
 
 ## 6.5 Plan surgical treatment
 

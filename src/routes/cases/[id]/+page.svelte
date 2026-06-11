@@ -2077,9 +2077,17 @@
 			alert('No segmentation/bone model to simulate on.');
 			return;
 		}
-		const zTop = bars.reduce((a, b) => a + b.zTop, 0) / bars.length;
-		// mandible: reduction removes bone ABOVE the profile; maxilla: below
+		const raw = prompt(
+			'Gingiva height above the cut profile (mm, min 0.5) — the cut leaves this much soft-tissue space:',
+			'2'
+		);
+		if (raw === null) return;
+		const gingiva = Math.max(0.5, Number(raw) || 2);
+		// mandible: reduction removes bone ABOVE the profile; maxilla: below —
+		// shifted by the gingiva height so soft tissue keeps its space
 		const maxilla = data.plan.jaw === 'maxilla';
+		const zBase = bars.reduce((a, b) => a + b.zTop, 0) / bars.length;
+		const zTop = maxilla ? zBase - gingiva : zBase + gingiva;
 		reductionSimBusy = true;
 		try {
 			const res = await fetch(`/api/models/${bone.id}/edit`, {

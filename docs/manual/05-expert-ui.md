@@ -23,22 +23,32 @@ The stage toolbar below it always shows the actions of the active stage — e.g.
 in the Panoramic stage or *Add implant* in the Implants stage. Chapters 6.1–6.7 describe the
 tools stage by stage.
 
-**Customizing.** Right-click the measurement-tool rail (left panel, *Measure (axial view)*)
-to open the **Adjust toolbar** dialog. It controls two things:
+**Customizing.** Right-click the measurement-tool rail (left panel, *Measure (axial &
+cross views)*) to open the **Adjust toolbar** dialog. It controls three things:
 
-- **Measurement tools** — choose which measurement tools are shown; *Reset to default*
-  restores all of them.
+- **Measurement tools** — choose which measurement tools are shown.
 - **Quick actions pinned to the toolbar** — frequently used functions as one-click buttons
   above the measurement rail: *Center implant* (center all views on the selected implant),
   *Screen copy* (snapshot all views, F8), *Lock plan* (toggle the write-protection,
   chapter 5.4), *Fine position* (fine-positioning panel of the selected implant,
-  chapter 6.5) and *Sidebar* (hide/show the sidebar).
+  chapter 6.5), *Sidebar* (hide/show the sidebar), *Grayscale* (the histogram dialog,
+  chapter 5.2), *Compare plans* (chapter 5.4), *Virtual tooth* (chapter 6.5) and *Mesh
+  editor* (opens the active scan in the Mesh Editor, chapter 6.8).
+- **Workflow steps shown in the stage bar** — uncheck the stages a workstation does not
+  need (*Panoramic*, *Nerve*, *Sleeves*, *Guide*, *Report*) and they disappear from the
+  stage bar — e.g. drop *Report* from a lab workflow. The currently active stage always
+  stays visible, and a re-checked stage reappears immediately.
 
-Both selections are stored in the browser per workstation.
+*Reset to default* clears all three customizations together — tools, pinned actions and
+hidden steps. The selections are stored in the browser per workstation.
 
 **Hiding the sidebar.** The narrow **«** tab at the left edge of the workspace — or **F9**,
 or the pinned *Sidebar* quick action — collapses the whole object-tree sidebar for an
 uncluttered view, e.g. while presenting; **»** (or F9 again) brings it back.
+
+**Title-row shortcuts.** Next to the case title, the **⚙** button links straight to the
+application settings (chapter 3.2 ⑤) and the **⌨** button shows the keyboard-shortcut
+list — the same list the **?** key toggles at any time.
 
 ## 5.2 Views
 
@@ -52,14 +62,14 @@ share the same cursor: clicking in one view moves the crosshair in all of them.
 |------|---------|
 | Scroll slices | Mouse wheel over a 2D view (the slice number and mm position are shown in the corner). |
 | Window / level | Drag with the **right** mouse button in any 2D view, or pick a preset (Bone, Soft tissue, …) in the *View* panel; *Adjust grayscale…* opens the histogram dialog. |
-| Zoom | **Ctrl + mouse wheel** or **Shift + mouse wheel**, or **Ctrl +/−** on the keyboard (applies to all 2D views together). |
+| Zoom | **Ctrl + mouse wheel** or **Shift + mouse wheel**, or **Ctrl +/−** on the keyboard (applies to all 2D views together). While a view is zoomed, the corner readout shows the numeric factor next to the slice number (e.g. *zoom 2.00×*). |
 | Reset zoom & pan | **Ctrl + 0**. |
 | Pan | Drag with the **middle** mouse button. |
 | Crosshair / reference lines | *Crosshair* checkbox in the View panel toggles the reference lines in all 2D views. Each line carries the color of the plane it represents — **axial blue, coronal green, sagittal red** — so you always know which view will move when you drag it. |
 | Align views to implant | In the Cross-section view header, the ⌖ button aligns the cross/tangential cut to the axis of the selected implant. |
 | Maximize a view | ![maximize](img/ui-max-btn.png) in a view's corner (or **Esc** to restore the grid). |
 | Snapshot & display controls | ![view controls](img/ui-view-controls.png) in the view header: mirror toggle, layout and snapshot. Snapshot saves to the patient's image library; **Alt-click** downloads instead. **F8** captures all visible views as one screen copy. |
-| 3D rotation | Drag in the 3D view; the orientation cube and ANTERIOR/POSTERIOR labels indicate the direction; presets (occlusal, lateral, …) in the *View…* menu. |
+| 3D rotation | Drag in the 3D view; the orientation cube and ANTERIOR/POSTERIOR labels indicate the direction; presets (occlusal, lateral, …) in the *View…* menu. **Double-click** a model surface (or the bone in the volume render) to set the **turning point** of the rotation to the clicked spot — picking any *View…* preset re-centers it. |
 | 3D clipping | The clip buttons in the 3D view header cut the volume/models at the current axial or cross-section plane. |
 
 ### Display preferences
@@ -76,6 +86,9 @@ share the same cursor: clicking in one view moves the crosshair in all of them.
   up to *Presentation (2×)*; useful for screenshots and projected presentations.
 - **Implant axis extension (mm)** — how far the dashed implant-axis line extends beyond the
   implant head and apex (0–30 mm) while *Implant axes* is enabled in the View panel.
+- **Default implant color** — the display color every newly placed implant starts with;
+  leave it empty to keep the automatic palette that gives each implant its own color
+  (chapter 6.5).
 
 > 💡 The View panel also offers a **Tooth numbers on implants** checkbox: every implant is
 > tagged with its tooth position (FDI or Universal per Settings) directly in the views.
@@ -102,22 +115,32 @@ The object tree lists everything that belongs to the active plan:
 Clicking a model name expands its options:
 
 - the display **color** and **opacity**;
-- **Edit mesh…** — opens the Mesh Editor (chapter 6.8) for scans, wax-ups and guides;
+- **Edit mesh…** — opens the Mesh Editor (chapter 6.8); offered on **every** model kind,
+  from scans and segmentations to wax-ups and generated guides;
 - **Adjust position…** — numeric move/rotate nudges in the patient or object frame, plus a
   **Size − 5 % / + 5 %** section that scales the model uniformly (chapter 6.4);
-- **Look** — the 3D display style: *Standard*, *Metallic* or *Triangles* (wireframe);
-- **Properties** — triangle count · volume in ml · bounding dimensions in mm.
+- **Tooth extraction…** (model scans) — cuts an AI-segmented tooth out of the scan
+  (chapter 6.4, *Tooth extraction*);
+- **Look** — the 3D display style: *Standard*, *Metallic*, *Triangles* (wireframe) or
+  **X-ray (through surfaces)**, which keeps the model visible behind other surfaces;
+- **Properties** — triangles · points · volume (ml) · surface (cm²) · bounding dimensions
+  in mm.
 
 **Create merged model** (the icon in the *Models* group header, shown when the case has at
 least two models) combines several models into one new mesh — typically the AI tooth
 segmentations plus a jaw (chapter 6.4). Quick-picks select whole arches (**+ Upper
 teeth**, **+ Lower teeth**, *All*, *None*); name the result and *Merge n models* creates
 the copy. The source models stay untouched, and the merged model behaves like any other —
-it can be exported or edited.
+it can be exported or edited:
 
-Below the tree, the **View panel** holds the window preset, grayscale dialog, the
-crosshair / implant-axes / tooth-numbers / crestal-planes / selection-box toggles and the
-measurement tool rail (chapter 7.3).
+![Create merged model dialog](img/yt-merge-models.png)
+
+Below the tree, the **View panel** holds the window preset, grayscale dialog, the view
+toggles and the measurement tool rail (chapter 7.3). Besides the crosshair, implant-axes,
+tooth-numbers, crestal-planes and selection-box switches, two 3D toggles deserve a
+mention: **3D volume render** hides the CBCT volume reconstruction so segmentations and
+models can be inspected alone, and **Implants through surfaces** draws the implants on top
+of bone and scans in the 3D view (x-ray style), keeping them visible inside the anatomy.
 
 ## 5.4 Plans
 
@@ -137,7 +160,9 @@ Plans can be:
 - **Compared** — *Compare plans…* shows two plans side by side.
 - **Locked** — *Lock plan* write-protects it (reversible). A plan that was **sent** to a
   contact is locked automatically and shows the *sent* badge; duplicate it to continue
-  working.
+  working. **Lock implants** in the same menu freezes the position of **all** implants of
+  the plan in one step without locking anything else (chapter 6.5); when every implant is
+  already locked it reads *Unlock implants*.
 - **Approved** — *Approve plan* finalizes the planning state and unlocks the guide-STL
   export. Approval is recorded in the audit log; revoking it re-blocks the export.
 - **Shared / exported** — read-only web link, transfer to a contact (chapter 7.2), or
