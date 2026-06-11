@@ -56,7 +56,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
-| 27 | Segment DICOM data (Easy) *(–)* | pending | |
+| 27 | Segment DICOM data (Easy) *(14)* | closed | — (already complete) |
 | 28 | Define the panoramic curve (Easy) *(14)* | verifying | (3D inset thumbnail → GAPS) |
 | 29 | Detect the nerve canal (Easy) *(18)* | verifying | detect with-or-without intermediate waypoints choice |
 
@@ -64,7 +64,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
-| 30 | 3D Mouse *(–)* | pending | |
+| 30 | 3D Mouse *(8)* | verifying | (3Dconnexion HID + fly-through → GAPS hardware row) |
 | 31 | Adjusting the toolbar *(–)* | pending | |
 | 32 | caseXchange registration code *(–)* | pending | |
 | 33 | Changing the implant color *(–)* | pending | |

@@ -1909,12 +1909,22 @@
 		{ key: 'screenshot', label: '📷 Screen copy', hint: 'Snapshot all views (F8)' },
 		{ key: 'lock-plan', label: '🔒 Lock plan', hint: 'Toggle plan write-protection' },
 		{ key: 'fine-position', label: '⊞ Fine position', hint: 'Fine positioning of the selected implant' },
-		{ key: 'sidebar', label: '◧ Sidebar', hint: 'Hide/show the sidebar (F9)' }
+		{ key: 'sidebar', label: '◧ Sidebar', hint: 'Hide/show the sidebar (F9)' },
+		{ key: 'grayscale', label: '◐ Grayscale', hint: 'Adjust the DICOM grayscale window' },
+		{ key: 'compare', label: '⇄ Compare plans', hint: 'Compare two plans of this case' },
+		{ key: 'virtual-tooth', label: '🦷 Virtual tooth', hint: 'Place a virtual wax-up tooth at the cursor' },
+		{ key: 'mesh-editor', label: '◬ Mesh editor', hint: 'Open the active scan in the Mesh Editor' }
 	];
 	let pinnedActions = $state<string[]>([]);
 	function savePinnedActions() {
 		localStorage.setItem('cdx_toolbar_quick', JSON.stringify($state.snapshot(pinnedActions)));
 	}
+	// hideable workflow steps (desktop: drag a step out of the workflow bar)
+	let hiddenStages = $state<string[]>([]);
+	function saveHiddenStages() {
+		localStorage.setItem('cdx_toolbar_stages', JSON.stringify($state.snapshot(hiddenStages)));
+	}
+	const HIDEABLE_STAGES = ['pano', 'nerve', 'sleeve', 'guide', 'report'];
 	function runQuickAction(key: string) {
 		if (!ps) return;
 		if (key === 'center-implant') {
@@ -1933,6 +1943,15 @@
 			implantFineOpen = !implantFineOpen;
 		} else if (key === 'sidebar') {
 			sidebarHidden = !sidebarHidden;
+		} else if (key === 'grayscale') {
+			grayscaleOpen = true;
+		} else if (key === 'compare') {
+			compareOpen = true;
+		} else if (key === 'virtual-tooth') {
+			showVirtualTeeth = true;
+		} else if (key === 'mesh-editor') {
+			if (matching.modelId == null) matching.modelId = scanModels[0]?.id ?? ps.models[0]?.id ?? null;
+			meshEditorOpen = matching.modelId != null;
 		}
 	}
 	$effect(() => {
@@ -1941,6 +1960,13 @@
 			if (Array.isArray(savedQ)) pinnedActions = savedQ.filter((k) => typeof k === 'string');
 		} catch {
 			pinnedActions = [];
+		}
+		try {
+			const savedS = JSON.parse(localStorage.getItem('cdx_toolbar_stages') ?? '[]');
+			if (Array.isArray(savedS))
+				hiddenStages = savedS.filter((k) => typeof k === 'string' && HIDEABLE_STAGES.includes(k));
+		} catch {
+			hiddenStages = [];
 		}
 		try {
 			const saved = JSON.parse(localStorage.getItem('cdx_toolbar_measure') ?? '[]');
@@ -2845,7 +2871,7 @@
 	</div>
 
 	<nav class="stage-bar" class:stage-bar-hidden={easyMode}>
-		{#each stages as s (s.key)}
+		{#each stages.filter((x) => !hiddenStages.includes(x.key) || stage === x.key) as s (s.key)}
 			{#if s.key === 'report'}
 				<a class="tool-btn" class:disabled={!hasVolume} href="/cases/{data.caseData.id}/report">
 					{#if stageDone[s.key]}<span class="stage-check"><Icon name="check" size={10} /></span>{/if}
@@ -5235,6 +5261,22 @@
 						{mt.label}
 					</label>
 				{/each}
+				<div class="dialog-hint">Workflow steps shown in the stage bar</div>
+				{#each stages.filter((x) => HIDEABLE_STAGES.includes(x.key)) as st (st.key)}
+					<label class="pa-row2">
+						<input
+							type="checkbox"
+							checked={!hiddenStages.includes(st.key)}
+							onchange={(e) => {
+								hiddenStages = e.currentTarget.checked
+									? hiddenStages.filter((k) => k !== st.key)
+									: [...hiddenStages, st.key];
+								saveHiddenStages();
+							}}
+						/>
+						{st.label}
+					</label>
+				{/each}
 				<div class="dialog-hint">Quick actions pinned to the toolbar</div>
 				{#each QUICK_ACTIONS as q (q.key)}
 					<label class="pa-row2" title={q.hint}>
@@ -5258,6 +5300,10 @@
 					onclick={() => {
 						hiddenTools = [];
 						saveHiddenTools();
+						pinnedActions = [];
+						savePinnedActions();
+						hiddenStages = [];
+						saveHiddenStages();
 					}}
 				>
 					Reset to default
