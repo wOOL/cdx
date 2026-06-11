@@ -8,6 +8,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const planId = Number(params.id);
 	const plan = getPlan(planId);
 	if (!plan) error(404, 'Plan not found');
+	if (plan.locked) error(409, 'Plan is locked');
 
 	const body = await request.json().catch(() => ({}));
 	const type = ['distance', 'angle', 'density', 'polyline', 'annotation'].includes(body.type)

@@ -19,6 +19,8 @@ export async function extractSurfacePoints(
 	// preview u8 is windowed [-1000, 3000]
 	const th = Math.max(1, Math.min(254, Math.round(((thresholdHU + 1000) / 4000) * 255)));
 
+	// preview voxel k spans full-res voxels [k*cols_f/cols ..); its center in the
+	// app's mm convention (voxel i center = i*spacing) is the mean source index
 	const sx = (ds.cols * ds.spacing_x) / cols;
 	const sy = (ds.rows * ds.spacing_y) / rows;
 	const sz = (ds.slices * ds.spacing_z) / slices;
@@ -40,7 +42,7 @@ export async function extractSurfacePoints(
 					data[i - cr] < th ||
 					data[i + cr] < th
 				) {
-					pts.push({ x: (x + 0.5) * sx, y: (y + 0.5) * sy, z: (z + 0.5) * sz });
+					pts.push({ x: x * sx, y: y * sy, z: z * sz });
 				}
 			}
 		}

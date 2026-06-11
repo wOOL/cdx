@@ -16,10 +16,11 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 		'Cache-Control': 'private, max-age=60'
 	};
 	if (url.searchParams.has('download')) {
-		// production export gate: a guide may only leave the system once its plan is approved
-		if (m.kind === 'guide' && m.plan_id) {
-			const plan = getPlan(m.plan_id);
-			if (plan && !plan.approved) {
+		// production export gate: a guide may only leave the system once its plan is approved.
+		// Fail closed: a guide whose plan no longer resolves is never exportable.
+		if (m.kind === 'guide') {
+			const plan = m.plan_id ? getPlan(m.plan_id) : null;
+			if (!plan || !plan.approved) {
 				error(409, 'Approve the plan before exporting the guide for production');
 			}
 			logAudit(locals.user, 'guide.export', `model:${m.id}`, m.name);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { PlanningState } from '$lib/client/planning.svelte';
 	import { norm } from '$lib/geometry';
 	import { toothLabel, type Notation } from '$lib/implantLibrary';
@@ -16,6 +17,9 @@
 	// stash original axes for live preview / reset
 	const original = new Map(ps.implants.map((i) => [i.id, { ax: i.ax, ay: i.ay, az: i.az }]));
 	let previewed = $state(false);
+
+	// record the undo snapshot BEFORE any preview mutation happens
+	onMount(() => ps.markEdit());
 
 	function targetAxis(): { x: number; y: number; z: number } | null {
 		if (mode === 'master') {
@@ -37,7 +41,6 @@
 	function apply(save: boolean) {
 		const axis = targetAxis();
 		if (!axis) return;
-		if (save) ps.markEdit();
 		for (const im of ps.implants) {
 			if (!selected.has(im.id)) continue;
 			if (mode === 'master' && im.id === masterId) continue;

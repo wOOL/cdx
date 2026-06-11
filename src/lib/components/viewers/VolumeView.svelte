@@ -294,6 +294,7 @@
 			if (!seen.has(id)) {
 				modelGroup.remove(mesh);
 				mesh.geometry?.dispose();
+				if (mesh.material instanceof THREE.Material) mesh.material.dispose();
 				modelMeshes.delete(id);
 			}
 		}

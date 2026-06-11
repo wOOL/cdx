@@ -1,16 +1,23 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
+import { getPlan } from '$lib/server/db/repo';
 import type { Nerve } from '$lib/types';
 
 function getNerve(id: number): Nerve | null {
 	return (db.query('SELECT * FROM nerves WHERE id = ?1').get(id) as Nerve) ?? null;
 }
 
+function assertUnlocked(planId: number): void {
+	const plan = getPlan(planId);
+	if (plan?.locked) error(409, 'Plan is locked');
+}
+
 export const PATCH: RequestHandler = async ({ params, request }) => {
 	const id = Number(params.id);
 	const nerve = getNerve(id);
 	if (!nerve) error(404, 'Nerve not found');
+	assertUnlocked(nerve.plan_id);
 
 	const body = await request.json().catch(() => ({}));
 	db.query(
@@ -27,6 +34,8 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 };
 
 export const DELETE: RequestHandler = async ({ params }) => {
+	const nerve = getNerve(Number(params.id));
+	if (nerve) assertUnlocked(nerve.plan_id);
 	db.query('DELETE FROM nerves WHERE id = ?1').run(Number(params.id));
 	return json({ ok: true });
 };

@@ -45,12 +45,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const binSum = new Array(BINS).fill(0);
 	const binCount = new Array(BINS).fill(0);
 	for (let z = lo.z; z <= hi.z; z++) {
-		const pz = (z + 0.5) * sz;
+		const pz = z * sz; // voxel center convention: i*spacing
 		for (let y = lo.y; y <= hi.y; y++) {
-			const py = (y + 0.5) * sy;
+			const py = y * sy;
 			const base = z * ds.cols * ds.rows + y * ds.cols;
 			for (let x = lo.x; x <= hi.x; x++) {
-				const px = (x + 0.5) * sx;
+				const px = x * sx;
 				// distance to axis segment
 				const dx = px - head.x;
 				const dy = py - head.y;

@@ -213,10 +213,11 @@ export function migrate(db: Database): void {
 	let version = row?.user_version ?? 0;
 	while (version < MIGRATIONS.length) {
 		const sql = MIGRATIONS[version];
+		const next = version + 1;
 		db.transaction(() => {
 			db.exec(sql);
+			db.exec(`PRAGMA user_version = ${next}`);
 		})();
-		version += 1;
-		db.exec(`PRAGMA user_version = ${version}`);
+		version = next;
 	}
 }

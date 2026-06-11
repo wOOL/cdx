@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 import { join } from 'node:path';
 import { unlink } from 'node:fs/promises';
 import { caseDir, db } from '$lib/server/db';
-import { getCase, getPlan, listImplants } from '$lib/server/db/repo';
+import { getCase, getPlan, listImplants, logAudit } from '$lib/server/db/repo';
 import { generateGuide, type GuideImplant } from '$lib/server/guideGen';
 import { meshToStlBinary, parsePly, parseStl } from '$lib/server/stl';
 import { applyRot3, norm, rotationAligning, transpose3 } from '$lib/geometry';
@@ -11,7 +11,7 @@ import { applyMat4, type Mat4 } from '$lib/registration';
 import type { Model } from '$lib/types';
 
 /** Body: { modelId, planId, params?: { offset, thickness, regionRadius, voxel } } */
-export const POST: RequestHandler = async ({ params, request }) => {
+export const POST: RequestHandler = async ({ params, request, locals }) => {
 	const caseId = Number(params.id);
 	const c = getCase(caseId);
 	if (!c) error(404, 'Case not found');
@@ -23,6 +23,10 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	if (!model) error(404, 'Base model not found');
 	const plan = getPlan(Number(body.planId));
 	if (!plan || plan.case_id !== caseId) error(404, 'Plan not found');
+	if (plan.locked) error(409, 'Plan is locked');
+	if (plan.approved) {
+		error(409, 'Plan is approved — revoke approval before regenerating the guide');
+	}
 
 	const implants = listImplants(plan.id);
 	const withSleeves: GuideImplant[] = [];
@@ -141,5 +145,6 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		)
 		.get(caseId, `Guide — ${plan.name}`, path, plan.id) as Model;
 
+	logAudit(locals.user, 'guide.generate', `plan:${plan.id}`, `${guide.triangles} triangles`);
 	return json({ model: guideModel, triangles: guide.triangles });
 };

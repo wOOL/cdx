@@ -145,9 +145,14 @@
 			: ''
 	);
 
-	// move off the data stage automatically once a volume exists
+	// move off the data stage automatically once — only on initial load,
+	// so the user can still navigate back to the Data stage afterwards
+	let autoAdvanced = false;
 	$effect(() => {
-		if (hasVolume && stage === 'data') stage = 'pano';
+		if (hasVolume && stage === 'data' && !autoAdvanced) {
+			autoAdvanced = true;
+			stage = 'pano';
+		}
 	});
 
 	// stage-bound edit modes
@@ -610,6 +615,7 @@
 	let planImportInput: HTMLInputElement | undefined = $state();
 
 	async function importPlanFile(file: File) {
+		ps?.flushSaves();
 		const form = new FormData();
 		form.append('file', file);
 		const res = await fetch(`/api/cases/${data.caseData.id}/import-plan`, {
@@ -626,6 +632,7 @@
 
 	async function duplicatePlanAction() {
 		planMenuOpen = false;
+		ps?.flushSaves();
 		const name = prompt('Name for the new plan:', `${data.plan.name} (copy)`);
 		if (!name) return;
 		const res = await fetch(`/api/cases/${data.caseData.id}/plans`, {
@@ -641,6 +648,7 @@
 
 	async function renamePlanAction() {
 		planMenuOpen = false;
+		ps?.flushSaves();
 		const name = prompt('Plan name:', data.plan.name);
 		if (!name || name === data.plan.name) return;
 		await fetch(`/api/plans/${data.plan.id}`, {
@@ -653,6 +661,7 @@
 
 	async function togglePlanFlag(flag: 'locked' | 'approved') {
 		planMenuOpen = false;
+		ps?.flushSaves();
 		await fetch(`/api/plans/${data.plan.id}`, {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
@@ -663,6 +672,7 @@
 
 	async function deletePlanAction() {
 		planMenuOpen = false;
+		ps?.flushSaves();
 		if (!confirm(`Delete plan "${data.plan.name}"?`)) return;
 		const res = await fetch(`/api/plans/${data.plan.id}`, { method: 'DELETE' });
 		if (res.ok) await goto(`/cases/${data.caseData.id}`, { invalidateAll: true });
@@ -912,6 +922,7 @@
 
 	async function applyPcs() {
 		if (!ps) return;
+		ps.flushSaves();
 		pcsBusy = true;
 		try {
 			const res = await fetch(`/api/datasets/${ps.ds.id}/align`, {
@@ -972,6 +983,7 @@
 	async function uploadFiles(files: FileList | File[]) {
 		const list = Array.from(files);
 		if (list.length === 0) return;
+		ps?.flushSaves();
 		uploading = true;
 		uploadError = '';
 		try {
@@ -1284,7 +1296,10 @@
 						<button
 							class="tree-item-label tree-label-btn"
 							title="{m.kind} — click for appearance options"
-							onclick={() => (expandedModelId = expandedModelId === m.id ? null : m.id)}
+							onclick={() => {
+								expandedModelId = expandedModelId === m.id ? null : m.id;
+								resegThreshold = m.threshold ?? 300;
+							}}
 						>
 							{m.name}
 						</button>
@@ -2117,7 +2132,7 @@
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={alignAxialTool}
-							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion, contourTick, modelsVersion]}
+							overlayDeps={[JSON.stringify(ps.curveControl), ps.crossU, objectsVersion, contourTick, modelsVersion]}
 						/>
 						{@render maxBtn('aax')}
 					</div>
@@ -2138,7 +2153,7 @@
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={axialTool}
-							overlayDeps={[ps.curveControl, ps.curveEditMode, ps.crossU, objectsVersion, contourTick]}
+							overlayDeps={[JSON.stringify(ps.curveControl), ps.curveEditMode, ps.crossU, objectsVersion, contourTick]}
 						/>
 						{@render maxBtn('pax')}
 					</div>
@@ -2164,7 +2179,7 @@
 							overlayDraw={axialOverlay}
 							onToolPointer={axialTool}
 							onImageDblClick={onAxialDblClick}
-							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion, contourTick]}
+							overlayDeps={[JSON.stringify(ps.curveControl), ps.crossU, objectsVersion, contourTick]}
 						/>
 						{@render maxBtn('dax')}
 					</div>

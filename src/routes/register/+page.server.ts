@@ -9,6 +9,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	default: async ({ request, cookies }) => {
+		// open self-registration only for the very first account; afterwards an
+		// existing user must create accounts (single-practice trust model)
+		if (userCount() > 0) {
+			return fail(403, {
+				error: 'Registration is closed — ask an existing user to create your account from Settings',
+				email: '',
+				name: ''
+			});
+		}
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '').trim();
 		const name = String(form.get('name') ?? '').trim();

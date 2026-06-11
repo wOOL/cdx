@@ -1,4 +1,7 @@
-import { db } from './index';
+import { unlinkSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { DATA_DIR, db } from './index';
+import { evictVolume } from '$lib/server/volumeCache';
 import type { Case, Dataset, Implant, Measurement, Model, Nerve, Patient, Plan } from '$lib/types';
 
 // ---------- patients ----------
@@ -57,6 +60,9 @@ export function updatePatient(id: number, p: Partial<Patient>): void {
 }
 
 export function deletePatient(id: number): void {
+	// per-case file cleanup before the cascade removes the rows
+	const cases = db.query('SELECT id FROM cases WHERE patient_id = ?1').all(id) as { id: number }[];
+	for (const c of cases) deleteCase(c.id);
 	db.query('DELETE FROM patients WHERE id = ?1').run(id);
 }
 
@@ -90,7 +96,39 @@ export function updateCase(id: number, fields: Partial<Case>): void {
 }
 
 export function deleteCase(id: number): void {
+	// remove every file belonging to the case before the rows cascade away
+	const datasets = db
+		.query('SELECT id, volume_path, preview_path FROM datasets WHERE case_id = ?1')
+		.all(id) as { id: number; volume_path: string; preview_path: string }[];
+	const files: string[] = [];
+	for (const d of datasets) {
+		if (d.volume_path) files.push(d.volume_path);
+		if (d.preview_path) files.push(d.preview_path);
+		evictVolume(d.id);
+	}
+	for (const m of db.query('SELECT file_path FROM models WHERE case_id = ?1').all(id) as {
+		file_path: string;
+	}[]) {
+		if (m.file_path) files.push(m.file_path);
+	}
+	for (const img of db.query('SELECT file_path FROM images WHERE case_id = ?1').all(id) as {
+		file_path: string;
+	}[]) {
+		if (img.file_path) files.push(img.file_path);
+	}
+	for (const f of files) {
+		try {
+			unlinkSync(f);
+		} catch {
+			// already gone
+		}
+	}
 	db.query('DELETE FROM cases WHERE id = ?1').run(id);
+	try {
+		rmSync(join(DATA_DIR, 'cases', String(id)), { recursive: true, force: true });
+	} catch {
+		// directory shared/missing — leave it
+	}
 }
 
 export function touchCase(id: number): void {
@@ -227,19 +265,19 @@ export function duplicatePlan(planId: number, name: string): Plan | null {
 	if (!src) return null;
 	const copy = db
 		.query(
-			`INSERT INTO plans (case_id, name, is_master, locked, approved, pan_curve, settings)
-			 VALUES (?1, ?2, 0, 0, 0, ?3, ?4) RETURNING *`
+			`INSERT INTO plans (case_id, name, is_master, locked, approved, pan_curve, settings, jaw)
+			 VALUES (?1, ?2, 0, 0, 0, ?3, ?4, ?5) RETURNING *`
 		)
-		.get(src.case_id, name, src.pan_curve, src.settings) as Plan;
+		.get(src.case_id, name, src.pan_curve, src.settings, src.jaw) as Plan;
 	db.query(
 		`INSERT INTO nerves (plan_id, name, color, diameter, points, visible)
 		 SELECT ?2, name, color, diameter, points, visible FROM nerves WHERE plan_id = ?1`
 	).run(planId, copy.id);
 	db.query(
 		`INSERT INTO implants (plan_id, tooth, manufacturer, line, article, diameter, length,
-			x, y, z, ax, ay, az, rotation, color, sleeve, visible)
+			x, y, z, ax, ay, az, rotation, color, sleeve, abutment, visible)
 		 SELECT ?2, tooth, manufacturer, line, article, diameter, length,
-			x, y, z, ax, ay, az, rotation, color, sleeve, visible FROM implants WHERE plan_id = ?1`
+			x, y, z, ax, ay, az, rotation, color, sleeve, abutment, visible FROM implants WHERE plan_id = ?1`
 	).run(planId, copy.id);
 	db.query(
 		`INSERT INTO measurements (plan_id, type, points, value, label)
@@ -250,7 +288,21 @@ export function duplicatePlan(planId: number, name: string): Plan | null {
 
 export function deletePlan(planId: number): boolean {
 	const p = getPlan(planId);
-	if (!p || p.is_master) return false;
+	if (!p || p.is_master || p.locked) return false;
+	// remove guide models generated for this plan (rows + files)
+	const guides = db
+		.query(`SELECT id, file_path FROM models WHERE plan_id = ?1`)
+		.all(planId) as { id: number; file_path: string }[];
+	for (const g of guides) {
+		if (g.file_path) {
+			try {
+				unlinkSync(g.file_path);
+			} catch {
+				// already gone
+			}
+		}
+		db.query('DELETE FROM models WHERE id = ?1').run(g.id);
+	}
 	db.query('DELETE FROM plans WHERE id = ?1').run(planId);
 	return true;
 }

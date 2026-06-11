@@ -3,6 +3,7 @@ import { SliceCache } from './sliceCache';
 import { sampleCurve, type Vec2 } from '$lib/curve';
 import { add, scale, segPolylineDistance, type Vec3 } from '$lib/geometry';
 import type { AbutmentSpec, SleeveSpec } from '$lib/implantLibrary';
+import { dropModel } from './meshContours';
 
 export interface WindowPreset {
 	name: string;
@@ -459,14 +460,28 @@ export class PlanningState {
 
 	// ---------- persistence ----------
 	private saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+	private saveFns = new Map<string, () => void>();
+
+	/** run every pending debounced save immediately (call before invalidateAll/navigation) */
+	flushSaves(): void {
+		for (const [key, timer] of this.saveTimers) {
+			clearTimeout(timer);
+			const fn = this.saveFns.get(key);
+			this.saveTimers.delete(key);
+			this.saveFns.delete(key);
+			fn?.();
+		}
+	}
 
 	private debounced(key: string, fn: () => void, ms = 350) {
 		if (this.locked) return;
 		clearTimeout(this.saveTimers.get(key));
+		this.saveFns.set(key, fn);
 		this.saveTimers.set(
 			key,
 			setTimeout(() => {
 				this.saveTimers.delete(key);
+				this.saveFns.delete(key);
 				fn();
 			}, ms)
 		);
@@ -516,7 +531,7 @@ export class PlanningState {
 			name: n.name,
 			color: n.color,
 			diameter: n.diameter,
-			points: n.points.map((p) => ({ x: p.x, y: p.y, z: p.z })),
+			points: n.points.map((p) => ({ x: p.x, y: p.y, z: p.z, ...(p.d != null ? { d: p.d } : {}) })),
 			visible: n.visible
 		};
 		this.debounced(`nerve:${id}`, () => {
@@ -689,6 +704,7 @@ export class PlanningState {
 
 	async deleteModel(id: number) {
 		this.models = this.models.filter((m) => m.id !== id);
+		dropModel(id); // clear contour/mesh caches
 		await fetch(`/api/models/${id}`, { method: 'DELETE' }).catch(() => {});
 	}
 }

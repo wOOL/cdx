@@ -22,6 +22,8 @@ export const actions: Actions = {
 			sameSite: 'lax',
 			expires: session.expires
 		});
-		redirect(303, url.searchParams.get('next') || '/');
+		// only same-origin paths — prevents open redirects via ?next=
+		const next = url.searchParams.get('next') ?? '/';
+		redirect(303, next.startsWith('/') && !next.startsWith('//') ? next : '/');
 	}
 };

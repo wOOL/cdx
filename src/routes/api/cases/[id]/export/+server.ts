@@ -18,10 +18,17 @@ export const GET: RequestHandler = async ({ params }) => {
 	const caseId = Number(params.id);
 	const c = getCase(caseId);
 	if (!c) error(404, 'Case not found');
-	const patient = getPatient(c.patient_id);
+	const patientRow = getPatient(c.patient_id);
 	const plans = listPlans(caseId);
-	const datasets = listDatasets(caseId);
+	let datasets = listDatasets(caseId);
 	const models = listModels(caseId);
+
+	// never export the stashed real identity; for anonymized patients also strip
+	// DICOM-derived identity from the dataset rows
+	const { real_data, ...patient } = patientRow ?? ({} as never);
+	if (real_data) {
+		datasets = datasets.map((d) => ({ ...d, patient_name: '', study_date: '' }));
+	}
 
 	const manifest = {
 		version: 1,

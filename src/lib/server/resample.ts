@@ -6,6 +6,21 @@
 const DEG = Math.PI / 180;
 const FILL_HU = -1000;
 
+/** Row-major 3×3 of R = Rz(yaw)·Ry(pitch)·Rx(roll), degrees — the rotation applied to anatomy. */
+export function rotationMatrix(yaw: number, pitch: number, roll: number): number[] {
+	const cosY = Math.cos(yaw * DEG);
+	const sinY = Math.sin(yaw * DEG);
+	const cosP = Math.cos(pitch * DEG);
+	const sinP = Math.sin(pitch * DEG);
+	const cosR = Math.cos(roll * DEG);
+	const sinR = Math.sin(roll * DEG);
+	return [
+		cosY * cosP, cosY * sinP * sinR - sinY * cosR, cosY * sinP * cosR + sinY * sinR,
+		sinY * cosP, sinY * sinP * sinR + cosY * cosR, sinY * sinP * cosR - cosY * sinR,
+		-sinP, cosP * sinR, cosP * cosR
+	];
+}
+
 /**
  * Rotate an HU volume about its center in physical (mm) space by
  * R = Rz(yaw)·Ry(pitch)·Rx(roll) (angles in degrees; x = cols axis,

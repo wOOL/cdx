@@ -91,11 +91,11 @@
 		ps.clampCursor();
 	}
 
-	/** canvas px → slice px (float) */
+	/** canvas px → slice px (float, pixel-center convention matching toCanvas) */
 	function canvasToSlice(cx: number, cy: number): { px: number; py: number } | null {
 		if (!canvas || !lastSlice) return null;
 		const t = fitTransform(lastSlice);
-		return { px: (cx - t.ox) / t.scaleX, py: (cy - t.oy) / t.scaleY };
+		return { px: (cx - t.ox) / t.scaleX - 0.5, py: (cy - t.oy) / t.scaleY - 0.5 };
 	}
 
 	function fitTransform(slice: Slice) {
@@ -193,7 +193,7 @@
 			ctx.fillText(`${hoverHU} HU`, 8, ch - 22);
 		}
 
-		drawScaleBar(ctx, t.scaleX / spacingW, cw, ch);
+		drawScaleBar(ctx, Math.abs(t.scaleX) / spacingW, cw, ch);
 
 		// orientation labels
 		ctx.fillStyle = 'rgba(138, 145, 160, 0.9)';

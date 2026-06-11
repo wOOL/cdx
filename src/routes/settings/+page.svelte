@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import Icon from '$lib/components/Icon.svelte';
 
-	let { data } = $props();
+	let { data, form } = $props();
 	let saved = $derived(page.url.searchParams.get('saved') === '1');
 </script>
 
@@ -89,6 +89,36 @@
 		<div class="settings-actions">
 			{#if saved}<span class="saved-note"><Icon name="check" size={14} /> Saved</span>{/if}
 			<button class="btn primary" type="submit">Save settings</button>
+		</div>
+	</form>
+
+	<form class="panel settings-form audit-panel" method="POST" action="?/createUser" use:enhance>
+		<div class="panel-header">Users</div>
+		<div class="settings-body">
+			<ul class="user-list">
+				{#each data.users as u (u.id)}
+					<li>{u.name || '—'} &lt;{u.email}&gt;</li>
+				{/each}
+			</ul>
+			<p class="muted">Self-registration is closed after the first account; add colleagues here.</p>
+			{#if form?.userError}<div class="form-error">{form.userError}</div>{/if}
+			<div class="field-row">
+				<div>
+					<label for="nu-name">Name</label>
+					<input id="nu-name" name="new_name" style="width:100%" />
+				</div>
+				<div>
+					<label for="nu-email">Email</label>
+					<input id="nu-email" name="new_email" type="email" style="width:100%" />
+				</div>
+				<div>
+					<label for="nu-pass">Password (min. 8)</label>
+					<input id="nu-pass" name="new_password" type="password" minlength="8" style="width:100%" />
+				</div>
+			</div>
+		</div>
+		<div class="settings-actions">
+			<button class="btn primary" type="submit">Create account</button>
 		</div>
 	</form>
 
@@ -183,6 +213,16 @@
 	}
 	.audit-panel {
 		margin-top: 16px;
+	}
+	.user-list {
+		margin: 0;
+		padding-left: 18px;
+		font-size: 12px;
+		color: var(--text-dim);
+	}
+	.form-error {
+		color: var(--red);
+		font-size: 12px;
 	}
 	.checkbox-inline {
 		display: flex;

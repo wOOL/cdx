@@ -1,10 +1,16 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
+import { getPlan } from '$lib/server/db/repo';
 import type { Implant } from '$lib/types';
 
 function getImplant(id: number): Implant | null {
 	return (db.query('SELECT * FROM implants WHERE id = ?1').get(id) as Implant) ?? null;
+}
+
+function assertUnlocked(planId: number): void {
+	const plan = getPlan(planId);
+	if (plan?.locked) error(409, 'Plan is locked');
 }
 
 const NUM_FIELDS = ['diameter', 'length', 'x', 'y', 'z', 'ax', 'ay', 'az', 'rotation'] as const;
@@ -14,6 +20,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	const id = Number(params.id);
 	const implant = getImplant(id);
 	if (!implant) error(404, 'Implant not found');
+	assertUnlocked(implant.plan_id);
 
 	const body = await request.json().catch(() => ({}));
 	const updated: Record<string, string | number> = { ...implant };
@@ -56,6 +63,8 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 };
 
 export const DELETE: RequestHandler = async ({ params }) => {
+	const implant = getImplant(Number(params.id));
+	if (implant) assertUnlocked(implant.plan_id);
 	db.query('DELETE FROM implants WHERE id = ?1').run(Number(params.id));
 	return json({ ok: true });
 };
