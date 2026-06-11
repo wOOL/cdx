@@ -33,6 +33,8 @@
 	import { composeMat4, identityMat4 } from '$lib/registration';
 	import { sampleCurve } from '$lib/curve';
 	import {
+		FDI_LOWER,
+		FDI_UPPER,
 		classifyAiModel,
 		rotationMatrix,
 		rotateAboutCenter,
@@ -126,6 +128,13 @@
 	let resetTick = $state(0);
 	let overlayTick = $state(0);
 	let importing = $state(false);
+
+	// tooth renumbering (objects step): the picker opened from the FDI chart
+	let renumberFdi = $state<number | null>(null);
+	let renumberTarget = $state(0);
+	let renumberBusy = $state(false);
+	let renumberErr = $state('');
+	let renumberNote = $state('');
 
 	// PCS
 	let pcs = $state({ yaw: 0, pitch: 0, roll: 0 });
@@ -419,6 +428,48 @@
 	}
 	function toggleModel(id: number): void {
 		excluded[id] = !excluded[id];
+	}
+
+	// renumber a tooth (✎ button / right-click on the chart → number picker →
+	// POST /api/models/[id]/renumber; same-arch targets shift the contiguous
+	// run of neighbouring teeth server-side, opposite-arch relabels just one)
+	function openRenumber(fdi: number): void {
+		renumberFdi = fdi;
+		renumberTarget = fdi;
+		renumberErr = '';
+		renumberNote = '';
+	}
+
+	async function applyRenumber(): Promise<void> {
+		const fdi = renumberFdi;
+		if (fdi == null || renumberBusy) return;
+		const t = teeth[fdi];
+		if (!t || renumberTarget === fdi) return;
+		renumberBusy = true;
+		renumberErr = '';
+		try {
+			const res = await fetch(`/api/models/${t.modelId}/renumber`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ newFdi: renumberTarget })
+			});
+			const b = await res.json().catch(() => null);
+			if (!res.ok) {
+				renumberErr = b?.message ?? `Renumbering failed (${res.status})`;
+				return;
+			}
+			const changed = (b?.changes ?? []) as { modelId: number; oldFdi: number; newFdi: number }[];
+			renumberNote =
+				changed.length > 1
+					? `Tooth ${fdi} renumbered to ${renumberTarget} — ${changed.length - 1} neighbouring ${changed.length === 2 ? 'tooth' : 'teeth'} shifted along.`
+					: `Tooth ${fdi} renumbered to ${renumberTarget}.`;
+			renumberFdi = null;
+			await reloadBundle(); // chart re-derives the FDI positions from the fresh bundle
+		} catch {
+			renumberErr = 'Renumbering request failed';
+		} finally {
+			renumberBusy = false;
+		}
 	}
 	const anySelected = $derived(selectedIds.length > 0);
 	function deselectAll(): void {

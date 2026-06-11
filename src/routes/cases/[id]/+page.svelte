@@ -19,6 +19,7 @@
 	import AbutmentEditor from '$lib/components/AbutmentEditor.svelte';
 	import VirtualToothPicker from '$lib/components/VirtualToothPicker.svelte';
 	import ImplantFinePosition from '$lib/components/ImplantFinePosition.svelte';
+	import MergeModelsDialog from '$lib/components/MergeModelsDialog.svelte';
 	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
 	import PerioChart, { type PerioData } from '$lib/components/PerioChart.svelte';
 	import TemplateMatchDialog from '$lib/components/TemplateMatchDialog.svelte';
@@ -1103,6 +1104,7 @@
 	let sidebarHidden = $state(false);
 	let freeModelInput = $state<HTMLInputElement | null>(null);
 	let modelStats = $state<{ id: number; text: string } | null>(null);
+	let showMergeModels = $state(false);
 
 	// AI-assistant job status chip (orange hourglass while running, green check
 	// when results await review — click to open, like the original's icon)
@@ -3117,6 +3119,15 @@
 							}
 						}}
 					/>
+					{#if (ps?.models.length ?? 0) >= 2}
+						<button
+							class="tree-eye group-eye"
+							title="Create a merged model from several models (e.g. AI teeth + jaw)"
+							onclick={() => (showMergeModels = true)}
+						>
+							<Icon name="layout" size={12} />
+						</button>
+					{/if}
 					{#if ps?.models.length}
 						<button
 							class="tree-eye group-eye"
@@ -4935,6 +4946,18 @@
 			ps.saveImplant(selectedImplant.id);
 		}}
 		onclose={() => (implantFineOpen = false)}
+	/>
+{/if}
+
+{#if showMergeModels && ps}
+	<MergeModelsDialog
+		caseId={data.caseData.id}
+		models={ps.models.map((m) => ({ id: m.id, name: m.name, kind: m.kind }))}
+		onclose={() => (showMergeModels = false)}
+		ondone={async () => {
+			showMergeModels = false;
+			await invalidateAll();
+		}}
 	/>
 {/if}
 

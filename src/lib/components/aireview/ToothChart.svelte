@@ -3,16 +3,25 @@
 	 * FDI tooth chart of the AI review dialog: upper row 18 → 28, lower row
 	 * 48 → 38, a tooth glyph per position and a toggle circle per detected
 	 * tooth (absent positions render faint and unclickable).
+	 *
+	 * Optional renumbering (the AI assistant's "change tooth numbering"):
+	 * when `onrenumber` is provided, every detected tooth shows a small ✎
+	 * button on cell hover and accepts a right-click on its toggle — both
+	 * call onrenumber(fdi); the caller opens its number picker. Plain click
+	 * on the toggle keeps the existing select/deselect behavior.
 	 */
 	import { FDI_LOWER, FDI_UPPER } from '$lib/aiReviewMap';
 	import type { ToothEntry } from './overlay';
 
 	let {
 		teeth,
-		ontoggle
+		ontoggle,
+		onrenumber
 	}: {
 		teeth: Record<number, ToothEntry | undefined>;
 		ontoggle: (fdi: number) => void;
+		/** optional: open the "change tooth number" picker for this tooth */
+		onrenumber?: (fdi: number) => void;
 	} = $props();
 
 	// tooth glyph by FDI position digit: 1-2 incisor, 3 canine, 4-5 premolar, 6-8 molar
@@ -30,6 +39,23 @@
 		if (!t.ok) return 'broken';
 		return t.selected ? 'selected' : 'deselected';
 	}
+
+	function toggleTitle(fdi: number): string {
+		const t = teeth[fdi];
+		if (!t) return `Tooth ${fdi} — not detected`;
+		const base = `Tooth ${fdi} — ${t.selected ? 'selected' : 'deselected'}`;
+		return onrenumber
+			? `${base}. Right-click (or the ✎ button) to change the tooth number.`
+			: base;
+	}
+
+	function contextRenumber(fdi: number) {
+		return (e: MouseEvent): void => {
+			if (!onrenumber || !teeth[fdi]) return;
+			e.preventDefault();
+			onrenumber(fdi);
+		};
+	}
 </script>
 
 {#snippet row(fdis: number[], upper: boolean)}
@@ -37,13 +63,24 @@
 		{#each fdis as fdi (fdi)}
 			{@const t = teeth[fdi]}
 			<div class="tc-cell">
+				{#if onrenumber && t}
+					<button
+						class="tc-edit"
+						title="Change the number of tooth {fdi} (neighbouring teeth shift along when needed)"
+						aria-label="Change number of tooth {fdi}"
+						onclick={() => onrenumber?.(fdi)}
+					>
+						✎
+					</button>
+				{/if}
 				{#if upper}<span class="tc-num">{fdi}</span>{/if}
 				{#if !upper}
 					<button
 						class="tc-toggle {stateClass(fdi)}"
 						disabled={!t || !t.ok}
 						onclick={() => ontoggle(fdi)}
-						title={t ? `Tooth ${fdi} — ${t.selected ? 'selected' : 'deselected'}` : `Tooth ${fdi} — not detected`}
+						oncontextmenu={contextRenumber(fdi)}
+						title={toggleTitle(fdi)}
 						aria-label="Toggle tooth {fdi}"
 					></button>
 				{/if}
@@ -55,7 +92,8 @@
 						class="tc-toggle {stateClass(fdi)}"
 						disabled={!t || !t.ok}
 						onclick={() => ontoggle(fdi)}
-						title={t ? `Tooth ${fdi} — ${t.selected ? 'selected' : 'deselected'}` : `Tooth ${fdi} — not detected`}
+						oncontextmenu={contextRenumber(fdi)}
+						title={toggleTitle(fdi)}
 						aria-label="Toggle tooth {fdi}"
 					></button>
 				{/if}
@@ -83,6 +121,7 @@
 		gap: 2px;
 	}
 	.tc-cell {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -142,5 +181,30 @@
 	.tc-toggle:disabled {
 		border-color: var(--border-soft);
 		cursor: default;
+	}
+	.tc-edit {
+		position: absolute;
+		top: -4px;
+		right: -3px;
+		width: 14px;
+		height: 14px;
+		padding: 0;
+		font-size: 9px;
+		line-height: 1;
+		border-radius: 3px;
+		border: 1px solid var(--border-soft);
+		background: var(--bg-2);
+		color: var(--text-dim);
+		cursor: pointer;
+		opacity: 0;
+		z-index: 1;
+	}
+	.tc-cell:hover .tc-edit,
+	.tc-edit:focus-visible {
+		opacity: 1;
+	}
+	.tc-edit:hover {
+		color: var(--accent-bright);
+		border-color: var(--accent);
 	}
 </style>
