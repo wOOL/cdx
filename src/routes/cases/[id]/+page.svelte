@@ -23,11 +23,12 @@
 	import TemplateMatchDialog from '$lib/components/TemplateMatchDialog.svelte';
 	import VpeDialog from '$lib/components/VpeDialog.svelte';
 	import AugmentWizard from '$lib/components/AugmentWizard.svelte';
-	import AiReviewDialog from '$lib/components/AiReviewDialog.svelte';
+	import AiReviewWizard from '$lib/components/AiReviewWizard.svelte';
 	import ProstheticImportDialog from '$lib/components/ProstheticImportDialog.svelte';
 	import AngleBetweenImplants from '$lib/components/AngleBetweenImplants.svelte';
 	import AngleBetweenAbutments from '$lib/components/AngleBetweenAbutments.svelte';
-	import { indexAtLength } from '$lib/curve';
+	import { indexAtLength, toothArchU } from '$lib/curve';
+	import { implantPlatform } from '$lib/vpeCatalog';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
 	import { snapshotPrefs, toCanvas } from '$lib/client/render2d';
 	import { areaCm2, gridOverlayDraw } from '$lib/client/segExtras';
@@ -386,7 +387,9 @@
 		const sy = ps.ds.spacing_y;
 		const zmm = ps.cursor.z * ps.ds.spacing_z;
 		for (const m of ps.models) {
-			if (m.kind !== 'scan' || !m.visible) continue;
+			// scans, the generated drill guide and wax-ups all show as dashed
+			// cross-section contours in the 2D views (like the original)
+			if ((m.kind !== 'scan' && m.kind !== 'guide' && m.kind !== 'waxup') || !m.visible) continue;
 			primeModel(m.id, () => contourTick++);
 			const segs = axialContours(m.id, m.transform, zmm);
 			if (!segs || segs.length === 0) continue;
@@ -537,8 +540,12 @@
 			z: ps.cursor.z * ps.ds.spacing_z
 		};
 		if (!pendingHead && c) {
-			const i = indexAtLength(c, ps.crossU);
+			// place at the chosen tooth's arch position along the curve (like the
+			// original's tooth-driven proposal); fall back to the cross position
+			const u = toothArchU(c, newImplant.tooth) ?? ps.crossU;
+			const i = indexAtLength(c, u);
 			head = { x: c.points[i].x, y: c.points[i].y, z: ps.cursor.z * ps.ds.spacing_z };
+			ps.crossU = u; // jump the cross-section views to the new implant
 		}
 		pendingHead = null;
 		await ps.addImplant({
@@ -2824,7 +2831,10 @@
 		{/if}
 	</aside>
 
-	<main class="view-area">
+	<main
+		class="view-area"
+		class:edit-cursor={!!ps && (ps.nerveEditMode || ps.curveEditMode || windowMode || segEdit.active || pcsDragMode)}
+	>
 		{#if stage === 'data' || !ps}
 			<div class="data-stage">
 				<div
@@ -3989,8 +3999,15 @@
 	/>
 {/if}
 
-{#if aiReview}
-	<AiReviewDialog models={aiReview} onimport={aiImport} onclose={() => aiImport([])} />
+{#if aiReview && ps}
+	<AiReviewWizard
+		datasetId={ps.ds.id}
+		caseId={data.caseData.id}
+		planId={data.plan.id}
+		models={aiReview}
+		onimport={aiImport}
+		onclose={() => aiImport([])}
+	/>
 {/if}
 
 {#if showVpe}
@@ -4384,10 +4401,23 @@
 				</select>
 			</div>
 		</div>
+		{#if IMPLANT_LIBRARY[newImplant.lineIndex]}
+			{@const dl = IMPLANT_LIBRARY[newImplant.lineIndex]}
+			<p class="faint">
+				{dl.manufacturer} {dl.line} · article {articleName(dl, newImplant.diameter, newImplant.length)}
+				· platform {implantPlatform({ manufacturer: dl.manufacturer, line: dl.line, diameter: newImplant.diameter }) ?? '—'}
+				· total length {newImplant.length.toFixed(1)} mm
+			</p>
+		{/if}
 		<p class="faint">
 			{implantDialogMode === 'change'
 				? 'Position and axis are kept; only the system and dimensions change.'
-				: 'The implant is placed at the current cross-section position; drag it in the views to refine.'}
+				: 'The implant is placed at the arch position of the chosen tooth (or where you clicked); drag it in the views to refine.'}
+		</p>
+		<p class="warn-text">
+			<Icon name="warning" size={12} />
+			Refer to the implant manufacturer's instructions for use for specific indications and
+			contraindications.
 		</p>
 	</div>
 	<div class="dialog-actions">
@@ -4444,6 +4474,11 @@
 </footer>
 
 <style>
+	/* point-placement affordance while an in-view edit mode is active */
+	.view-area.edit-cursor :global(.view canvas) {
+		cursor: crosshair;
+	}
+
 	.perio-btn {
 		margin-bottom: 6px;
 		width: 100%;

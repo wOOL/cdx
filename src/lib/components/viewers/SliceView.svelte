@@ -221,18 +221,27 @@
 			ctx.fillText(rt, cw / 2 - ctx.measureText(rt).width / 2, 26);
 		}
 
-		// crosshair
+		// crosshair — each line carries the color of the plane it represents
+		// (axial = blue, coronal = green, sagittal = red), as in the original
 		if (ps.crosshairVisible) {
 			const { px, py } = crosshairPx();
 			const cx = t.ox + (px + 0.5) * t.scaleX;
 			const cy = t.oy + (py + 0.5) * t.scaleY;
-			ctx.strokeStyle = 'rgba(69, 184, 224, 0.55)';
+			const AX = 'rgba(69, 150, 224, 0.6)';
+			const COR = 'rgba(96, 190, 96, 0.6)';
+			const SAG = 'rgba(224, 92, 92, 0.6)';
+			const horiz = plane === 'axial' ? COR : AX; // horizontal line's plane
+			const vert = plane === 'coronal' || plane === 'axial' ? SAG : COR;
 			ctx.lineWidth = 1;
+			ctx.strokeStyle = horiz;
 			ctx.beginPath();
 			ctx.moveTo(0, cy);
 			ctx.lineTo(cx - 12, cy);
 			ctx.moveTo(cx + 12, cy);
 			ctx.lineTo(cw, cy);
+			ctx.stroke();
+			ctx.strokeStyle = vert;
+			ctx.beginPath();
 			ctx.moveTo(cx, 0);
 			ctx.lineTo(cx, cy - 12);
 			ctx.moveTo(cx, cy + 12);

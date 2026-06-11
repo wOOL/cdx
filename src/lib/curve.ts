@@ -103,3 +103,30 @@ export function indexAtLength(curve: SampledCurve, u: number): number {
 	const f = Math.max(0, Math.min(1, u / curve.length));
 	return Math.round(f * (curve.points.length - 1));
 }
+
+/** Mean mesiodistal tooth widths (mm), positions 1 (central incisor) … 8 (third molar). */
+const TOOTH_WIDTHS = [8.5, 6.5, 7.6, 7.1, 6.8, 10.4, 9.8, 9.5];
+
+/**
+ * Approximate arc-length position (mm) of an FDI tooth's center along a
+ * panoramic curve spanning the arch posterior→posterior, by proportional
+ * cumulative tooth widths. Travel direction is detected from the endpoints
+ * (patient right = −x in LPS volume coordinates). Returns null on bad input
+ * or when the curve is too short to be a full arch for a posterior tooth.
+ */
+export function toothArchU(curve: SampledCurve, fdiTooth: string | number): number | null {
+	const t = Number(fdiTooth);
+	if (!Number.isInteger(t)) return null;
+	const q = Math.floor(t / 10);
+	const pos = t % 10;
+	if (q < 1 || q > 4 || pos < 1 || pos > 8) return null;
+	const isRight = q === 1 || q === 4; // FDI quadrants 1 (maxilla) and 4 (mandible)
+	const half = TOOTH_WIDTHS.reduce((a, b) => a + b, 0);
+	let dist = 0; // from the right-posterior arch end to the tooth center
+	for (let p = 8; p > pos; p--) dist += TOOTH_WIDTHS[p - 1];
+	dist += TOOTH_WIDTHS[pos - 1] / 2;
+	if (!isRight) dist = 2 * half - dist;
+	const frac = dist / (2 * half);
+	const startsRight = curve.points[0].x <= curve.points[curve.points.length - 1].x;
+	return (startsRight ? frac : 1 - frac) * curve.length;
+}
