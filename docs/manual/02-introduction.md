@@ -146,11 +146,14 @@ There is nothing to install on the workstation — operators only need the URL a
 Server deployment:
 
 ```bash
-git submodule update --init   # embedded CAD (vendor/chili3d, pinned release)
 bun install
-bun run build                 # also builds the CAD workstation (build:cad)
+bun run build                 # also builds the embedded CAD workstation (build:cad)
 PORT=3000 ORIGIN=https://your-host bun run build/index.js
 ```
+
+The repository is fully self-contained — the embedded CAD's complete source (pinned
+upstream release) ships under `vendor/chili3d`, so deployment needs no access to external
+code hosting.
 
 The SQLite database and all case files live in the data directory (`CDX_DATA_DIR`,
 default `./data`); back it up as a whole. The directory is portable — moving it to a new

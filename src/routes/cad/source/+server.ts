@@ -29,7 +29,7 @@ This deployment runs the upstream release <strong>0.6.1</strong> with one modifi
 <ul>
 <li>Upstream source (pinned release): <a href="https://github.com/xiangechen/chili3d/tree/0.6.1">github.com/xiangechen/chili3d @ 0.6.1</a></li>
 <li>Upstream license: <a href="https://github.com/xiangechen/chili3d/blob/0.6.1/LICENSE">LICENSE (AGPL-3.0)</a></li>
-<li>Host repository: the <code>vendor/chili3d</code> submodule plus <code>patches/chili3d-bridge.patch</code> reproduce this exact build (<code>bun run build:cad</code>).</li>
+<li>Host repository: the complete pinned source is vendored at <code>vendor/chili3d</code>; together with <code>patches/chili3d-bridge.patch</code> it reproduces this exact build (<code>bun run build:cad</code>) with no external fetch.</li>
 </ul>
 <h2>Modification (chili3d-bridge.patch, AGPL-3.0)</h2>
 <pre>${esc(patch)}</pre>
