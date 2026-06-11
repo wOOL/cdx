@@ -9,6 +9,7 @@
 	import AdjustGrayscale from '$lib/components/AdjustGrayscale.svelte';
 	import PlanCompare from '$lib/components/PlanCompare.svelte';
 	import MakeParallel from '$lib/components/MakeParallel.svelte';
+	import DistancePopover from '$lib/components/DistancePopover.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
 	import {
@@ -615,6 +616,7 @@
 	}
 
 	let zoomSig = $state({ seq: 0, f: 1 });
+	let distancePopover = $state<'nerve' | 'implant' | null>(null);
 
 	/** F8 screen copy: composite every visible view canvas into one snapshot */
 	async function screenCopy() {
@@ -2495,6 +2497,10 @@
 	</div>
 {/if}
 
+{#if distancePopover && ps}
+	<DistancePopover state={ps} kind={distancePopover} onclose={() => (distancePopover = null)} />
+{/if}
+
 {#if makeParallelOpen && ps}
 	<MakeParallel state={ps} {notation} onclose={() => (makeParallelOpen = false)} />
 {/if}
@@ -2638,14 +2644,24 @@
 	{#if ps?.liveDistances}
 		{@const ld = ps.liveDistances}
 		{#if ld.nerve != null}
-			<span class="dist-chip" class:dist-bad={ld.nerve < ps.nerveSafety}>
+			<button
+				class="dist-chip"
+				class:dist-bad={ld.nerve < ps.nerveSafety}
+				title="Click for per-nerve distances"
+				onclick={() => (distancePopover = distancePopover === 'nerve' ? null : 'nerve')}
+			>
 				nerve {ld.nerve.toFixed(1)} mm
-			</span>
+			</button>
 		{/if}
 		{#if ld.implant != null}
-			<span class="dist-chip" class:dist-bad={ld.implant < ps.implantSafety}>
+			<button
+				class="dist-chip"
+				class:dist-bad={ld.implant < ps.implantSafety}
+				title="Click for per-implant distances"
+				onclick={() => (distancePopover = distancePopover === 'implant' ? null : 'implant')}
+			>
 				implant {ld.implant.toFixed(1)} mm
-			</span>
+			</button>
 		{/if}
 	{/if}
 	{#if ps && ps.warnings.length}

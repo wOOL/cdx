@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import Icon from '$lib/components/Icon.svelte';
+	import ImagesLink from '$lib/components/ImagesLink.svelte';
 	import type { Patient } from '$lib/types';
 
 	let { data, form } = $props();
@@ -250,7 +251,7 @@
 			</div>
 
 			{#if data.images.length}
-				<div class="cases-head"><h3>Image library</h3></div>
+				<div class="cases-head"><h3>Image library</h3><ImagesLink patientId={data.selected.id} count={data.images.length} /></div>
 				<div class="image-grid">
 					{#each data.images as img (img.id)}
 						<figure class="image-tile panel">
