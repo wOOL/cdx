@@ -232,6 +232,27 @@ export function drawPanoOverlay(
 			ps.selectedImplantId === im.id,
 			warns.has(im.id)
 		);
+		if (ps.showImplantAxes) {
+			const ext1 = ps.toPano({ x: im.x - im.ax * 8, y: im.y - im.ay * 8, z: im.z - im.az * 8 });
+			const apex3 = implantApex(im);
+			const ext2 = ps.toPano({
+				x: apex3.x + im.ax * 8,
+				y: apex3.y + im.ay * 8,
+				z: apex3.z + im.az * 8
+			});
+			if (ext1 && ext2) {
+				const q1 = map.toCanvas(ext1.u, ext1.zmm);
+				const q2 = map.toCanvas(ext2.u, ext2.zmm);
+				ctx.strokeStyle = im.color;
+				ctx.setLineDash([3, 4]);
+				ctx.lineWidth = 1;
+				ctx.beginPath();
+				ctx.moveTo(q1.x, q1.y);
+				ctx.lineTo(q2.x, q2.y);
+				ctx.stroke();
+				ctx.setLineDash([]);
+			}
+		}
 		const se = sleeveEnds(im);
 		if (se && im.sleeve) {
 			const b = ps.toPano(se.bottom);
@@ -729,6 +750,61 @@ export function drawAxialObjects(
 
 // ---------------- measurements (axial view) ----------------
 
+// drag-editing of existing measurement points on the axial slice
+let measureDrag: { id: number; index: number } | null = null;
+
+export function measureEditTool(ps: PlanningState, e: ToolPointerEvent): boolean {
+	if (ps.locked || ps.measureTool !== 'none') return false;
+	const sx = ps.ds.spacing_x;
+	const sy = ps.ds.spacing_y;
+	const zmm = ps.cursor.z * ps.ds.spacing_z;
+	const mm = { x: e.px * sx, y: e.py * sy };
+
+	if (e.type === 'down') {
+		for (const m of ps.measurements) {
+			if (m.type === 'density') continue;
+			for (let i = 0; i < m.points.length; i++) {
+				const p = m.points[i];
+				if (Math.abs(p.z - zmm) > 1.01) continue;
+				if (Math.hypot(p.x - mm.x, p.y - mm.y) < 1.6) {
+					ps.markEdit();
+					measureDrag = { id: m.id, index: i };
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	if (e.type === 'move' && measureDrag) {
+		const m = ps.measurements.find((m) => m.id === measureDrag!.id);
+		if (m) {
+			m.points[measureDrag.index] = { ...m.points[measureDrag.index], x: mm.x, y: mm.y };
+			// recompute the value live
+			if (m.type === 'distance' && m.points.length === 2) {
+				m.value = len(sub(m.points[1], m.points[0]));
+				m.label = `${m.value.toFixed(1)} mm`;
+			} else if (m.type === 'angle' && m.points.length === 3) {
+				const v1 = norm(sub(m.points[0], m.points[1]));
+				const v2 = norm(sub(m.points[2], m.points[1]));
+				m.value = (Math.acos(Math.max(-1, Math.min(1, dot(v1, v2)))) * 180) / Math.PI;
+				m.label = `${m.value.toFixed(1)}°`;
+			} else if (m.type === 'polyline') {
+				m.value = 0;
+				for (let i = 1; i < m.points.length; i++) m.value += len(sub(m.points[i], m.points[i - 1]));
+				m.label = `Σ ${m.value.toFixed(1)} mm`;
+			}
+		}
+		return true;
+	}
+	if (e.type === 'up' && measureDrag) {
+		const m = ps.measurements.find((m) => m.id === measureDrag!.id);
+		if (m) ps.saveMeasurement(m.id);
+		measureDrag = null;
+		return true;
+	}
+	return false;
+}
+
 export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolean {
 	if (ps.measureTool === 'none' || ps.locked) return false;
 	if (e.type !== 'down') return true;
@@ -761,6 +837,21 @@ export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolea
 	if (ps.measureTool === 'polyline') {
 		ps.pendingMeasure.push(p);
 		return true; // finished explicitly via the toolbar button
+	}
+
+	if (ps.measureTool === 'auxline') {
+		ps.pendingMeasure.push(p);
+		if (ps.pendingMeasure.length === 2) {
+			ps.addMeasurement(
+				'auxline',
+				ps.pendingMeasure.map((q) => ({ ...q })),
+				0,
+				''
+			);
+			ps.pendingMeasure.length = 0;
+			ps.measureTool = 'none';
+		}
+		return true;
 	}
 
 	ps.pendingMeasure.push(p);

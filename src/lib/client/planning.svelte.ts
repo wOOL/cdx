@@ -77,11 +77,11 @@ export interface ModelData {
 	threshold: number | null;
 }
 
-export type MeasureTool = 'none' | 'distance' | 'angle' | 'density' | 'polyline' | 'annotation';
+export type MeasureTool = 'none' | 'distance' | 'angle' | 'density' | 'polyline' | 'annotation' | 'auxline';
 
 export interface MeasurementData {
 	id: number;
-	type: 'distance' | 'angle' | 'density' | 'polyline' | 'annotation';
+	type: 'distance' | 'angle' | 'density' | 'polyline' | 'annotation' | 'auxline';
 	points: Vec3[];
 	value: number;
 	label: string;
@@ -127,6 +127,7 @@ export class PlanningState {
 	wc = $state(400);
 	ww = $state(1800);
 	crosshairVisible = $state(true);
+	showImplantAxes = $state(false);
 	locked = $state(false);
 
 	// panoramic curve — control points in mm (volume-local), defined on axial slice curveZ
@@ -632,6 +633,19 @@ export class PlanningState {
 		if (!res.ok) return;
 		const { measurement } = await res.json();
 		this.measurements.push({ id: measurement.id, type, points, value, label });
+	}
+
+	saveMeasurement(id: number) {
+		const m = this.measurements.find((m) => m.id === id);
+		if (!m) return;
+		const payload = { points: m.points.map((p) => ({ ...p })), value: m.value, label: m.label };
+		this.debounced(`measurement:${id}`, () => {
+			fetch(`/api/measurements/${id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload)
+			}).catch(() => {});
+		});
 	}
 
 	async deleteMeasurement(id: number) {

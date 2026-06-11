@@ -19,6 +19,7 @@
 		drawPanoOverlay,
 		finishPolyline,
 		measureAxialTool,
+		measureEditTool,
 		panoTool
 	} from '$lib/client/planTools';
 	import {
@@ -334,6 +335,7 @@
 	function axialTool(e: ToolPointerEvent): boolean {
 		if (!ps) return false;
 		if (measureAxialTool(ps, e)) return true;
+		if (measureEditTool(ps, e)) return true;
 		return curveTool(e);
 	}
 
@@ -1679,6 +1681,10 @@
 						<input type="checkbox" bind:checked={ps.crosshairVisible} />
 						<span>Crosshair</span>
 					</label>
+					<label class="checkbox-row">
+						<input type="checkbox" bind:checked={ps.showImplantAxes} />
+						<span>Implant axes</span>
+					</label>
 					{#if selectedImplant && densityInfo?.profile?.length}
 						<label for="density-profile">Density along implant</label>
 						<div class="density-panel" id="density-profile" title="Mean HU per depth level, head (top) → apex (bottom)">
@@ -1773,6 +1779,18 @@
 							}}
 						>
 							T
+						</button>
+						<button
+							class="btn"
+							class:primary={ps.measureTool === 'auxline'}
+							title="Auxiliary line: two points, no value"
+							onclick={() => {
+								if (!ps) return;
+								ps.pendingMeasure.length = 0;
+								ps.measureTool = ps.measureTool === 'auxline' ? 'none' : 'auxline';
+							}}
+						>
+							⟍
 						</button>
 					</div>
 				</div>

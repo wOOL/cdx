@@ -11,7 +11,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	if (plan.locked) error(409, 'Plan is locked');
 
 	const body = await request.json().catch(() => ({}));
-	const type = ['distance', 'angle', 'density', 'polyline', 'annotation'].includes(body.type)
+	const type = ['distance', 'angle', 'density', 'polyline', 'annotation', 'auxline'].includes(body.type)
 		? body.type
 		: 'distance';
 	const measurement = db
