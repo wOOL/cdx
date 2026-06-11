@@ -3328,13 +3328,14 @@
 									value={m.shading ?? 'standard'}
 									onchange={(e) => {
 										const v = e.currentTarget.value;
-										m.shading = v === 'standard' ? undefined : (v as 'metallic' | 'wireframe');
+										m.shading = v === 'standard' ? undefined : (v as 'metallic' | 'wireframe' | 'xray');
 										ps?.saveModel(m.id);
 									}}
 								>
 									<option value="standard">Standard</option>
 									<option value="metallic">Metallic</option>
 									<option value="wireframe">Triangles</option>
+									<option value="xray">X-ray (through surfaces)</option>
 								</select>
 							</label>
 							<button
@@ -3346,7 +3347,7 @@
 									const st = await r.json();
 									modelStats = {
 										id: m.id,
-										text: `${st.triangles.toLocaleString()} triangles · ${st.volumeMl.toFixed(1)} ml · ${st.size.x.toFixed(0)}×${st.size.y.toFixed(0)}×${st.size.z.toFixed(0)} mm`
+										text: `${st.triangles.toLocaleString()} triangles · ${st.points.toLocaleString()} points · ${st.volumeMl.toFixed(1)} ml · ${(st.surfaceMm2 / 100).toFixed(1)} cm² · ${st.size.x.toFixed(0)}×${st.size.y.toFixed(0)}×${st.size.z.toFixed(0)} mm`
 									};
 								}}
 							>

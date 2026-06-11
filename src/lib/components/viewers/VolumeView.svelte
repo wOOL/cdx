@@ -615,6 +615,8 @@
 			mesh.material.wireframe = m.shading === 'wireframe';
 			mesh.material.metalness = m.shading === 'metallic' ? 0.85 : 0.05;
 			mesh.material.roughness = m.shading === 'metallic' ? 0.25 : 0.65;
+			mesh.material.depthTest = m.shading !== 'xray';
+			mesh.renderOrder = m.shading === 'xray' ? 998 : 0;
 			const arr = m.transform ?? new THREE.Matrix4().identity().toArray();
 			mesh.matrix.fromArray(arr);
 			mesh.matrixWorldNeedsUpdate = true;

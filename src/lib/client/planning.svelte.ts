@@ -78,7 +78,7 @@ export interface ModelData {
 	/** generation parameters (segmentation threshold etc.) */
 	threshold: number | null;
 	/** 3D look: standard (default) | metallic | wireframe */
-	shading?: 'standard' | 'metallic' | 'wireframe';
+	shading?: 'standard' | 'metallic' | 'wireframe' | 'xray';
 }
 
 export type MeasureTool = 'none' | 'distance' | 'angle' | 'density' | 'polyline' | 'annotation' | 'auxline';
@@ -348,7 +348,7 @@ export class PlanningState {
 			let shading: ModelData['shading'];
 			try {
 				const p2 = m.params ? JSON.parse(m.params) : null;
-				if (p2 && ['standard', 'metallic', 'wireframe'].includes(p2.shading)) shading = p2.shading;
+				if (p2 && ['standard', 'metallic', 'wireframe', 'xray'].includes(p2.shading)) shading = p2.shading;
 			} catch {
 				shading = undefined;
 			}

@@ -22,7 +22,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		} catch {
 			p = {};
 		}
-		if (body.shading === 'metallic' || body.shading === 'wireframe') p.shading = body.shading;
+		if (['metallic', 'wireframe', 'xray'].includes(body.shading)) p.shading = body.shading;
 		else delete p.shading;
 		paramsJson = JSON.stringify(p);
 	}

@@ -19,6 +19,7 @@ export const GET: RequestHandler = async ({ params }) => {
 	const triangles = Math.floor(p.length / 9);
 
 	let vol6 = 0; // 6 × signed volume via divergence theorem
+	let area = 0;
 	let minX = Infinity,
 		minY = Infinity,
 		minZ = Infinity,
@@ -36,6 +37,18 @@ export const GET: RequestHandler = async ({ params }) => {
 			cy = p[i + 7],
 			cz = p[i + 8];
 		vol6 += ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
+		{
+			const ux = bx - ax,
+				uy = by - ay,
+				uz = bz - az,
+				vx = cx - ax,
+				vy = cy - ay,
+				vz = cz - az;
+			const cxn = uy * vz - uz * vy,
+				cyn = uz * vx - ux * vz,
+				czn = ux * vy - uy * vx;
+			area += Math.hypot(cxn, cyn, czn) / 2;
+		}
 		for (const [x, y, z] of [
 			[ax, ay, az],
 			[bx, by, bz],
@@ -52,6 +65,8 @@ export const GET: RequestHandler = async ({ params }) => {
 	const volumeMm3 = Math.abs(vol6) / 6;
 	return json({
 		triangles,
+		points: triangles * 3,
+		surfaceMm2: area,
 		volumeMl: volumeMm3 / 1000,
 		size: triangles
 			? { x: maxX - minX, y: maxY - minY, z: maxZ - minZ }
