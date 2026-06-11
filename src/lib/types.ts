@@ -47,6 +47,10 @@ export interface Dataset {
 	preview_rows: number;
 	preview_slices: number;
 	status: string;
+	locked?: number;
+	import_warnings?: string;
+	gray_lo?: number;
+	gray_hi?: number;
 	created_at: string;
 }
 

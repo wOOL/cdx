@@ -1496,12 +1496,58 @@
 			<div class="tree-group">
 				<div class="tree-group-label">Volume data</div>
 				{#each data.datasets as d (d.id)}
-					<div class="tree-item">
-						<Icon name="volume" size={14} />
-						<span title={d.series_description}>{d.modality || 'CT'} {d.cols}×{d.rows}×{d.slices}</span>
+					<div class="dataset-card panel">
+						<Icon name="volume" size={22} />
+						<div class="dataset-info">
+							<div>
+								<strong>{d.series_description || d.description}</strong>
+								{#if d.locked}<span class="badge">locked</span>{/if}
+							</div>
+							<div class="faint">
+								{d.modality} · {d.cols}×{d.rows}×{d.slices} ·
+								{d.spacing_x.toFixed(2)}/{d.spacing_y.toFixed(2)}/{d.spacing_z.toFixed(2)} mm
+								{d.patient_name ? ` · ${d.patient_name}` : ''}
+							</div>
+							{#if d.import_warnings}
+								<div class="warn-text" title={d.import_warnings}>
+									<Icon name="warning" size={11} /> imported with warnings: {d.import_warnings}
+								</div>
+							{/if}
+						</div>
+						<button
+							class="btn ghost"
+							title={d.locked
+								? 'Unlock dataset (allow changes and deletion)'
+								: 'Lock dataset against changes and deletion'}
+							onclick={async () => {
+								await fetch(`/api/datasets/${d.id}`, {
+									method: 'PATCH',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({ locked: !d.locked })
+								});
+								await invalidateAll();
+							}}
+						>
+							{d.locked ? '🔒' : '🔓'}
+						</button>
+						<button
+							class="btn ghost danger"
+							title="Delete dataset (volume and preview files are removed)"
+							disabled={!!d.locked}
+							onclick={async () => {
+								if (!confirm(`Delete dataset "${d.series_description || d.description}"?`)) return;
+								const res = await fetch(`/api/datasets/${d.id}`, { method: 'DELETE' });
+								if (!res.ok) {
+									const b = await res.json().catch(() => null);
+									alert(b?.message ?? 'Delete failed');
+									return;
+								}
+								await invalidateAll();
+							}}
+						>
+							<Icon name="trash" size={14} />
+						</button>
 					</div>
-				{:else}
-					<div class="tree-empty">none</div>
 				{/each}
 			</div>
 			<div class="tree-group">
@@ -3367,6 +3413,9 @@
 	.dropzone.drag-over {
 		border-color: var(--accent);
 		color: var(--text);
+	}
+	.dataset-info {
+		flex: 1;
 	}
 	.adv-row {
 		display: flex;
