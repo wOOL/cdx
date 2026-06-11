@@ -5,6 +5,8 @@ import { caseDir, db } from '$lib/server/db';
 import { getCase, getPlan, listImplants } from '$lib/server/db/repo';
 import { generateGuide, type GuideImplant } from '$lib/server/guideGen';
 import { meshToStlBinary, parsePly, parseStl } from '$lib/server/stl';
+import { applyRot3, norm, rotationAligning, transpose3 } from '$lib/geometry';
+import { applyMat4, type Mat4 } from '$lib/registration';
 import type { Model } from '$lib/types';
 
 /** Body: { modelId, planId, params?: { offset, thickness, regionRadius, voxel } } */
@@ -53,14 +55,59 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		transform = null;
 	}
 
+	// insertion direction: rotate everything so the seating axis is vertical,
+	// generate, then rotate the result back.
+	// 'auto' = mean implant axis; 'vertical' = volume -z (mandible default).
+	const insertionMode = body.insertion === 'vertical' ? 'vertical' : 'auto';
+	let seat = { x: 0, y: 0, z: -1 };
+	if (insertionMode === 'auto') {
+		const sum = withSleeves.reduce(
+			(a, im) => ({ x: a.x + im.axis.x, y: a.y + im.axis.y, z: a.z + im.axis.z }),
+			{ x: 0, y: 0, z: 0 }
+		);
+		const n = norm(sum);
+		// guard against degenerate / horizontal averages
+		if (Math.abs(n.z) > 0.3) seat = n;
+	}
+	const R = rotationAligning(seat, { x: 0, y: 0, z: -1 });
+	const Rinv = transpose3(R);
+
+	// rotate scan vertices (after their own transform) into the insertion frame
+	const rotated = new Float32Array(mesh.positions.length);
+	for (let i = 0; i < mesh.positions.length; i += 3) {
+		let v = { x: mesh.positions[i], y: mesh.positions[i + 1], z: mesh.positions[i + 2] };
+		if (transform) v = applyMat4(transform as Mat4, v);
+		v = applyRot3(R, v);
+		rotated[i] = v.x;
+		rotated[i + 1] = v.y;
+		rotated[i + 2] = v.z;
+	}
+	const rotatedImplants = withSleeves.map((im) => ({
+		head: applyRot3(R, im.head),
+		axis: applyRot3(R, im.axis),
+		sleeve: im.sleeve
+	}));
+
 	const p = body.params ?? {};
-	const guide = generateGuide(mesh.positions, transform, withSleeves, {
+	const guide = generateGuide(rotated, null, rotatedImplants, {
 		offset: Number(p.offset) || 0.15,
 		thickness: Number(p.thickness) || 2.5,
 		regionRadius: Number(p.regionRadius) || 9,
 		voxel: Number(p.voxel) || 0.3
 	});
 	if (guide.triangles === 0) error(400, 'Guide generation produced an empty mesh');
+
+	// rotate the guide back into volume space
+	for (let i = 0; i < guide.positions.length; i += 3) {
+		const v = applyRot3(Rinv, {
+			x: guide.positions[i],
+			y: guide.positions[i + 1],
+			z: guide.positions[i + 2]
+		});
+		guide.positions[i] = v.x;
+		guide.positions[i + 1] = v.y;
+		guide.positions[i + 2] = v.z;
+	}
 
 	const stl = meshToStlBinary(guide.positions, 'surgical_guide');
 	const path = join(caseDir(caseId), `guide_${crypto.randomUUID().slice(0, 8)}.stl`);

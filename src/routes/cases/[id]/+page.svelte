@@ -550,6 +550,7 @@
 
 	// ---------- guide generation ----------
 	let guideParams = $state({ offset: 0.15, thickness: 2.5, regionRadius: 9 });
+	let guideInsertion = $state<'auto' | 'vertical'>('auto');
 	let guideBusy = $state(false);
 	let guideError = $state('');
 	let guideBaseId = $state<number | null>(null);
@@ -569,7 +570,12 @@
 			const res = await fetch(`/api/cases/${data.caseData.id}/guide`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ modelId: baseId, planId: ps.planId, params: guideParams })
+				body: JSON.stringify({
+					modelId: baseId,
+					planId: ps.planId,
+					params: guideParams,
+					insertion: guideInsertion
+				})
 			});
 			const bodyJson = await res.json().catch(() => null);
 			if (!res.ok) throw new Error(bodyJson?.message ?? `Guide generation failed (${res.status})`);
@@ -1326,6 +1332,11 @@
 							bind:value={guideParams.regionRadius}
 							style="width:64px"
 						/>
+						<label class="inline-label" for="guide-ins">Insertion</label>
+						<select id="guide-ins" bind:value={guideInsertion}>
+							<option value="auto">Along implant axes</option>
+							<option value="vertical">Vertical</option>
+						</select>
 						<button class="btn primary" disabled={guideBusy} onclick={generateGuideAction}>
 							<Icon name="guide" size={14} />
 							{guideBusy ? 'Generating…' : 'Generate guide'}

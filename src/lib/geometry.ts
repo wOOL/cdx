@@ -69,6 +69,45 @@ export function segSegDistance(p1: Vec3, p2: Vec3, q1: Vec3, q2: Vec3): number {
 	return len(sub(cp, cq));
 }
 
+/**
+ * 3×3 rotation (row-major) aligning unit vector a onto unit vector b (Rodrigues).
+ */
+export function rotationAligning(a: Vec3, b: Vec3): number[] {
+	const v = { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+	const c = dot(a, b);
+	const s2 = v.x * v.x + v.y * v.y + v.z * v.z;
+	if (s2 < 1e-12) {
+		if (c > 0) return [1, 0, 0, 0, 1, 0, 0, 0, 1];
+		// opposite: rotate 180° around any axis ⊥ a
+		const axis = Math.abs(a.x) < 0.9 ? norm({ x: 0, y: -a.z, z: a.y }) : norm({ x: -a.z, y: 0, z: a.x });
+		const { x, y, z } = axis;
+		return [
+			2 * x * x - 1, 2 * x * y, 2 * x * z,
+			2 * x * y, 2 * y * y - 1, 2 * y * z,
+			2 * x * z, 2 * y * z, 2 * z * z - 1
+		];
+	}
+	const k = (1 - c) / s2;
+	return [
+		v.x * v.x * k + c, v.x * v.y * k - v.z, v.x * v.z * k + v.y,
+		v.x * v.y * k + v.z, v.y * v.y * k + c, v.y * v.z * k - v.x,
+		v.x * v.z * k - v.y, v.y * v.z * k + v.x, v.z * v.z * k + c
+	];
+}
+
+export function applyRot3(m: number[], p: Vec3): Vec3 {
+	return {
+		x: m[0] * p.x + m[1] * p.y + m[2] * p.z,
+		y: m[3] * p.x + m[4] * p.y + m[5] * p.z,
+		z: m[6] * p.x + m[7] * p.y + m[8] * p.z
+	};
+}
+
+/** transpose = inverse for pure rotations */
+export function transpose3(m: number[]): number[] {
+	return [m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]];
+}
+
 /** Minimum distance between a segment and a polyline. */
 export function segPolylineDistance(p1: Vec3, p2: Vec3, poly: Vec3[]): number {
 	let best = Infinity;
