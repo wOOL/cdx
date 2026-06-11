@@ -1325,6 +1325,38 @@
 		matching.lastRms = null;
 	}
 
+	/**
+	 * Alignment-method choice right after a model-scan import (like the
+	 * original's import wizard page): AI / manual / copy / none.
+	 */
+	async function offerScanAlignment(modelId: number, name: string) {
+		if (!ps) return;
+		const hasAligned = ps.models.some(
+			(m) => m.kind === 'scan' && m.id !== modelId && m.transform
+		);
+		const pick = prompt(
+			`"${name}" imported. Align it to the DICOM now?\n` +
+				'1. Align using AI assistant (automatic)\n' +
+				'2. Align manually (point pairs, in the Align stage)\n' +
+				(hasAligned ? '3. Copy alignment from another scan\n' : '') +
+				`${hasAligned ? '4' : '3'}. Do not align yet\n\nEnter the number:`,
+			'1'
+		);
+		const n = Number(pick);
+		if (n === 1) {
+			matching.modelId = modelId;
+			await autoAlignScan();
+		} else if (n === 2) {
+			matching.modelId = modelId;
+			stage = 'align';
+			matching.mode = 'pick-scan';
+		} else if (n === 3 && hasAligned) {
+			matching.modelId = modelId;
+			copyAlignment();
+		}
+		// anything else: leave unaligned
+	}
+
 	/** one-click automatic scan→CBCT registration (AI assistant) */
 	async function autoAlignScan() {
 		if (!ps) return;
@@ -2347,6 +2379,7 @@
 				if (ps) {
 					const m = await ps.uploadModel(f, 'scan');
 					if (!m) throw new Error(`Model import failed for ${f.name}`);
+					await offerScanAlignment(m.id, f.name);
 				} else {
 					const form = new FormData();
 					form.append('file', f);
