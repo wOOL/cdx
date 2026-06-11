@@ -15,6 +15,7 @@
 		label = '',
 		overlayDraw,
 		onToolPointer,
+		onImageDblClick,
 		overlayDeps
 	}: {
 		state: PlanningState;
@@ -24,9 +25,14 @@
 		overlayDraw?: (ctx: CanvasRenderingContext2D, t: ViewTransform) => void;
 		/** return true to consume left-button events (suppresses crosshair placement) */
 		onToolPointer?: (e: ToolPointerEvent) => boolean;
+		/** double-click in image coords; return true to suppress the view reset */
+		onImageDblClick?: (px: number, py: number) => boolean;
 		/** reactive value(s) the overlay depends on — read in the redraw effect */
 		overlayDeps?: unknown;
 	} = $props();
+
+	// display-only horizontal mirror (axial L/R convention switch)
+	let mirrored = $state(false);
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 	let container: HTMLDivElement | undefined = $state();
@@ -102,6 +108,9 @@
 		const scaleY = fit * spacingH;
 		const ox = (cw - slice.width * scaleX) / 2 + panX;
 		const oy = (ch - slice.height * scaleY) / 2 + panY;
+		if (mirrored) {
+			return { scaleX: -scaleX, scaleY, ox: cw - ox, oy };
+		}
 		return { scaleX, scaleY, ox, oy };
 	}
 
@@ -142,13 +151,16 @@
 		const t = fitTransform(slice);
 		ctx.imageSmoothingEnabled = true;
 		ctx.imageSmoothingQuality = 'high';
-		ctx.drawImage(
-			offscreen,
-			t.ox,
-			t.oy,
-			slice.width * t.scaleX,
-			slice.height * t.scaleY
-		);
+		if (t.scaleX < 0) {
+			// mirrored: flip the bitmap, overlays use the mirrored transform directly
+			ctx.save();
+			ctx.translate(cw, 0);
+			ctx.scale(-1, 1);
+			ctx.drawImage(offscreen, cw - t.ox, t.oy, slice.width * -t.scaleX, slice.height * t.scaleY);
+			ctx.restore();
+		} else {
+			ctx.drawImage(offscreen, t.ox, t.oy, slice.width * t.scaleX, slice.height * t.scaleY);
+		}
 
 		// crosshair
 		if (ps.crosshairVisible) {
@@ -186,12 +198,13 @@
 		// orientation labels
 		ctx.fillStyle = 'rgba(138, 145, 160, 0.9)';
 		ctx.font = '10px Inter, sans-serif';
-		const labels =
+		let labels =
 			plane === 'axial'
 				? { top: 'A', bottom: 'P', left: 'R', right: 'L' }
 				: plane === 'coronal'
 					? { top: 'S', bottom: 'I', left: 'R', right: 'L' }
 					: { top: 'S', bottom: 'I', left: 'A', right: 'P' };
+		if (mirrored) labels = { ...labels, left: labels.right, right: labels.left };
 		ctx.fillText(labels.top, cw / 2 - 3, 14);
 		ctx.fillText(labels.bottom, cw / 2 - 3, ch - 18);
 		ctx.fillText(labels.left, 6, ch / 2 + 3);
@@ -237,6 +250,7 @@
 		void hoverHU;
 		void ps.crosshairVisible;
 		void overlayDeps;
+		void mirrored;
 		scheduleDraw();
 	});
 
@@ -338,6 +352,14 @@
 		panX = 0;
 		panY = 0;
 	}
+
+	function onDblClick(e: MouseEvent) {
+		if (onImageDblClick && lastSlice) {
+			const p = canvasToSlice(e.offsetX, e.offsetY);
+			if (p && onImageDblClick(p.px, p.py)) return;
+		}
+		resetView();
+	}
 </script>
 
 <div class="slice-view" bind:this={container}>
@@ -348,9 +370,17 @@
 		onpointerup={onPointerUp}
 		onwheel={onWheel}
 		oncontextmenu={(e) => e.preventDefault()}
-		ondblclick={resetView}
+		ondblclick={onDblClick}
 	></canvas>
 	<div class="view-label">{label || plane}</div>
+	{#if plane === 'axial'}
+		<button
+			class="snap-btn mirror-btn"
+			class:mirror-on={mirrored}
+			title="Mirror horizontally (radiological / surgical convention)"
+			onclick={() => (mirrored = !mirrored)}>⇋</button
+		>
+	{/if}
 	<button
 		class="snap-btn"
 		title="Snapshot → image library (Alt+click to download)"
@@ -411,6 +441,14 @@
 	}
 	.slice-view:hover .snap-btn {
 		opacity: 0.8;
+	}
+	.mirror-btn {
+		right: 32px;
+	}
+	.mirror-on {
+		color: var(--accent-bright);
+		border-color: var(--accent);
+		opacity: 0.9 !important;
 	}
 	.slice-slider {
 		position: absolute;

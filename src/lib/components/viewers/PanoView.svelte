@@ -41,10 +41,13 @@
 	let fetchSeq = 0;
 	let fetchTimer: ReturnType<typeof setTimeout> | undefined;
 
+	// virtual OPG: thick ray-sum slab instead of the thin curved slice
+	let xrayMode = $state(false);
+
 	// re-fetch panorama whenever the curve or thickness changes (debounced)
 	$effect(() => {
 		const control = ps.curveControl.map((p) => ({ x: p.x, y: p.y }));
-		const thickness = ps.panoThickness;
+		const thickness = xrayMode ? 20 : ps.panoThickness;
 		clearTimeout(fetchTimer);
 		if (control.length < 2) {
 			img = null;
@@ -214,7 +217,13 @@
 		onwheel={onWheel}
 		oncontextmenu={(e) => e.preventDefault()}
 	></canvas>
-	<div class="view-label">Panoramic</div>
+	<div class="view-label">Panoramic{xrayMode ? ' (X-ray)' : ''}</div>
+	<button
+		class="xray-btn"
+		class:xray-on={xrayMode}
+		title="Toggle virtual OPG (ray-sum) mode"
+		onclick={() => (xrayMode = !xrayMode)}>OPG</button
+	>
 	<button
 		class="snap-btn"
 		title="Snapshot → image library (Alt+click to download)"
@@ -267,6 +276,30 @@
 		text-align: center;
 		padding: 20px;
 		pointer-events: none;
+	}
+	.xray-btn {
+		position: absolute;
+		top: 4px;
+		right: 32px;
+		height: 22px;
+		padding: 0 6px;
+		border-radius: 3px;
+		background: var(--bg-2);
+		border: 1px solid var(--border);
+		font-size: 9px;
+		letter-spacing: 0.05em;
+		color: var(--text-dim);
+		opacity: 0;
+		transition: opacity 0.15s;
+		z-index: 2;
+	}
+	.pano-view:hover .xray-btn {
+		opacity: 0.9;
+	}
+	.xray-on {
+		color: var(--accent-bright);
+		border-color: var(--accent);
+		opacity: 0.9 !important;
 	}
 	.snap-btn {
 		position: absolute;

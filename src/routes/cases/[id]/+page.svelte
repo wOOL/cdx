@@ -318,11 +318,29 @@
 		length: IMPLANT_LIBRARY[0].lengths[2] ?? 10
 	});
 
+	/** explicit head position for the next added implant (set by double-click placement) */
+	let pendingHead = $state<Vec3 | null>(null);
+
 	function openImplantDialog() {
 		if (!ps) return;
 		implantDialogMode = 'add';
+		pendingHead = null;
 		newImplant.tooth = data.plan.jaw === 'maxilla' ? '26' : '36';
 		implantDialog?.showModal();
+	}
+
+	/** double-click on the axial view places an implant at that point (implant stage) */
+	function onAxialDblClick(px: number, py: number): boolean {
+		if (!ps || stage !== 'implant' || ps.locked) return false;
+		implantDialogMode = 'add';
+		pendingHead = {
+			x: px * ps.ds.spacing_x,
+			y: py * ps.ds.spacing_y,
+			z: ps.cursor.z * ps.ds.spacing_z
+		};
+		newImplant.tooth = data.plan.jaw === 'maxilla' ? '26' : '36';
+		implantDialog?.showModal();
+		return true;
 	}
 
 	function openChangeImplantDialog() {
@@ -360,15 +378,16 @@
 		}
 
 		const c = ps.curve;
-		let head = {
+		let head = pendingHead ?? {
 			x: (ps.ds.cols * ps.ds.spacing_x) / 2,
 			y: (ps.ds.rows * ps.ds.spacing_y) / 2,
 			z: ps.cursor.z * ps.ds.spacing_z
 		};
-		if (c) {
+		if (!pendingHead && c) {
 			const i = indexAtLength(c, ps.crossU);
 			head = { x: c.points[i].x, y: c.points[i].y, z: ps.cursor.z * ps.ds.spacing_z };
 		}
+		pendingHead = null;
 		await ps.addImplant({
 			tooth: newImplant.tooth,
 			manufacturer: line.manufacturer,
@@ -1828,6 +1847,7 @@
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={axialTool}
+							onImageDblClick={onAxialDblClick}
 							overlayDeps={[ps.curveControl, ps.crossU, objectsVersion, contourTick]}
 						/>
 					</div>

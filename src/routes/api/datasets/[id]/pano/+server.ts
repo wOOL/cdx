@@ -16,7 +16,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		error(400, 'Need at least 2 control points');
 	}
 	const step = Math.max(0.1, Number(body.step) || 0.5);
-	const thickness = Math.max(0, Math.min(10, Number(body.thickness) || 0));
+	const thickness = Math.max(0, Math.min(24, Number(body.thickness) || 0));
 
 	const curve = sampleCurve(control, step);
 	if (!curve) error(400, 'Curve too short');

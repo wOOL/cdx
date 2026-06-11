@@ -112,8 +112,8 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] Per-view Snapshot button (high-res capture, size choice, save to Image Management or download)
 - [~] [P2] Grayscale presets in dialog (save/overwrite/delete; "Implant Planning (CT)" factory preset) — partial: fixed presets; no save/delete
 - [~] [P2] Hotkey system + hotkey list dialog (Ctrl+F1) per SPEC §3.9 — partial: few hotkeys; no list dialog
-- [~] [P3] Panoramic X-ray mode toggle (ray-sum projection vs curved slice) — partial: slab averaging only; no ray-sum toggle
-- [ ] [P3] Axial mirror-horizontally button
+- [x] [P3] Panoramic X-ray mode toggle (ray-sum projection vs curved slice)
+- [x] [P3] Axial mirror-horizontally button
 - [~] [P3] View display-mode choosers (pane-config switching: cross-sectional+tangential / +panoramic / only) + toolbar config-cycle button — partial: cross/tangential toggle only; layouts stage-fixed
 - [~] [P3] 3D Setup dialog: per-segmentation visibility/name/color/transparency, Alpha/Beta/Gamma absolute rotation, relative rotation step, move/zoom steps, 6 perspectives, 3D contrast/brightness, threshold edit — partial: threshold + presets only
 - [x] [P3] Interactive grayscale drag tool (up/down = level, left/right = width)
@@ -208,7 +208,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Make Parallel dialog (implant checkbox list, master vs mean direction, Preview/Reset/confirm) — partial: pairwise align button; no dialog
 - [ ] [P2] Implant Appearance toggles (axes, crestal planes, 3D models in 2D) + 2D implant color + selection box setting
 - [ ] [P2] Tooth-position relabel via header Properties (label-only change)
-- [ ] [P2] Localizer double-click to add implant at point
+- [x] [P2] Localizer double-click to add implant at point
 - [ ] [P2] Object groups: create dialog (two-list picker + hotkeys), group move modes (none / implants only / all objects), batch visibility/abutments/sleeves
 - [ ] [P3] Abutments: catalog tab on implant add; Edit Abutments dialog (database/user-defined/none; all-vs-selected prompt)
 - [ ] [P3] Group abutment assignment with automatic angulated-abutment selection (axis parallelization, All-on-4/6)
