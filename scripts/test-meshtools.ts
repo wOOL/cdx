@@ -166,7 +166,7 @@ async function login(): Promise<boolean> {
 	const r = await api('/login', {
 		method: 'POST',
 		headers: { origin: BASE, 'content-type': 'application/x-www-form-urlencoded' },
-		body: new URLSearchParams({ email: 'admin@becertain.ai', password: 'devpassword1' }).toString()
+		body: new URLSearchParams({ email: 'cdx@surrey.ac', password: 'devpassword1' }).toString()
 	});
 	const m = (r.headers.get('set-cookie') ?? '').match(/cdx_session=([^;]+)/);
 	if (!m) return false;

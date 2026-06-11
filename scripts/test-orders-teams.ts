@@ -44,7 +44,7 @@ async function login(): Promise<boolean> {
 	const r = await api('/login', {
 		method: 'POST',
 		headers: { origin: BASE, 'content-type': 'application/x-www-form-urlencoded' },
-		body: new URLSearchParams({ email: 'admin@becertain.ai', password: 'devpassword1' }).toString()
+		body: new URLSearchParams({ email: 'cdx@surrey.ac', password: 'devpassword1' }).toString()
 	});
 	const m = (r.headers.get('set-cookie') ?? '').match(/cdx_session=([^;]+)/);
 	if (!m) return false;
@@ -199,7 +199,7 @@ try {
 	db.query('DELETE FROM settings WHERE key = ?1').run('patient_acl');
 
 	const adminId = (
-		db.query('SELECT id FROM users WHERE email = ?1').get('admin@becertain.ai') as { id: number }
+		db.query('SELECT id FROM users WHERE email = ?1').get('cdx@surrey.ac') as { id: number }
 	).id;
 	const u2 = db
 		.query(`INSERT INTO users (email, password_hash, name) VALUES (?1, 'x', 'Edda Editor') RETURNING id`)

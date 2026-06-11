@@ -1,6 +1,6 @@
 import type { Page } from 'playwright';
 
-export const DEV_EMAIL = 'admin@becertain.ai';
+export const DEV_EMAIL = 'cdx@surrey.ac';
 export const DEV_PASSWORD = 'devpassword1';
 
 /** If the page landed on /login, sign in with the dev account (register first if needed). */

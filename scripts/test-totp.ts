@@ -32,7 +32,7 @@ check('generateSecret: 32 chars of base32 (160-bit)', /^[A-Z2-7]{32}$/.test(secr
 check('round trip: generated secret verifies its own current code', verifyCode(secret, totpCode(secret)));
 check('round trip: a second secret rejects that code', !verifyCode(generateSecret(), totpCode(secret)));
 
-const url = otpauthUrl('admin@becertain.ai', secret);
+const url = otpauthUrl('cdx@surrey.ac', secret);
 check(
 	'otpauthUrl shape',
 	url.startsWith('otpauth://totp/') &&

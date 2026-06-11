@@ -27,7 +27,7 @@ import {
 } from '../src/lib/server/aiSegVendor';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:5173';
-const EMAIL = 'admin@becertain.ai';
+const EMAIL = 'cdx@surrey.ac';
 const PASSWORD = 'devpassword1';
 
 if (!process.env.CDX_AISEG_EMAIL || !process.env.CDX_AISEG_PASSWORD) {

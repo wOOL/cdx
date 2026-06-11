@@ -207,7 +207,7 @@ async function login(): Promise<boolean> {
 		method: 'POST',
 		headers: { origin: BASE, 'content-type': 'application/x-www-form-urlencoded' },
 		body: new URLSearchParams({
-			email: 'admin@becertain.ai',
+			email: 'cdx@surrey.ac',
 			password: 'devpassword1'
 		}).toString()
 	});

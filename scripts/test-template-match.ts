@@ -26,7 +26,7 @@ import { applyMat4, type Mat4, type Point3 } from '../src/lib/registration';
 import { parseStl } from '../src/lib/server/stl';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:5173';
-const EMAIL = 'admin@becertain.ai';
+const EMAIL = 'cdx@surrey.ac';
 const PASSWORD = 'devpassword1';
 
 db.exec('PRAGMA busy_timeout = 3000');
