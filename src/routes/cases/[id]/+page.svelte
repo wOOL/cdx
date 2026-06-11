@@ -1142,6 +1142,39 @@
 							>
 						</div>
 					{/each}
+					{#if ps.lastNervePoint && ps.activeNerveId === ps.lastNervePoint.nerveId}
+						{@const pn = ps.nerves.find((n) => n.id === ps?.lastNervePoint?.nerveId)}
+						{#if pn && ps.lastNervePoint.index < pn.points.length}
+							<div class="tool-sep"></div>
+							<label class="inline-label" for="np-d">Point ⌀</label>
+							<input
+								id="np-d"
+								class="chip-num"
+								type="number"
+								min="0.5"
+								max="6"
+								step="0.5"
+								value={pn.points[ps.lastNervePoint.index].d ?? pn.diameter}
+								onchange={(e) => {
+									if (!ps?.lastNervePoint) return;
+									pn.points[ps.lastNervePoint.index].d = Number(e.currentTarget.value) || pn.diameter;
+									ps.saveNerve(pn.id);
+								}}
+							/>
+							<button
+								class="btn"
+								title="Apply this diameter to all points"
+								onclick={() => {
+									if (!ps?.lastNervePoint) return;
+									const d = pn.points[ps.lastNervePoint.index].d ?? pn.diameter;
+									for (const p of pn.points) p.d = d;
+									ps.saveNerve(pn.id);
+								}}
+							>
+								Apply to all
+							</button>
+						{/if}
+					{/if}
 					{#if ps.nerveEditMode}
 						<span class="muted">Click in the panoramic or cross-section view to add nerve points</span>
 					{/if}

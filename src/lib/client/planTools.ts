@@ -256,12 +256,13 @@ export function panoTool(ps: PlanningState, e: PanoToolEvent): boolean {
 				};
 				ps.saveNerve(nerve.id);
 			}
+			ps.lastNervePoint = { nerveId: nerve.id, index: panoDrag.index };
 			return true;
 		}
 		if (e.type === 'move' && panoDrag.kind === 'nerve-point') {
 			const p3 = panoTo3D(ps, e.u, e.zmm);
 			if (p3 && nerve.points[panoDrag.index]) {
-				nerve.points[panoDrag.index] = p3;
+				nerve.points[panoDrag.index] = { ...p3, d: nerve.points[panoDrag.index].d };
 				ps.saveNerve(nerve.id);
 			}
 			return true;
@@ -413,6 +414,7 @@ export function drawCrossOverlay(
 			const isNear = Math.abs(proj[i].v) < 1.5;
 			if (!isCrossing && !isNear) continue;
 			let q = proj[i];
+			let dmm = n.points[i].d ?? n.diameter;
 			if (isCrossing) {
 				const f = Math.abs(proj[i].v) / (Math.abs(proj[i].v) + Math.abs(proj[i + 1].v) || 1);
 				q = {
@@ -420,10 +422,12 @@ export function drawCrossOverlay(
 					v: 0,
 					zmm: proj[i].zmm + (proj[i + 1].zmm - proj[i].zmm) * f
 				};
+				const d2 = n.points[i + 1].d ?? n.diameter;
+				dmm = dmm + (d2 - dmm) * f;
 			}
 			const pc = map.toCanvas(q.w, q.zmm);
 			ctx.beginPath();
-			ctx.arc(pc.x, pc.y, Math.max(2.5, (n.diameter / 2) * map.pxPerMMx), 0, Math.PI * 2);
+			ctx.arc(pc.x, pc.y, Math.max(2.5, (dmm / 2) * map.pxPerMMx), 0, Math.PI * 2);
 			ctx.strokeStyle = n.color;
 			ctx.lineWidth = 2;
 			ctx.stroke();
@@ -502,6 +506,7 @@ export function crossTool(ps: PlanningState, e: CrossToolEvent): boolean {
 			const p3 = crossTo3D(ps, e.w, e.zmm);
 			if (!p3) return false;
 			nerve.points.push(p3);
+			ps.lastNervePoint = { nerveId: nerve.id, index: nerve.points.length - 1 };
 			ps.saveNerve(nerve.id);
 		}
 		return true;
@@ -606,8 +611,11 @@ export function drawAxialObjects(
 			if ((p1.z - zmm) * (p2.z - zmm) > 0) continue;
 			const f = Math.abs(p1.z - zmm) / (Math.abs(p1.z - zmm) + Math.abs(p2.z - zmm) || 1);
 			const q = toCanvas(p1.x + (p2.x - p1.x) * f, p1.y + (p2.y - p1.y) * f);
+			const d1 = p1.d ?? n.diameter;
+			const d2 = p2.d ?? n.diameter;
+			const dmm = d1 + (d2 - d1) * f;
 			ctx.beginPath();
-			ctx.arc(q.x, q.y, Math.max(2.5, (n.diameter / 2) * pxPerMM), 0, Math.PI * 2);
+			ctx.arc(q.x, q.y, Math.max(2.5, (dmm / 2) * pxPerMM), 0, Math.PI * 2);
 			ctx.strokeStyle = n.color;
 			ctx.lineWidth = 2;
 			ctx.stroke();

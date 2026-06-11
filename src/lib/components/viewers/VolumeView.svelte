@@ -112,16 +112,24 @@
 				roughness: 0.6,
 				metalness: 0.05
 			});
-			if (n.points.length === 1) {
-				const s = new THREE.Mesh(new THREE.SphereGeometry(n.diameter / 2, 12, 12), mat);
-				const p = n.points[0];
-				s.position.set(p.x - off.x, p.y - off.y, p.z - off.z);
+			// per-point diameters: joint spheres + connecting cones
+			const pts = n.points.map((p) => new THREE.Vector3(p.x - off.x, p.y - off.y, p.z - off.z));
+			for (let i = 0; i < pts.length; i++) {
+				const r = (n.points[i].d ?? n.diameter) / 2;
+				const s = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 12), mat);
+				s.position.copy(pts[i]);
 				objGroup.add(s);
-			} else {
-				const pts = n.points.map((p) => new THREE.Vector3(p.x - off.x, p.y - off.y, p.z - off.z));
-				const curve = new THREE.CatmullRomCurve3(pts);
-				const geo = new THREE.TubeGeometry(curve, Math.max(8, pts.length * 6), n.diameter / 2, 10);
-				objGroup.add(new THREE.Mesh(geo, mat));
+				if (i < pts.length - 1) {
+					const r2 = (n.points[i + 1].d ?? n.diameter) / 2;
+					const dir = pts[i + 1].clone().sub(pts[i]);
+					const len = dir.length();
+					if (len > 0.01) {
+						const seg = new THREE.Mesh(new THREE.CylinderGeometry(r2, r, len, 10, 1), mat);
+						seg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+						seg.position.copy(pts[i]).addScaledVector(dir, len / 2);
+						objGroup.add(seg);
+					}
+				}
 			}
 		}
 		redraw?.();
@@ -133,7 +141,10 @@
 			i.x, i.y, i.z, i.ax, i.ay, i.az, i.length, i.diameter, i.visible, i.color,
 			i.sleeve?.diameter, i.sleeve?.height, i.sleeve?.offset
 		]);
-		void ps.nerves.map((n) => [n.points.length, n.diameter, n.visible, n.color, n.points.map((p) => p.x + p.y + p.z)]);
+		void ps.nerves.map((n) => [
+			n.points.length, n.diameter, n.visible, n.color,
+			n.points.map((p) => p.x + p.y + p.z + (p.d ?? 0))
+		]);
 		void ps.selectedImplantId;
 		void ps.warnings;
 		if (sceneReady) rebuildObjects();

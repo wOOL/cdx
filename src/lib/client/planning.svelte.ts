@@ -17,13 +17,27 @@ export const WINDOW_PRESETS: WindowPreset[] = [
 	{ name: 'Metal', wc: 1500, ww: 4000 }
 ];
 
+/** nerve point with optional per-point diameter (falls back to the nerve default) */
+export type NervePoint = Vec3 & { d?: number };
+
 export interface NerveData {
 	id: number;
 	name: string;
 	color: string;
 	diameter: number;
-	points: Vec3[];
+	points: NervePoint[];
 	visible: boolean;
+}
+
+export function nervePointDiameter(n: NerveData, i: number): number {
+	return n.points[i]?.d ?? n.diameter;
+}
+
+/** conservative radius for safety distance checks: the widest point */
+export function nerveMaxRadius(n: NerveData): number {
+	let max = n.diameter;
+	for (const p of n.points) if (p.d && p.d > max) max = p.d;
+	return max / 2;
 }
 
 export interface ImplantData {
@@ -117,6 +131,8 @@ export class PlanningState {
 	activeNerveId = $state<number | null>(null);
 	nerveEditMode = $state(false);
 	selectedImplantId = $state<number | null>(null);
+	/** last added/dragged nerve point (for the point-diameter editor) */
+	lastNervePoint = $state<{ nerveId: number; index: number } | null>(null);
 	measureTool = $state<MeasureTool>('none');
 	/** in-progress measurement points (mm) */
 	pendingMeasure = $state<Vec3[]>([]);
@@ -130,7 +146,7 @@ export class PlanningState {
 			const { head, apex } = implantSegment(im);
 			for (const n of this.nerves) {
 				if (n.points.length === 0) continue;
-				const d = segPolylineDistance(head, apex, n.points) - im.diameter / 2 - n.diameter / 2;
+				const d = segPolylineDistance(head, apex, n.points) - im.diameter / 2 - nerveMaxRadius(n);
 				if (d < this.nerveSafety) {
 					out.push({ implantId: im.id, kind: 'nerve', otherId: n.id, distance: d, limit: this.nerveSafety });
 				}
@@ -158,7 +174,7 @@ export class PlanningState {
 		let nerve: number | null = null;
 		for (const n of this.nerves) {
 			if (n.points.length === 0) continue;
-			const d = segPolylineDistance(head, apex, n.points) - im.diameter / 2 - n.diameter / 2;
+			const d = segPolylineDistance(head, apex, n.points) - im.diameter / 2 - nerveMaxRadius(n);
 			nerve = nerve == null ? d : Math.min(nerve, d);
 		}
 		let implant: number | null = null;
