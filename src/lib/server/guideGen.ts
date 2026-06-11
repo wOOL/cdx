@@ -22,6 +22,7 @@
  * All coordinates are volume-local millimetres.
  */
 import { marchingCubes } from './marchingCubes';
+import { axisFrame } from '../abutmentMath';
 import { applyMat4, type Mat4 } from '../registration';
 import { segSegDistance, type Vec3 } from '../geometry';
 
@@ -35,6 +36,22 @@ export interface GuideImplant {
 	 * offset measured AGAINST the axis direction (the sleeve sits above the head).
 	 */
 	sleeve: { diameter: number; height: number; offset: number };
+	/**
+	 * Rotation-marker direction (only used with GuideParams.rotationMarkers):
+	 * unit vector in the SAME frame as head/axis, perpendicular to the axis,
+	 * pointing along the marker azimuth.
+	 *
+	 * AZIMUTH CONVENTION: the canonical direction is built by the guide
+	 * endpoint in VOLUME space as the abutment's `rotation` azimuth inside
+	 * `axisFrame(axis)`'s {u,v} plane — dir = u·cos(rot) + v·sin(rot), with
+	 * azimuth 0 (the deterministic u direction) when the implant carries no
+	 * abutment rotation — and is then rotated into the generator's insertion
+	 * frame TOGETHER with the implant axes (same rotation matrix). When the
+	 * field is absent, the generator falls back to `axisFrame(axis).u` of the
+	 * local (already-rotated) axis, which coincides with the canonical
+	 * azimuth-0 direction whenever no insertion rotation was applied.
+	 */
+	markerDir?: { x: number; y: number; z: number };
 }
 
 /** Text label on the guide top surface: embossed (raised) or impressed (engraved). */
@@ -109,6 +126,16 @@ export interface GuideParams {
 	 * sleeve top widening to +0.15 mm at the sleeve bottom.
 	 */
 	mountHoleShape?: 'cylindrical' | 'fitForm';
+	/**
+	 * Engrave a rotation marker on each sleeve mount's TOP face: a narrow
+	 * radial slot from ROT_MARKER_R0 to ROT_MARKER_R1 of the mount radius
+	 * along the implant's marker azimuth (abutment rotation when set, else
+	 * azimuth 0 — see GuideImplant.markerDir), ROT_MARKER_WIDTH wide and
+	 * ROT_MARKER_DEPTH deep (clamped so ≥0.4 mm of mount material remains
+	 * underneath, like the impressed label). Transfers the planned implant
+	 * rotation onto the guide ("use implant rotation for sleeves").
+	 */
+	rotationMarkers?: boolean;
 }
 
 export interface GuideMesh {
@@ -131,6 +158,12 @@ const MOUNT_BOTTOM_DROP = 1;
 /** fitForm press-fit clearance at the sleeve top / bottom (mm). */
 const FIT_CLEAR_TOP = 0.05;
 const FIT_CLEAR_BOTTOM = 0.15;
+/** Rotation-marker slot: radial extent as fractions of the mount radius. */
+const ROT_MARKER_R0 = 0.55;
+const ROT_MARKER_R1 = 0.95;
+/** Rotation-marker slot width / engraving depth (mm). */
+const ROT_MARKER_WIDTH = 0.8;
+const ROT_MARKER_DEPTH = 0.6;
 
 /* ------------------------------------------------------------------ */
 /* 5×7 bitmap font (A–Z, 0–9, space, dash) — rows top→bottom, 5-bit,   */
@@ -641,6 +674,64 @@ export function generateGuide(
 					// Point-to-segment distance via segSegDistance with a degenerate segment.
 					if (segSegDistance(p, p, bot, top) <= mountR) {
 						grid[k * nxny + row + i] = BODY;
+					}
+				}
+			}
+		}
+	}
+
+	// 4b'. rotation markers: engrave a narrow radial slot into each sleeve
+	// mount's TOP face along the implant's marker azimuth, so the surgeon can
+	// read the planned implant rotation off the guide. AZIMUTH CONVENTION: the
+	// slot points along markerDir — the abutment rotation azimuth in the
+	// implant's VOLUME-space axisFrame {u,v} plane (azimuth 0 = u when there
+	// is no abutment rotation), rotated into this insertion frame together
+	// with the implant axes by the caller (see GuideImplant.markerDir); the
+	// local-frame axisFrame(axis).u fallback covers direct generator calls.
+	// Depth is clamped per column so ≥0.4mm of mount material remains
+	// (same guard idea as the impressed label).
+	if (params?.rotationMarkers) {
+		for (let m = 0; m < implants.length; m++) {
+			const bot = sleeveBottoms[m];
+			const top = sleeveTops[m];
+			const mountR = implants[m].sleeve.diameter / 2 + mountWall;
+			const md = implants[m].markerDir ?? axisFrame(axes[m]).u;
+			const dl = Math.hypot(md.x, md.y);
+			if (dl < 1e-6) continue; // direction degenerate in-plane — skip marker
+			const dx = md.x / dl;
+			const dy = md.y / dl;
+			const rIn = ROT_MARKER_R0 * mountR;
+			const rOut = ROT_MARKER_R1 * mountR;
+			const half = ROT_MARKER_WIDTH / 2;
+			const mountTop = top.z + MOUNT_TOP_MARGIN;
+			const reach = rOut + half;
+			const i0 = Math.max(0, Math.floor((top.x - reach - ox) / voxel));
+			const i1 = Math.min(nx - 1, Math.ceil((top.x + reach - ox) / voxel));
+			const j0 = Math.max(0, Math.floor((top.y - reach - oy) / voxel));
+			const j1 = Math.min(ny - 1, Math.ceil((top.y + reach - oy) / voxel));
+			for (let j = j0; j <= j1; j++) {
+				const py = oy + j * voxel;
+				const row = j * nx;
+				for (let i = i0; i <= i1; i++) {
+					const px = ox + i * voxel;
+					const relX = px - top.x;
+					const relY = py - top.y;
+					const along = relX * dx + relY * dy; // radial position on the azimuth ray
+					if (along < rIn || along > rOut) continue;
+					const across = Math.abs(relY * dx - relX * dy); // distance off the ray
+					if (across > half) continue;
+					// clamp so ≥0.4mm of mount material remains in this column
+					const zs = zSurf[row + i];
+					const low =
+						zs === -Infinity
+							? bot.z - MOUNT_BOTTOM_DROP
+							: Math.min(zs + offset, bot.z - MOUNT_BOTTOM_DROP);
+					const depth = Math.min(ROT_MARKER_DEPTH, Math.max(0, mountTop - low - 0.4));
+					if (depth <= 0) continue;
+					const k0 = Math.max(0, Math.ceil((mountTop - depth - zLo) / voxel));
+					const k1 = Math.min(nz - 1, Math.floor((mountTop - zLo) / voxel) + 1);
+					for (let k = k0; k <= k1; k++) {
+						grid[k * nxny + row + i] = 0;
 					}
 				}
 			}

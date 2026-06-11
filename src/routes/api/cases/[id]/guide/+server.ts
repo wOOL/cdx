@@ -16,6 +16,8 @@ import {
 import { meshToStlBinary, parsePly, parseStl } from '$lib/server/stl';
 import { applyRot3, norm, rotationAligning, transpose3 } from '$lib/geometry';
 import { applyMat4, type Mat4 } from '$lib/registration';
+import { axisFrame } from '$lib/abutmentMath';
+import type { StoredAbutment } from '$lib/implantLibrary';
 import type { Model } from '$lib/types';
 
 /**
@@ -28,6 +30,8 @@ import type { Model } from '$lib/types';
  *    — (re)generates the guide. params may carry:
  *      offset, thickness, regionRadius, voxel, mountWall,
  *      largeConnectors, mountHoleShape ('cylindrical' | 'fitForm'),
+ *      rotationMarkers (engrave a radial implant-rotation marker on each
+ *      sleeve mount's top face, oriented by the abutment rotation azimuth),
  *      label { text, x, y, height?, depth?, style? ('embossed' | 'impressed') },
  *      supportRegions [{ x, y, radius }],
  *      contactPolygons [[{ x, y }, ...]],
@@ -104,11 +108,35 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 			sleeve = null;
 		}
 		if (!sleeve) continue;
-		withSleeves.push({
+		const guideImplant: GuideImplant = {
 			head: { x: im.x, y: im.y, z: im.z },
 			axis: { x: im.ax, y: im.ay, z: im.az },
 			sleeve
-		});
+		};
+		// Rotation-marker azimuth (params.rotationMarkers): the stored abutment's
+		// `rotation` (degrees in the implant's volume-space axisFrame {u,v} plane,
+		// CCW around the axis) when present, else azimuth 0 — the deterministic u
+		// direction. The direction vector is built here in VOLUME space and
+		// rotated into the insertion frame below, exactly like the implant axes.
+		if (Math.hypot(im.ax, im.ay, im.az) > 1e-9) {
+			let rotation = 0;
+			try {
+				const ab = im.abutment ? (JSON.parse(im.abutment) as StoredAbutment) : null;
+				if (ab && Number.isFinite(ab.rotation)) rotation = Number(ab.rotation);
+			} catch {
+				// malformed abutment JSON → azimuth 0
+			}
+			const { u, v } = axisFrame(guideImplant.axis);
+			const t = (rotation * Math.PI) / 180;
+			const cos = Math.cos(t);
+			const sin = Math.sin(t);
+			guideImplant.markerDir = {
+				x: u.x * cos + v.x * sin,
+				y: u.y * cos + v.y * sin,
+				z: u.z * cos + v.z * sin
+			};
+		}
+		withSleeves.push(guideImplant);
 	}
 	if (withSleeves.length === 0) {
 		error(400, 'No implants with sleeves — assign sleeves before generating a guide');
@@ -173,7 +201,9 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	const rotatedImplants = withSleeves.map((im) => ({
 		head: applyRot3(R, im.head),
 		axis: applyRot3(R, im.axis),
-		sleeve: im.sleeve
+		sleeve: im.sleeve,
+		// marker azimuth direction follows the implant axes into the insertion frame
+		markerDir: im.markerDir ? applyRot3(R, im.markerDir) : undefined
 	}));
 
 	// dual-scan bottom: second model of the same case supplies the intaglio
@@ -315,7 +345,10 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		contactPolygons,
 		reductionBars,
 		largeConnectors: Boolean(p.largeConnectors),
-		mountHoleShape: p.mountHoleShape === 'fitForm' ? 'fitForm' : 'cylindrical'
+		mountHoleShape: p.mountHoleShape === 'fitForm' ? 'fitForm' : 'cylindrical',
+		// engrave implant-rotation markers on the sleeve-mount top faces;
+		// persisted with the rest of body.params via the settings blob below
+		rotationMarkers: Boolean(p.rotationMarkers)
 	};
 
 	const guide = generateGuide(rotated, null, rotatedImplants, guideParams, intaglio);

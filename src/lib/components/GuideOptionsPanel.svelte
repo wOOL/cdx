@@ -11,6 +11,8 @@
 	 *  - mergeModelIds:   "Add object" — case models merged into the guide STL
 	 *    with the tool paths / windows cut through them (coDX 9.10)
 	 *  - label.height / label.depth / label.style ('embossed' | 'impressed')
+	 *  - rotationMarkers: engrave a radial implant-rotation marker on each
+	 *    sleeve mount's top face (oriented by the abutment rotation azimuth)
 	 */
 	import { FDI_LOWER, FDI_UPPER } from '$lib/implantLibrary';
 
@@ -359,6 +361,19 @@
 				onchange={(e) => setLabelStyle(e.currentTarget.checked)}
 			/>
 			Embossed (unchecked: impressed)
+		</label>
+	</div>
+	<div class="row">
+		<label
+			class="check"
+			title="Transfers the planned implant rotation onto the guide: each sleeve mount gets a small radial marker engraved on its top face, pointing along the abutment rotation azimuth (azimuth 0 when the implant has no abutment rotation)."
+		>
+			<input
+				type="checkbox"
+				checked={Boolean(params.rotationMarkers)}
+				onchange={(e) => set('rotationMarkers', e.currentTarget.checked)}
+			/>
+			Engrave rotation markers (sleeve mounts)
 		</label>
 	</div>
 

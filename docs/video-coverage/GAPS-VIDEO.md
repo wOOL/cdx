@@ -5,11 +5,17 @@ clone. The items below are the verified residual differences — interaction-sty
 or catalog-content deltas, each with a working equivalent, none blocking a user
 who follows a video. Severity per the adversarial verifier (none rated high).
 
+Follow-up (2026-06-11, same day): three items were closed on request and removed
+from the tables below — direct 3D drag/wheel manipulation of support circles and
+the guide label (hover-highlight, drag along the surface, wheel resize, red centre
+dot), rotation-marker engraving on sleeve mounts (radial slot oriented by the
+abutment rotation azimuth), and PLY vertex-color rendering (colored scans now
+display their own colors in 3D). 13 items remain.
+
 ## Interaction style (equivalent exists, different input gesture)
 
 | Item (video) | Our equivalent | Sev |
 |---|---|---|
-| Drag/wheel-resize contact circles & label directly in the 3D view (design-guide) | 3D-click placement (supports), numeric fields in Design options, FDI quick-pick, axial free-hand polygons | low |
 | Sleeve drag along implant axis in views (place-sleeve) | offset stepper per sleeve system (1–8 mm) | low |
 | Sleeve-mount ø/height fields + CTRL+wheel (expert design-guide) | mount derived from sleeve catalog + wall parameter | low |
 | Midsagittal lateral translation onto the incisal point (coordinate-system) | PCS is rotation-only by design — the panoramic curve anchors all arch-relative planning, so volume translation has no downstream effect | low |
@@ -26,8 +32,6 @@ who follows a video. Severity per the adversarial verifier (none rated high).
 |---|---|---|
 | Branded third-party sleeve entries (Camlog/Nobel/…) | open sleeve library + custom sleeve-system editor (/sleeves) instead of licensed vendor catalogs | low |
 | CARES proprietary VPE format | STL export only; the proprietary option is shown disabled with a note | low |
-| Rotation-marker engraving on sleeve mounts | not built — niche lab option; raised/impressed text labels cover identification | low |
-| PLY vertex colors / textures rendered | colored scans import fine but render in a uniform assignable color | low |
 | Partial mesh repair / boundary optimization (mesh editor) | whole-mesh Repair + local smooth + bridge cover the demonstrated outcomes | low |
 | Maxilla/Mandible prompt when providing data to the AI | per-plan jaw setting; the vendor model segments both jaws regardless | low |
 

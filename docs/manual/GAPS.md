@@ -57,12 +57,15 @@ segmentation models (§6.4).
 
 ## Residual low-severity differences (video pass)
 
+Three of the originally sixteen items were closed in a same-day follow-up:
+3D drag/wheel manipulation of support circles and the guide label, rotation-marker
+engraving on sleeve mounts, and PLY vertex-color rendering (§6.4, §6.6).
+
 Verified residuals after the stage-2 video audit (docs/video-coverage/GAPS-VIDEO.md) — each
 has a working equivalent; none blocks a user following a video. All rated low severity.
 
 | Item | Status | Why / mitigation |
 |------|--------|------------------|
-| Drag/wheel-resize support circles & label directly in the 3D view | open — interaction style | 3D-click support placement, numeric fields in Design options, FDI quick-pick, axial free-hand contact polygons (§6.6) |
 | Sleeve drag along the implant axis in the views | open — interaction style | offset stepper per sleeve system (1–8 mm, §6.5) |
 | Sleeve-mount ⌀/height fields + Ctrl+wheel | open — interaction style | mount derived from the sleeve catalog + wall parameter (§6.6) |
 | Midsagittal lateral translation onto the incisal point | open — by design | PCS is rotation-only; the panoramic curve anchors all arch-relative planning, so a volume translation has no downstream effect (§6.1) |
@@ -74,7 +77,5 @@ has a working equivalent; none blocks a user following a video. All rated low se
 | Cancel inside long mesh operations | open — interaction style | mesh ops are short synchronous calls with a busy indicator; genuinely long jobs (AI segmentation) are async with the status chip (§6.4, §6.8) |
 | Branded third-party sleeve entries (Camlog/Nobel/…) | open — catalog content | open sleeve library + custom sleeve-system editor (`/sleeves`) instead of licensed vendor catalogs |
 | CARES proprietary VPE format | open — catalog content | STL export only; the proprietary option is shown disabled with a note (§6.9) |
-| Rotation-marker engraving on sleeve mounts | open — catalog content | niche lab option; raised/impressed text labels cover identification (§6.6) |
-| PLY vertex colors / textures rendered | open — catalog content | colored scans import fine but render in a uniform assignable color |
 | Partial mesh repair / boundary optimization | open — catalog content | whole-mesh Repair + local smooth + bridge cover the demonstrated outcomes (§6.4, §6.8) |
 | Maxilla/Mandible prompt when providing data to the AI | open — by design | per-plan jaw setting; the vendor model segments both jaws regardless (§6.4) |

@@ -126,7 +126,9 @@ A matched surface scan is the basis for tooth-supported guides.
    It appears under *Models* in the object tree, and the software immediately asks how to
    align it: **Align using AI assistant** (automatic), **align manually** (jumps to the
    Align stage in point-pair mode), **copy the alignment** from an already-registered scan,
-   or **do not align yet**.
+   or **do not align yet**. Color intraoral scans are supported: a `.ply` file with vertex
+   colors renders with its own colors in the 3D views (the object-tree color then applies
+   only to its 2D contours); monochrome scans use the assignable model color as before.
 2. In the **Align stage**, pick the scan in *Match scan* and add **at least three point
    pairs**: click a distinctive spot on the scan in the 3D view, then the same anatomical
    spot in a slice view. **Align** computes the registration; **Refine fit (ICP)** optimizes
@@ -373,8 +375,15 @@ Open the **Guide stage**:
      windows are cut **through the merged geometry** as well, so the tool paths stay open.
    - The **label** identifies the guide on the printed part: type free text or click one of
      the **presets** built from the case (patient name, patient ID, date), position it with
-     the X/Y fields, and set **text height** and **relief depth**. The *Embossed* checkbox
-     switches between raised lettering and **impressed** (engraved) lettering.
+     the X/Y fields — or drag its yellow handle directly in the 3D view (mouse wheel over
+     the handle changes the text height) — and set **text height** and **relief depth**.
+     The *Embossed* checkbox switches between raised lettering and **impressed** (engraved)
+     lettering.
+   - **Engrave rotation markers (sleeve mounts)** engraves a small radial slot
+     (≈0.8 × 0.6 mm, from 55 % to 95 % of the mount radius) into the top face of each
+     sleeve mount, pointing along the implant's abutment rotation azimuth (or the reference
+     direction when no abutment rotation is planned), so the planned implant rotation can
+     be transferred through the guide during surgery.
    - **Support regions** can be added numerically, by clicking the FDI **tooth quick-pick**
      (a support circle drops at that tooth's position along the arch), or directly in 3D —
      see below.
@@ -397,6 +406,10 @@ generating:
   support/connection circle at that spot (the radius is adjustable in the toolbar). This is
   the natural way to set the manual connection points of a dual-scan guide; each click adds
   one circle, and the circles remain editable as support regions in *Design options*.
+  Placed circles stay live in the 3D view: hover one (it highlights yellow, with a red
+  centre dot like the original), **drag** it along the model surface to reposition it, and
+  roll the **mouse wheel** over it to grow or shrink the radius — the view only orbits
+  while no circle is grabbed.
 - **Draw contact area** — collect a free-hand polygon on the **axial view**: click the
   outline point by point (live preview), then **Finish area** to store it. The polygon
   becomes a contact area of the guide — material is kept there even where the standard

@@ -1713,6 +1713,49 @@
 	let supportMode = $state(false);
 	let supportRadius = $state(4);
 
+	// draggable 3D handles for the support circles + guide label (guide stage)
+	const guideHandles3d = $derived.by(() => {
+		if (stage !== 'guide' || !ps) return null;
+		const supports = Array.isArray(guideAdvanced.supportRegions)
+			? (guideAdvanced.supportRegions as { x: number; y: number; radius: number }[])
+			: [];
+		const l = guideAdvanced.label as
+			| { text?: string; x?: number; y?: number; height?: number }
+			| undefined;
+		const label =
+			l && Number.isFinite(l.x) && Number.isFinite(l.y)
+				? { x: Number(l.x), y: Number(l.y), text: String(l.text ?? ''), height: Number(l.height ?? 4) }
+				: null;
+		return supports.length || label ? { supports, label } : null;
+	});
+
+	function guideHandleMove(kind: 'support' | 'label', index: number, x: number, y: number) {
+		if (kind === 'support') {
+			const r = (guideAdvanced.supportRegions as { x: number; y: number }[] | undefined)?.[index];
+			if (r) {
+				r.x = x;
+				r.y = y;
+			}
+		} else {
+			const l = guideAdvanced.label as { x?: number; y?: number } | undefined;
+			if (l) {
+				l.x = x;
+				l.y = y;
+			}
+		}
+	}
+
+	function guideHandleResize(kind: 'support' | 'label', index: number, delta: number) {
+		if (kind === 'support') {
+			const r = (guideAdvanced.supportRegions as { radius: number }[] | undefined)?.[index];
+			if (r) r.radius = Math.max(2, Math.min(12, (Number(r.radius) || 4) + delta));
+		} else {
+			const l = guideAdvanced.label as { height?: number } | undefined;
+			if (l) l.height = Math.max(2, Math.min(10, (Number(l.height) || 4) + delta));
+		}
+		saveGuideAdvanced();
+	}
+
 	// free-hand contact-area drawing on the axial view (closed polygon, mm)
 	let contactDrawMode = $state(false);
 	let contactDraft = $state<{ x: number; y: number }[]>([]);
@@ -4394,7 +4437,15 @@
 			{:else}
 				<div class="view-grid grid-2x2">
 					<div class="view panel" class:cell-max={maximized === 'd3d'} class:cell-hidden={maximized && maximized !== 'd3d'}>
-						<VolumeView state={ps} onMeshClick={onGuideMeshClick} bind:this={defaultVolView} />
+						<VolumeView
+							state={ps}
+							onMeshClick={onGuideMeshClick}
+							bind:this={defaultVolView}
+							guideHandles={guideHandles3d}
+							onHandleMove={guideHandleMove}
+							onHandleResize={guideHandleResize}
+							onHandleDone={saveGuideAdvanced}
+						/>
 						{@render maxBtn('d3d')}
 					</div>
 					<div class="view panel" class:cell-max={maximized === 'dax'} class:cell-hidden={maximized && maximized !== 'dax'}>
@@ -5783,6 +5834,9 @@
 		padding: 4px 2px;
 		flex: none;
 		min-height: 34px;
+		/* busy stages (guide) wrap instead of widening the workspace */
+		flex-wrap: wrap;
+		row-gap: 4px;
 	}
 	.tool-sep {
 		width: 1px;

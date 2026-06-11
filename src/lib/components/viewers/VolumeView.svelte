@@ -10,7 +10,11 @@
 	let {
 		state: ps,
 		onMeshClick,
-		forceClipAxial = false
+		forceClipAxial = false,
+		guideHandles = null,
+		onHandleMove,
+		onHandleResize,
+		onHandleDone
 	}: {
 		state: PlanningState;
 		/** externally force the axial clip plane (PCS dialog horizontal 3D cut) */
@@ -21,6 +25,17 @@
 			scanLocal: { x: number; y: number; z: number };
 			volumeLocal: { x: number; y: number; z: number };
 		}) => void;
+		/** draggable guide-design handles (support circles + label), volume-local mm */
+		guideHandles?: {
+			supports: { x: number; y: number; radius: number }[];
+			label: { x: number; y: number; text: string; height: number } | null;
+		} | null;
+		/** continuous while dragging a handle on the model surface */
+		onHandleMove?: (kind: 'support' | 'label', index: number, x: number, y: number) => void;
+		/** wheel over a handle: delta is ±0.5 mm */
+		onHandleResize?: (kind: 'support' | 'label', index: number, delta: number) => void;
+		/** drag finished — persist */
+		onHandleDone?: () => void;
 	} = $props();
 
 	/** read vertex positions of a loaded model (scan-local coords) */
@@ -243,6 +258,172 @@
 	let modelGroup: THREE.Group | null = null;
 	const modelMeshes = new Map<number, THREE.Mesh>();
 
+	// ---------- draggable guide-design handles (supports + label) ----------
+	let handleGroup: THREE.Group | null = null;
+	let hoveredHandle: { kind: 'support' | 'label'; index: number } | null = null;
+	let draggingHandle: { kind: 'support' | 'label'; index: number } | null = null;
+	const HANDLE_BLUE = 0x59b8e0;
+	const HANDLE_HOVER = 0xf0dc3c;
+
+	/** volume-local z of the highest model surface at (x, y); fallback: volume mid */
+	function surfaceZAt(x: number, y: number): number {
+		if (!modelGroup) return volHalfExtent.z;
+		const top = modelGroup.localToWorld(new THREE.Vector3(x, y, volHalfExtent.z * 2 + 60));
+		const bottom = modelGroup.localToWorld(new THREE.Vector3(x, y, -60));
+		const dir = bottom.sub(top.clone()).normalize();
+		const ray = new THREE.Raycaster(top, dir);
+		const meshes = [...modelMeshes.values()].filter((m) => m.geometry && m.visible);
+		const hits = ray.intersectObjects(meshes, false);
+		if (!hits.length) return volHalfExtent.z;
+		return modelGroup.worldToLocal(hits[0].point.clone()).z;
+	}
+
+	function makeLabelSprite(text: string, heightMm: number): THREE.Sprite {
+		const cv = document.createElement('canvas');
+		cv.width = 256;
+		cv.height = 64;
+		const ctx = cv.getContext('2d')!;
+		ctx.fillStyle = 'rgba(11, 13, 16, 0.72)';
+		ctx.fillRect(0, 0, cv.width, cv.height);
+		ctx.fillStyle = '#f0dc3c';
+		ctx.font = 'bold 34px Inter, sans-serif';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText(text || 'Label', cv.width / 2, cv.height / 2);
+		const sprite = new THREE.Sprite(
+			new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false })
+		);
+		const h = Math.max(2, heightMm) * 1.6;
+		sprite.scale.set(h * 4, h, 1);
+		return sprite;
+	}
+
+	/** rebuild the handle meshes from the prop (skipped mid-drag — the drag moves them live) */
+	function rebuildHandles(): void {
+		if (!modelGroup) return;
+		if (!handleGroup) {
+			handleGroup = new THREE.Group();
+			modelGroup.add(handleGroup);
+		}
+		for (const c of [...handleGroup.children]) {
+			handleGroup.remove(c);
+		}
+		hoveredHandle = null;
+		if (!guideHandles) {
+			redraw?.();
+			return;
+		}
+		guideHandles.supports.forEach((s, i) => {
+			const z = surfaceZAt(s.x, s.y) + 0.6;
+			const ring = new THREE.Mesh(
+				new THREE.TorusGeometry(s.radius, 0.35, 8, 40),
+				new THREE.MeshBasicMaterial({ color: HANDLE_BLUE, depthTest: false })
+			);
+			ring.position.set(s.x, s.y, z);
+			ring.renderOrder = 10;
+			ring.userData.handle = { kind: 'support', index: i };
+			// invisible disc = generous hit/hover area
+			const hit = new THREE.Mesh(
+				new THREE.CircleGeometry(Math.max(s.radius, 2.5), 24),
+				new THREE.MeshBasicMaterial({ visible: false })
+			);
+			hit.position.set(s.x, s.y, z);
+			hit.userData.handle = { kind: 'support', index: i };
+			// red centre dot, original-style
+			const dot = new THREE.Mesh(
+				new THREE.SphereGeometry(0.6, 10, 10),
+				new THREE.MeshBasicMaterial({ color: 0xd84a4a, depthTest: false })
+			);
+			dot.position.set(s.x, s.y, z);
+			dot.renderOrder = 11;
+			handleGroup!.add(ring, hit, dot);
+		});
+		if (guideHandles.label) {
+			const l = guideHandles.label;
+			const z = surfaceZAt(l.x, l.y) + 3;
+			const sprite = makeLabelSprite(l.text, l.height);
+			sprite.position.set(l.x, l.y, z);
+			sprite.renderOrder = 12;
+			sprite.userData.handle = { kind: 'label', index: 0 };
+			handleGroup.add(sprite);
+		}
+		redraw?.();
+	}
+
+	$effect(() => {
+		// re-key on content; mid-drag rebuilds are skipped (drag moves meshes directly)
+		const key = guideHandles
+			? JSON.stringify([guideHandles.supports, guideHandles.label])
+			: null;
+		void key;
+		if (draggingHandle) return;
+		rebuildHandles();
+	});
+
+	function pickHandle(e: PointerEvent | WheelEvent): { kind: 'support' | 'label'; index: number } | null {
+		if (!handleGroup || !cameraRef || !guideHandles) return null;
+		const el = (e.currentTarget ?? e.target) as HTMLElement;
+		const rect = el.getBoundingClientRect();
+		const ndc = new THREE.Vector2(
+			((e.clientX - rect.left) / rect.width) * 2 - 1,
+			-((e.clientY - rect.top) / rect.height) * 2 + 1
+		);
+		const ray = new THREE.Raycaster();
+		ray.setFromCamera(ndc, cameraRef);
+		const hits = ray.intersectObjects(handleGroup.children, false);
+		for (const h of hits) {
+			const hd = h.object.userData.handle;
+			if (hd) return hd as { kind: 'support' | 'label'; index: number };
+		}
+		return null;
+	}
+
+	/** drag target: model surface point (volume-local), plane fallback off-mesh */
+	function dragPoint(e: PointerEvent): { x: number; y: number } | null {
+		if (!cameraRef || !modelGroup) return null;
+		const el = e.currentTarget as HTMLElement;
+		const rect = el.getBoundingClientRect();
+		const ndc = new THREE.Vector2(
+			((e.clientX - rect.left) / rect.width) * 2 - 1,
+			-((e.clientY - rect.top) / rect.height) * 2 + 1
+		);
+		const ray = new THREE.Raycaster();
+		ray.setFromCamera(ndc, cameraRef);
+		const meshes = [...modelMeshes.values()].filter((m) => m.geometry && m.visible);
+		const hits = ray.intersectObjects(meshes, false);
+		if (hits.length) {
+			const vl = modelGroup.worldToLocal(hits[0].point.clone());
+			return { x: vl.x, y: vl.y };
+		}
+		// fallback: horizontal plane through the volume middle
+		const planePoint = modelGroup.localToWorld(new THREE.Vector3(0, 0, volHalfExtent.z));
+		const planeNormal = modelGroup
+			.localToWorld(new THREE.Vector3(0, 0, 1))
+			.sub(modelGroup.localToWorld(new THREE.Vector3(0, 0, 0)))
+			.normalize();
+		const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(planeNormal, planePoint);
+		const pt = new THREE.Vector3();
+		if (!ray.ray.intersectPlane(plane, pt)) return null;
+		const vl = modelGroup.worldToLocal(pt);
+		return { x: vl.x, y: vl.y };
+	}
+
+	function setHandleHover(h: { kind: 'support' | 'label'; index: number } | null): void {
+		if (!handleGroup) return;
+		hoveredHandle = h;
+		for (const c of handleGroup.children) {
+			const hd = c.userData.handle as { kind: string; index: number } | undefined;
+			if (!hd || !(c instanceof THREE.Mesh) || !(c.material instanceof THREE.MeshBasicMaterial))
+				continue;
+			if (c.material.visible === false) continue; // hit discs
+			if (c.geometry instanceof THREE.TorusGeometry || c.geometry.type === 'TorusGeometry') {
+				const active = h && h.kind === hd.kind && h.index === hd.index;
+				c.material.color.set(active ? HANDLE_HOVER : HANDLE_BLUE);
+			}
+		}
+		redraw?.();
+	}
+
 	async function loadModelMesh(id: number): Promise<void> {
 		if (modelMeshes.has(id) || !modelGroup) return;
 		const placeholder = new THREE.Mesh(); // reserve slot to avoid double-fetch
@@ -259,12 +440,20 @@
 				geometry = new STLLoader().parse(buf);
 			}
 			geometry.computeVertexNormals();
+			// PLY vertex colors (PLYLoader exposes them as a 'color' attribute):
+			// render them instead of the uniform model tint
+			const hasVertexColors = geometry.hasAttribute('color');
 			const mesh = new THREE.Mesh(
 				geometry,
-				new THREE.MeshStandardMaterial({ roughness: 0.65, metalness: 0.05 })
+				new THREE.MeshStandardMaterial({
+					roughness: 0.65,
+					metalness: 0.05,
+					vertexColors: hasVertexColors
+				})
 			);
 			mesh.matrixAutoUpdate = false;
 			mesh.userData.modelId = id;
+			mesh.userData.hasVertexColors = hasVertexColors;
 			modelMeshes.set(id, mesh);
 			modelGroup.add(mesh);
 
@@ -302,7 +491,8 @@
 			}
 			if (!mesh.geometry || !(mesh.material instanceof THREE.MeshStandardMaterial)) continue;
 			mesh.visible = m.visible;
-			mesh.material.color.set(m.color);
+			// vertex-colored scans keep their own colors (white base = no tint)
+			if (!mesh.userData.hasVertexColors) mesh.material.color.set(m.color);
 			mesh.material.transparent = m.opacity < 1;
 			mesh.material.opacity = m.opacity;
 			const arr = m.transform ?? new THREE.Matrix4().identity().toArray();
@@ -579,9 +769,68 @@
 				controls.dampingFactor = 0.12;
 				controlsRef = controls;
 
+				// guide-design handles: hover highlight, drag on the surface, wheel resize
+				renderer.domElement.addEventListener('pointermove', (e) => {
+					if (!guideHandles) return;
+					if (draggingHandle) {
+						const p = dragPoint(e);
+						if (p) {
+							// move the handle meshes live (state rebuild waits for drag end)
+							for (const c of handleGroup?.children ?? []) {
+								const hd = c.userData.handle as { kind: string; index: number } | undefined;
+								if (hd && hd.kind === draggingHandle.kind && hd.index === draggingHandle.index) {
+									c.position.x = p.x;
+									c.position.y = p.y;
+								}
+							}
+							redraw?.();
+							onHandleMove?.(draggingHandle.kind, draggingHandle.index, p.x, p.y);
+						}
+						return;
+					}
+					const h = pickHandle(e);
+					if (
+						(h?.kind ?? null) !== (hoveredHandle?.kind ?? null) ||
+						(h?.index ?? -1) !== (hoveredHandle?.index ?? -1)
+					) {
+						setHandleHover(h);
+					}
+					renderer!.domElement.style.cursor = h ? 'grab' : '';
+				});
+				renderer.domElement.addEventListener(
+					'wheel',
+					(e) => {
+						if (!guideHandles) return;
+						const h = draggingHandle ?? pickHandle(e);
+						if (!h) return;
+						e.preventDefault();
+						e.stopImmediatePropagation(); // keep OrbitControls from zooming
+						onHandleResize?.(h.kind, h.index, e.deltaY < 0 ? 0.5 : -0.5);
+					},
+					{ capture: true, passive: false }
+				);
+				renderer.domElement.addEventListener('pointerup', () => {
+					if (draggingHandle) {
+						draggingHandle = null;
+						if (controls) controls.enabled = true;
+						onHandleDone?.();
+						rebuildHandles();
+					}
+				});
+
 				// click-on-model raycast (click = pointer travel < 5px)
 				let downPos: { x: number; y: number } | null = null;
 				renderer.domElement.addEventListener('pointerdown', (e) => {
+					if (guideHandles && e.button === 0) {
+						const h = pickHandle(e);
+						if (h) {
+							draggingHandle = h;
+							setHandleHover(h);
+							if (controls) controls.enabled = false;
+							e.preventDefault();
+							return;
+						}
+					}
 					downPos = { x: e.clientX, y: e.clientY };
 				});
 				renderer.domElement.addEventListener('pointerup', (e) => {
