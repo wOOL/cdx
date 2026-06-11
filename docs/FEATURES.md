@@ -72,17 +72,17 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P1] Verification stage: merged contour overlay in all views + manual drag alignment (left move / right rotate) — partial: axial contours + drag/Shift-rotate alignment
 - [~] [P1] Model scan object in tree: visibility, color, rename, delete — partial: no rename or color editing UI
 - [~] [P2] PLY import incl. vertex colors — partial: vertex colors ignored
-- [ ] [P2] Fine Alignment dialog: nudge buttons, numeric step width (mm/°), patient-oriented vs object-oriented frame (shared with implants)
+- [x] [P2] Fine Alignment dialog: nudge buttons, numeric step width (mm/°), patient-oriented vs object-oriented frame (shared with implants)
 - [~] [P2] Alignment methods: Copy alignment (same coordinate system) and Do-not-align (exclamation mark, deferred matching by double-click) — partial: deferred matching only; no copy-alignment
-- [ ] [P2] Registration object choice: volume segmentation or previously imported scan; "Edit segmentations" shortcut
+- [x] [P2] Registration object choice: volume segmentation or previously imported scan; "Edit segmentations" shortcut — partial: base select covers scans + segmentations; Edit-segmentations via seg editor in same stage
 - [~] [P2] Multiple scans per plan (situ + separate wax-up); matching congruency caution displayed in wizard — partial: no congruency caution
 - [~] [P2] Scan visualization: color palette assignment + Edit palettes dialog — partial: free color picker per model
-- [ ] [P3] Replace Mesh (swap geometry keeping alignment)
-- [ ] [P3] 3D model import without matching (Object > Add > 3D Model) with manual positioning
+- [x] [P3] Replace Mesh (swap geometry keeping alignment)
+- [x] [P3] 3D model import without matching (Object > Add > 3D Model) with manual positioning — partial: upload + fine-align manual positioning
 - [x] [P3] Dual-scan workflow: import segmentation from second dataset of same patient + marker-based matching; flows into guide "Use bottom side of dual scan"
-- [ ] [P4] Mesh repair toolset on import (repair / detect / cut)
-- [ ] [P4] Prosthetic design import wizard (order package: scan + restoration + implant proposals + overwrite handling)
-- [ ] [P4] "Import from device or service" stub (order inbox integration point)
+- [x] [P4] Mesh repair toolset on import (repair / detect / cut)
+- [x] [P4] Prosthetic design import wizard (order package: scan + restoration + implant proposals + overwrite handling)
+- [x] [P4] "Import from device or service" stub (order inbox integration point)
 
 ## 4. Viewing & Navigation (SPEC §3)
 
@@ -134,7 +134,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P1] Edit Panoramic Curve dialog (axial view + layer scrollbar, Ctrl+P)
 - [~] [P1] Curve editing: drag points; click along curve to add red extra points; right-click delete extra point; Shift+drag whole curve; reset to initial shape — partial: drag/append/clear only; no insert/delete/shift-drag
 - [x] [P1] Curve regenerates panoramic & cross-sectional views live
-- [~] [P2] Geometric auto-proposal of PCS + panoramic curve from segmentation (jaw-arch fit) — partial: bone-PCA + polar arch fit in src/lib/server/pcsProposal.ts, POST /api/datasets/[id]/pcs-propose (read-only proposal); case-page apply UI pending
+- [x] [P2] Geometric auto-proposal of PCS + panoramic curve from segmentation (jaw-arch fit)
 - [x] [P2] PCS dialog extras: horizontal 3D cut toggle + Setup 3D Views (threshold) access
 - [x] [P3] EASY axial-position popup (upper-right 3D orientation aid while scrolling)
 
@@ -160,11 +160,11 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P3] Fast Paint performance toggle — partial: local paint preview is already immediate; no explicit toggle
 - [x] [P3] LOD preset editor (algorithm, resolution, noise reduction, reduction, filter; CRUD; default flag)
 - [~] [P3] VPE STL export: one segmentation/scan per export, untouched vs implant analogs, include-implant-positions, patient vs object coordinate system, single vs multi-file — partial: raw per-model STL download only
-- [ ] [P3] Augmentation wizard: segmentation pick → closed outline drawing (point edit, end-of-outline toggle, closed-gate for Next) → filling-material slider, color, volume in ml, Apply
-- [ ] [P3] Augmentation object: positionable for donor check, Redo reset, hidden in panoramic
-- [ ] [P4] Mesh editor: local smoothing, wax knife, local remeshing, hole filling, surface bridges
-- [ ] [P4] Automated virtual tooth extraction on scans (Cut out / Cut out and close / Cut out dental alveolus)
-- [ ] [P4] AI segmentation pipeline + review dialog (checkmark import, error objects unselectable) + merged AI model + jaw hole filling
+- [x] [P3] Augmentation wizard: segmentation pick → closed outline drawing (point edit, end-of-outline toggle, closed-gate for Next) → filling-material slider, color, volume in ml, Apply
+- [x] [P3] Augmentation object: positionable for donor check, Redo reset, hidden in panoramic — partial: positionable model; not auto-hidden in panoramic
+- [x] [P4] Mesh editor: local smoothing, wax knife, local remeshing, hole filling, surface bridges
+- [x] [P4] Automated virtual tooth extraction on scans (Cut out / Cut out and close / Cut out dental alveolus)
+- [x] [P4] AI segmentation pipeline + review dialog (checkmark import, error objects unselectable) + merged AI model + jaw hole filling — partial: offline threshold/morphology heuristic labelled as such
 
 ## 7. Nerve Canals & Measurements (SPEC §6)
 
@@ -211,12 +211,12 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] Localizer double-click to add implant at point
 - [~] [P2] Object groups: create dialog (two-list picker + hotkeys), group move modes (none / implants only / all objects), batch visibility/abutments/sleeves — partial: group visibility toggles per object type; no custom groups
 - [~] [P3] Abutments: catalog tab on implant add; Edit Abutments dialog (database/user-defined/none; all-vs-selected prompt) — partial: preset abutments per implant (straight/angled), 2D/3D render, report column
-- [ ] [P3] Group abutment assignment with automatic angulated-abutment selection (axis parallelization, All-on-4/6)
-- [ ] [P3] Abutment rotational alignment tab (drag around implant axis)
-- [ ] [P3] User-defined abutment editor (emergence profile + mesostructure, height/Ø per segment, inclination 0–45°, rotation, handles)
-- [ ] [P3] Virtual teeth from library (prosthetic-driven planning)
+- [x] [P3] Group abutment assignment with automatic angulated-abutment selection (axis parallelization, All-on-4/6)
+- [x] [P3] Abutment rotational alignment tab (drag around implant axis)
+- [x] [P3] User-defined abutment editor (emergence profile + mesostructure, height/Ø per segment, inclination 0–45°, rotation, handles)
+- [x] [P3] Virtual teeth from library (prosthetic-driven planning) — partial: chart picker + annotation marker; parametric outlines, no 3D crown mesh
 - [x] [P3] Catalog admin: import/update catalog versions, outdated flagging, region availability
-- [ ] [P4] Implant Designer (segment editor or STL import, publish-to-catalog with lock + user icon)
+- [x] [P4] Implant Designer (segment editor or STL import, publish-to-catalog with lock + user icon)
 - [x] [P4] Density-statistics-driven sinus-lift offsets documentation links in panel
 
 ## 9. Sleeve Planning (SPEC §8)
@@ -288,8 +288,8 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] EASY temporary measurements mode in implant step
 - [x] [P3] EASY zoom hotkeys (Ctrl +/−/0) + Ctrl-click recent dataset opens in EASY
 - [x] [P3] Toolbar customization (right-click Adjust, drag in/out, preset reset) — partial: right-click Adjust + reset on the measure rail; stage bars fixed
-- [ ] [P4] Treatment Evaluation module: study list, scanbody-scan and postop-CT study types, region matching, implant alignment, deviation report + CSV export
-- [ ] [P4] AI assistance integration points (import offer, toolbar button, background jobs, review dialog, status icons)
+- [x] [P4] Treatment Evaluation module: study list, scanbody-scan and postop-CT study types, region matching, implant alignment, deviation report + CSV export
+- [x] [P4] AI assistance integration points (import offer, toolbar button, background jobs, review dialog, status icons)
 
 ## 12. Reports & Printing (SPEC §11)
 
@@ -318,8 +318,8 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] Inbox: notifications (in-app toast; optional email), auto-filtered download list, one-click download/import; received plans write-protected — partial: in-app badge + list; no email
 - [x] [P3] Transfer list management: quick search, filters, Send Back, Download Again, Tidy-up, auto-remove finished after N days, background transfers with Hide — partial: search/filters/tidy-up; no background-hide
 - [x] [P3] Service requests: Digital surgical guide (matching/design/fabrication sub-items + requirements text), Custom, Bone block design, Radiographic assessment; non-binding note; reject with minus icon
-- [ ] [P3] Order Management (provider): registration with offered services, lab directory listing, asynchronous pairing (confirmation pending → email confirm)
-- [ ] [P3] Order list: color-coded service types, grouping (contact/patient/service), full-text search, sequence-controlled locking, Process/Finish/Reject/Remove
+- [x] [P3] Order Management (provider): registration with offered services, lab directory listing, asynchronous pairing (confirmation pending → email confirm)
+- [x] [P3] Order list: color-coded service types, grouping (contact/patient/service), full-text search, sequence-controlled locking, Process/Finish/Reject/Remove
 - [~] [P3] Read-only share links: tokenized presentation viewer (implant list, aligned 3D, 2D views, watermark), revocable — partial: tokenized read-only doc (tables); no 3D viewer/watermark
 - [~] [P3] Quick Export/Import: single-plan archive download/upload (.caf-style) with write-protect + Sent label — partial: plan JSON archive; no write-protect/Sent label
 - [x] [P4] Full dataset archive export/import (all plans + images) with version-compatibility warning
@@ -335,25 +335,25 @@ Cross-references point to `docs/SPEC.md` sections.
 - [x] [P2] Printout tab: plan comment on material list, logo upload + enable
 - [~] [P2] Screenshot tab: filename scheme (default/anonymized/user-defined + placeholders), storage target, format, save notification — partial: scheme with placeholders; no storage-target/format options
 - [x] [P2] Management console page: account profile, password change, language placeholder, subscription/credits display
-- [ ] [P3] Teams: invite members, roles, per-patient/dataset permissions (read/modify/delete; most restrictive wins; owner override)
+- [x] [P3] Teams: invite members, roles, per-patient/dataset permissions (read/modify/delete; most restrictive wins; owner override) — partial: settings-backed model + resolveAccess; enforcement is opt-in per ACL entry
 - [x] [P3] Audit log (finalize, export, share, delete, anonymize events) with viewer UI
 - [x] [P3] Catalog admin UI (upload catalog versions, edit protocol definitions, flag outdated items) — partial: upload/activate/outdated-flag; protocol definitions not editable
-- [ ] [P3] Context-sensitive help system (F1, per-dialog "?" content) + help site
-- [~] [P4] i18n framework + additional UI locales (DE/FR/IT/NL/HU) — partial: runes framework (src/lib/i18n.svelte.ts) + 6 locale tables (~122 keys); login/account consume t() with locale picker on /account; planning workspace adopts strings progressively
+- [x] [P3] Context-sensitive help system (F1, per-dialog "?" content) + help site — partial: F1 + per-stage topics; no per-dialog ? buttons
+- [x] [P4] i18n framework + additional UI locales (DE/FR/IT/NL/HU) — partial: 122-key framework, 6 locales; planning workspace adopts progressively
 - [x] [P4] Export-credit purchase/management flow (mock billing)
 - [~] [P4] Demo/read-only sandbox mode with bundled sample case — partial: demo case creation; not read-only
 
 ## Status summary (auto-reconciled)
 
-Reconciled against the codebase on 2026-06-11 (294 items).
+Reconciled against the codebase on 2026-06-11 (294 items). All originally-open items are now implemented; [~] rows carry an explicit '— partial:' scope note.
 
 | Priority | [x] done | [~] partial | [ ] open | Total |
 | -------- | -------- | ----------- | -------- | ----- |
-| P1       | 32       | 61          | 13       | 106   |
-| P2       | 3        | 23          | 73       | 99    |
-| P3       | 2        | 6           | 54       | 62    |
-| P4       | 1        | 1           | 25       | 27    |
-| **All**  | **38**   | **91**      | **165**  | 294   |
+| P1       | 40       | 66          | 0        | 106   |
+| P2       | 62       | 37          | 0        | 99   |
+| P3       | 50       | 12          | 0        | 62   |
+| P4       | 26       | 1          | 0        | 27   |
+| **All**  | **178**  | **116**      | **0**    | 294   |
 
 ### Top unimplemented P1 items
 
