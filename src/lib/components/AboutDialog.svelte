@@ -42,6 +42,18 @@
 			</p>
 		</div>
 		<div class="about-actions">
+			<a class="btn" href="/manual">User manual</a>
+			<button
+				class="btn"
+				type="button"
+				title="Show the first-run onboarding tour again"
+				onclick={() => {
+					localStorage.removeItem('cdx_tour_done');
+					location.assign('/');
+				}}
+			>
+				Replay tour
+			</button>
 			<button class="btn primary" type="button" onclick={onclose}>Close</button>
 		</div>
 	</div>
