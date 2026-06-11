@@ -314,6 +314,8 @@
 		void ps.selectedImplantId;
 		void ps.warnings;
 		if (sceneReady) rebuildObjects();
+		applyImplantXray();
+
 	});
 
 	// ---------- surface models (scans, segmentations, guides) ----------
@@ -629,6 +631,24 @@
 		applyMeshClipping();
 		redraw?.();
 	}
+
+	function applyImplantXray(): void {
+		if (!objGroup) return;
+		const xray = ps.implantsXray;
+		objGroup.traverse((o) => {
+			if (o instanceof THREE.Mesh && o.material instanceof THREE.Material) {
+				o.material.depthTest = !xray;
+				o.renderOrder = xray ? 999 : 0;
+			}
+		});
+	}
+
+	$effect(() => {
+		// implants drawn through surfaces (x-ray style)
+		void ps.implantsXray;
+		applyImplantXray();
+		redraw?.();
+	});
 
 	$effect(() => {
 		// hide/show the volume reconstruction (3D setup: 'Volume render')
@@ -1023,6 +1043,38 @@
 				};
 				redraw = draw;
 
+				renderer.domElement.addEventListener('dblclick', (e) => {
+					// set the orbit pivot to the clicked surface/volume point (desktop:
+					// 'set rotation point based on mouse position'); Reset view restores
+					if (!renderer || !controls) return;
+					const rect = renderer.domElement.getBoundingClientRect();
+					const ndc = new THREE.Vector2(
+						((e.clientX - rect.left) / rect.width) * 2 - 1,
+						-((e.clientY - rect.top) / rect.height) * 2 + 1
+					);
+					const ray = new THREE.Raycaster();
+					ray.setFromCamera(ndc, camera);
+					const meshes = [...modelMeshes.values()].filter((m) => m.geometry && m.visible);
+					const hits = ray.intersectObjects(meshes, false);
+					let world: THREE.Vector3 | null = hits.length ? hits[0].point.clone() : null;
+					if (!world && modelGroup) {
+						const p = marchVolume(ndc);
+						if (p) {
+							world = modelGroup.localToWorld(
+								new THREE.Vector3(
+									p.x - volHalfExtent.x,
+									p.y - volHalfExtent.y,
+									p.z - volHalfExtent.z
+								)
+							);
+						}
+					}
+					if (world) {
+						controls.target.copy(world);
+						controls.update();
+						draw();
+					}
+				});
 				controls.addEventListener('change', draw);
 
 				const resize = () => {

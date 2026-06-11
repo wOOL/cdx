@@ -256,6 +256,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
 	measure_color: '#7a8cf0',
 	line_scale: '1',
 	implant_axis_mm: '8',
+	implant_color_default: '',
 	plan_comment_on_material: '0',
 	smooth_transitions: '1',
 	nerve_safety_on: '1',

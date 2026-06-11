@@ -670,7 +670,9 @@
 			article: articleName(line, newImplant.diameter, newImplant.length),
 			diameter: newImplant.diameter,
 			length: newImplant.length,
-			color: implantColor(ps.implants.length),
+			color: /^#[0-9a-fA-F]{6}$/.test(ps.settings?.implant_color_default ?? '')
+				? ps.settings.implant_color_default
+				: implantColor(ps.implants.length),
 			head
 		});
 		implantDialog?.close();
@@ -2867,6 +2869,9 @@
 		<div class="case-title-row">
 			<span class="muted">{data.caseData.title}</span>
 			<span class="badge {data.caseData.status}">{data.caseData.status}</span>
+			<a class="btn ghost" href="/settings" title="Application settings (safety distances, view preferences, printout)">
+				<Icon name="settings" size={13} />
+			</a>
 		</div>
 	</div>
 
@@ -3542,6 +3547,10 @@
 					<label class="checkbox-row" title="Hide the CBCT volume render to see only segmentations and models">
 						<input type="checkbox" bind:checked={ps.volumeVisible} />
 						3D volume render
+					</label>
+					<label class="checkbox-row" title="Draw implants on top of bone and scans in the 3D view (x-ray style)">
+						<input type="checkbox" bind:checked={ps.implantsXray} />
+						Implants through surfaces
 					</label>
 					<label class="checkbox-row">
 						<input type="checkbox" bind:checked={ps.showCrestalPlanes} />

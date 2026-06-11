@@ -65,10 +65,10 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
 | 30 | 3D Mouse *(8)* | verifying | (3Dconnexion HID + fly-through → GAPS hardware row) |
-| 31 | Adjusting the toolbar *(–)* | pending | |
-| 32 | caseXchange registration code *(–)* | pending | |
+| 31 | Adjusting the toolbar *(10)* | verifying | stage-bar step hiding; extended quick-action catalog; full reset |
+| 32 | caseXchange registration code *(12)* | verifying | (vendor cloud onboarding → GAPS; pairing codes are the equivalent) |
 | 33 | Changing the implant color *(–)* | pending | |
-| 34 | Deleting Patient Data *(–)* | pending | |
+| 34 | Deleting Patient Data *(12)* | verifying | (two-pane delete dialog → GAPS; inline deletes are the equivalent) |
 | 35 | Distance Measurements *(–)* | pending | |
 | 36 | Exporting a Plan *(–)* | pending | |
 | 37 | Hotkeys *(–)* | pending | |

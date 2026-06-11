@@ -147,6 +147,10 @@
 						</select>
 					</div>
 					<div>
+						<label for="s-imp-color">Default implant color (empty = automatic palette)</label>
+						<input id="s-imp-color" name="implant_color_default" type="color" value={data.settings.implant_color_default || '#3aa757'} />
+					</div>
+					<div>
 						<label for="s-axis-mm">Implant axis extension (mm)</label>
 						<input id="s-axis-mm" name="implant_axis_mm" type="number" min="0" max="30" value={data.settings.implant_axis_mm} style="width:100%" />
 					</div>

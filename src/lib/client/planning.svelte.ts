@@ -137,6 +137,8 @@ export class PlanningState {
 	showImplantToothNumbers = $state(false);
 	/** 3D volume reconstruction visibility (hide to see only segmentations/models) */
 	volumeVisible = $state(true);
+	/** draw implants on top of surfaces in 3D (x-ray style) */
+	implantsXray = $state(false);
 	locked = $state(false);
 
 	// panoramic curve — control points in mm (volume-local), defined on axial slice curveZ
