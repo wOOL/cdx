@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import Icon from '$lib/components/Icon.svelte';
 	import type { Patient } from '$lib/types';
 
@@ -73,6 +73,23 @@
 	<div class="appbar-sub">Patient database</div>
 	<div class="spacer"></div>
 	{#if data.user}
+		<div class="mode-toggle" title="Work mode: EXPERT shows all tools; EASY guides step by step">
+			{#each ['expert', 'easy'] as m (m)}
+				<button
+					class:mode-active={data.user.work_mode === m}
+					onclick={async () => {
+						await fetch('/api/me', {
+							method: 'PATCH',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ work_mode: m })
+						});
+						await invalidateAll();
+					}}
+				>
+					{m.toUpperCase()}
+				</button>
+			{/each}
+		</div>
 		<span class="muted user-chip" title={data.user.email}>
 			<Icon name="patient" size={14} />
 			{data.user.name || data.user.email}
@@ -362,6 +379,23 @@
 		align-items: center;
 		gap: 6px;
 		font-size: 12px;
+	}
+	.mode-toggle {
+		display: inline-flex;
+		border: 1px solid var(--border);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+	.mode-toggle button {
+		padding: 3px 10px;
+		font-size: 10px;
+		letter-spacing: 0.06em;
+		color: var(--text-dim);
+		background: var(--bg-1);
+	}
+	.mode-toggle .mode-active {
+		background: var(--accent-dim);
+		color: #fff;
 	}
 
 	.db-layout {

@@ -53,6 +53,39 @@
 	let hasVolume = $derived(data.datasets.length > 0);
 	let stage = $state<StageKey>('data');
 	let notation = $derived((data.settings.notation === 'universal' ? 'universal' : 'fdi') as Notation);
+	let easyMode = $derived(data.user?.work_mode === 'easy');
+
+	// EASY mode step tree (maps onto the same stages)
+	const easySteps = [
+		{
+			title: '1. Prepare',
+			subs: [
+				{ key: 'data' as StageKey, label: 'Import data' },
+				{ key: 'align' as StageKey, label: 'Align & segment' },
+				{ key: 'pano' as StageKey, label: 'Panoramic curve' },
+				{ key: 'nerve' as StageKey, label: 'Nerve canals' }
+			]
+		},
+		{
+			title: '2. Implants',
+			subs: [
+				{ key: 'implant' as StageKey, label: 'Place implants' },
+				{ key: 'sleeve' as StageKey, label: 'Select sleeves' }
+			]
+		},
+		{
+			title: '3. Guide',
+			subs: [{ key: 'guide' as StageKey, label: 'Surgical guide' }]
+		}
+	];
+	const easyOrder: StageKey[] = ['data', 'align', 'pano', 'nerve', 'implant', 'sleeve', 'guide'];
+
+	function easyStep(dir: 1 | -1) {
+		const i = easyOrder.indexOf(stage);
+		const next = easyOrder[Math.max(0, Math.min(easyOrder.length - 1, i + dir))];
+		if (next !== 'data' && !hasVolume) return;
+		stage = next;
+	}
 	let ps = $derived(
 		data.datasets[0]
 			? new PlanningState(
@@ -812,7 +845,7 @@
 		</div>
 	</div>
 
-	<nav class="stage-bar">
+	<nav class="stage-bar" class:stage-bar-hidden={easyMode}>
 		{#each stages as s (s.key)}
 			{#if s.key === 'report'}
 				<a class="tool-btn" class:disabled={!hasVolume} href="/cases/{data.caseData.id}/report">
@@ -909,6 +942,50 @@
 
 <div class="workspace">
 	<aside class="object-tree panel">
+		{#if easyMode}
+			<div class="panel-header">Workflow</div>
+			<div class="easy-rail">
+				{#each easySteps as step (step.title)}
+					<div class="easy-step">
+						<div class="easy-step-title">{step.title}</div>
+						{#each step.subs as sub (sub.key)}
+							<button
+								class="easy-sub"
+								class:easy-current={stage === sub.key}
+								disabled={sub.key !== 'data' && !hasVolume}
+								onclick={() => (stage = sub.key)}
+							>
+								<span class="easy-check" class:easy-done={stageDone[sub.key]}>
+									{#if stageDone[sub.key]}<Icon name="check" size={9} />{/if}
+								</span>
+								{sub.label}
+							</button>
+						{/each}
+					</div>
+				{/each}
+				<div class="easy-step">
+					<div class="easy-step-title">4. Finish</div>
+					<a class="easy-sub" href="/cases/{data.caseData.id}/report">
+						<span class="easy-check" class:easy-done={stageDone.report}>
+							{#if stageDone.report}<Icon name="check" size={9} />{/if}
+						</span>
+						Protocol & report
+					</a>
+				</div>
+				<div class="easy-nav">
+					<button class="btn" disabled={easyOrder.indexOf(stage) <= 0} onclick={() => easyStep(-1)}>
+						<Icon name="back" size={13} /> Back
+					</button>
+					<button
+						class="btn primary"
+						disabled={easyOrder.indexOf(stage) >= easyOrder.length - 1 || !hasVolume}
+						onclick={() => easyStep(1)}
+					>
+						Next <Icon name="chevron" size={13} />
+					</button>
+				</div>
+			</div>
+		{/if}
 		<div class="panel-header">Objects</div>
 		<div class="tree">
 			<div class="tree-group">
@@ -1798,6 +1875,65 @@
 		margin-left: 24px;
 		border-left: 1px solid var(--border-soft);
 		padding-left: 24px;
+	}
+	.stage-bar-hidden {
+		display: none;
+	}
+	.easy-rail {
+		padding: 8px;
+		border-bottom: 1px solid var(--border-soft);
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.easy-step-title {
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--accent-bright);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		padding: 2px 4px;
+	}
+	.easy-sub {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		text-align: left;
+		padding: 5px 8px;
+		border-radius: var(--radius);
+		font-size: 12px;
+		color: var(--text);
+	}
+	.easy-sub:hover {
+		background: var(--bg-3);
+	}
+	.easy-sub:disabled {
+		opacity: 0.4;
+	}
+	.easy-current {
+		background: var(--accent-dim);
+		color: #fff;
+	}
+	.easy-check {
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		border: 1px solid var(--border);
+		display: inline-grid;
+		place-items: center;
+		flex: none;
+	}
+	.easy-done {
+		background: var(--green);
+		border-color: var(--green);
+		color: #fff;
+	}
+	.easy-nav {
+		display: flex;
+		gap: 6px;
+		justify-content: space-between;
+		margin-top: 4px;
 	}
 	.spacer {
 		flex: 1;
