@@ -20,12 +20,14 @@ import type { Model } from '$lib/types';
 
 const MAX_OPS = 300;
 const MAX_MARGIN_POINTS = 2000;
+const MAX_SMOOTH_CENTERS = 500;
 const OP_NAMES = new Set([
 	'smooth',
 	'remesh',
 	'fillHoles',
 	'boundarySmooth',
 	'bridge',
+	'partialFill',
 	'parts',
 	'reduce',
 	'invert',
@@ -72,6 +74,16 @@ function validateOps(raw: unknown): MeshEditOp[] {
 					if (!c) error(400, `${at}: bad center`);
 					op.center = c;
 				}
+				if (o.points != null) {
+					// select-area smoothing: union of spheres around several centers
+					if (!Array.isArray(o.points) || o.points.length < 1) {
+						error(400, `${at}: points must be a non-empty array`);
+					}
+					if (o.points.length > MAX_SMOOTH_CENTERS) error(400, `${at}: too many smooth centers`);
+					const pts = (o.points as unknown[]).map((p) => parseVec3(p));
+					if (pts.some((p) => !p)) error(400, `${at}: bad smooth center`);
+					op.points = pts as Vec3[];
+				}
 				if (o.radius != null) op.radius = posNum(o.radius, `${at}: radius`);
 				break;
 			}
@@ -82,6 +94,12 @@ function validateOps(raw: unknown): MeshEditOp[] {
 					op.center = c;
 				}
 				if (o.radius != null) op.radius = posNum(o.radius, `${at}: radius`);
+				if (o.maxEdge != null) op.maxEdge = posNum(o.maxEdge, `${at}: maxEdge`);
+				if (o.iterations != null) {
+					const it = Number(o.iterations);
+					if (!Number.isInteger(it) || it < 0 || it > 10) error(400, `${at}: iterations must be 0–10`);
+					op.iterations = it;
+				}
 				break;
 			}
 			case 'fillHoles': {
@@ -107,10 +125,11 @@ function validateOps(raw: unknown): MeshEditOp[] {
 				}
 				break;
 			}
-			case 'bridge': {
+			case 'bridge':
+			case 'partialFill': {
 				const a = parseVec3(o.a);
 				const b = parseVec3(o.b);
-				if (!a || !b) error(400, `${at}: bridge requires points a and b`);
+				if (!a || !b) error(400, `${at}: ${op.op} requires points a and b`);
 				op.a = a;
 				op.b = b;
 				break;

@@ -18,6 +18,7 @@
 	import AbutmentRotateDial from '$lib/components/AbutmentRotateDial.svelte';
 	import AbutmentEditor from '$lib/components/AbutmentEditor.svelte';
 	import VirtualToothPicker from '$lib/components/VirtualToothPicker.svelte';
+	import ImplantFinePosition from '$lib/components/ImplantFinePosition.svelte';
 	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
 	import PerioChart, { type PerioData } from '$lib/components/PerioChart.svelte';
 	import TemplateMatchDialog from '$lib/components/TemplateMatchDialog.svelte';
@@ -823,6 +824,9 @@
 			e.preventDefault();
 		} else if (e.key === 'Delete' && ps.selectedImplantId) {
 			deleteSelectedImplant();
+		} else if (e.key === 'F9') {
+			sidebarHidden = !sidebarHidden;
+			e.preventDefault();
 		} else if (e.key === 'F2') {
 			// rename the selected model (tree expansion first, then the match-scan pick)
 			const m =
@@ -1095,6 +1099,9 @@
 	let lastScanClick = $state<{ modelId: number; scanLocal: Vec3 } | null>(null);
 	let meshToolBusy = $state('');
 	let meshEditorOpen = $state(false);
+	let implantFineOpen = $state(false);
+	let sidebarHidden = $state(false);
+	let freeModelInput = $state<HTMLInputElement | null>(null);
 
 	// AI-assistant job status chip (orange hourglass while running, green check
 	// when results await review — click to open, like the original's icon)
@@ -2616,6 +2623,24 @@
 				if (ps) {
 					const m = await ps.uploadModel(f, 'scan');
 					if (!m) throw new Error(`Model import failed for ${f.name}`);
+					const tris = ps.lastUploadTriCount;
+					if (tris && tris > 320000) {
+						const target = 250000;
+						if (
+							confirm(
+								`${f.name} has ${Math.round(tris / 1000)}k triangles. Optimize the mesh to ~${Math.round(target / 1000)}k for smooth editing and guide design? (The original is kept as a backup.)`
+							)
+						) {
+							await fetch(`/api/models/${m.id}/edit`, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									ops: [{ op: 'reduce', targetPercent: Math.max(1, Math.min(100, (target / tris) * 100)) }],
+									apply: true
+								})
+							}).catch(() => {});
+						}
+					}
 					await offerScanAlignment(m.id, f.name);
 				} else {
 					const form = new FormData();
@@ -2879,7 +2904,14 @@
 	</div>
 </header>
 
-<div class="workspace">
+<div class="workspace" class:sidebar-hidden={sidebarHidden}>
+	<button
+		class="sidebar-toggle"
+		title={sidebarHidden ? 'Show the sidebar (F9)' : 'Hide the sidebar for a clean view (F9)'}
+		onclick={() => (sidebarHidden = !sidebarHidden)}
+	>
+		{sidebarHidden ? '»' : '«'}
+	</button>
 	<aside class="object-tree panel">
 		{#if easyMode}
 			<div class="panel-header">Workflow</div>
@@ -3007,6 +3039,29 @@
 			<div class="tree-group">
 				<div class="tree-group-label">
 					Models
+					<button
+						class="tree-eye group-eye"
+						title="Import a free 3D model (STL/PLY/OBJ) — placed unaligned, move it with Adjust position"
+						onclick={() => freeModelInput?.click()}
+					>
+						<Icon name="plus" size={12} />
+					</button>
+					<input
+						type="file"
+						accept=".stl,.ply,.obj"
+						hidden
+						bind:this={freeModelInput}
+						onchange={async (e) => {
+							const f = e.currentTarget.files?.[0];
+							e.currentTarget.value = '';
+							if (!f || !ps) return;
+							const m = await ps.uploadModel(f, 'other');
+							if (m) {
+								matching.modelId = m.id;
+								showFineAlign = true;
+							}
+						}}
+					/>
 					{#if ps?.models.length}
 						<button
 							class="tree-eye group-eye"
@@ -3068,6 +3123,28 @@
 									}}
 								/>
 							</label>
+							{#if m.kind === 'scan' || m.kind === 'waxup' || m.kind === 'guide'}
+								<button
+									class="btn"
+									title="Open this model in the Mesh Editor"
+									onclick={() => {
+										matching.modelId = m.id;
+										meshEditorOpen = true;
+									}}
+								>
+									Edit mesh…
+								</button>
+							{/if}
+							<button
+								class="btn"
+								title="Move/rotate this model with numeric step nudges (patient or object frame)"
+								onclick={() => {
+									matching.modelId = m.id;
+									showFineAlign = true;
+								}}
+							>
+								Adjust position…
+							</button>
 							<label class="mp-row">
 								<span>Opacity</span>
 								<input
@@ -4088,6 +4165,14 @@
 						>
 							{selectedImplant.locked ? '🔒 Locked' : '🔓 Lock'}
 						</button>
+						<button
+							class="btn"
+							class:primary={implantFineOpen}
+							title="Fine positioning: step nudges in the implant frame (M/D, B/L, depth, tilts around shoulder or tip)"
+							onclick={() => (implantFineOpen = !implantFineOpen)}
+						>
+							Fine…
+						</button>
 						<input
 							type="color"
 							class="implant-color"
@@ -4747,6 +4832,18 @@
 			showAbutmentEditor = false;
 		}}
 		onclose={() => (showAbutmentEditor = false)}
+	/>
+{/if}
+
+{#if implantFineOpen && ps && selectedImplant}
+	<ImplantFinePosition
+		implant={selectedImplant}
+		onapply={() => {
+			if (!ps || !selectedImplant) return;
+			ps.markEdit();
+			ps.saveImplant(selectedImplant.id);
+		}}
+		onclose={() => (implantFineOpen = false)}
 	/>
 {/if}
 
@@ -5656,7 +5753,30 @@
 		gap: 8px;
 		padding: 8px;
 		min-height: 0;
+		position: relative;
 	}
+	.workspace.sidebar-hidden {
+		grid-template-columns: 0 1fr;
+	}
+	.workspace.sidebar-hidden .object-tree {
+		display: none;
+	}
+	.sidebar-toggle {
+		position: absolute;
+		left: 0;
+		top: 50%;
+		z-index: 30;
+		width: 16px;
+		height: 48px;
+		border: 1px solid var(--border, #2c3142);
+		border-left: none;
+		border-radius: 0 6px 6px 0;
+		background: var(--panel, #1b1f2a);
+		color: inherit;
+		cursor: pointer;
+		padding: 0;
+	}
+
 	.object-tree {
 		display: flex;
 		flex-direction: column;

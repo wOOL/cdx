@@ -155,6 +155,8 @@ export class PlanningState {
 	selectedImplantId = $state<number | null>(null);
 	/** last added/dragged nerve point (for the point-diameter editor) */
 	lastNervePoint = $state<{ nerveId: number; index: number } | null>(null);
+	/** triangle count of the most recent uploadModel (import-time optimize offer) */
+	lastUploadTriCount: number | null = null;
 	showNervePointNumbers = $state(false);
 	showCrestalPlanes = $state(false);
 	showSelectionBox = $state(true);
@@ -707,7 +709,8 @@ export class PlanningState {
 		form.append('name', file.name.replace(/\.(stl|ply|obj)$/i, ''));
 		const res = await fetch(`/api/cases/${caseId}/models`, { method: 'POST', body: form });
 		if (!res.ok) return null;
-		const { model } = await res.json();
+		const { model, triCount } = await res.json();
+		this.lastUploadTriCount = typeof triCount === 'number' ? triCount : null;
 		const data: ModelData = {
 			id: model.id,
 			name: model.name,

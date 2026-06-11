@@ -22,6 +22,9 @@
 		/** point sprite size in px (0 hides the points) */
 		size?: number;
 	}
+
+	/** Surface (default), surface + wireframe overlay, or wireframe only. */
+	export type MeshViewMode = 'surface' | 'edges' | 'wire';
 </script>
 
 <script lang="ts">
@@ -30,9 +33,18 @@
 	 * "3D objects" step and the Mesh Editor window: flat-shaded triangle
 	 * soups, orbit + zoom, per-mesh color/visibility/transform. Optional
 	 * extras for the editor: `raised` meshes (polygon-offset highlight),
+	 * per-mesh `opacity` (blended, depth-write off), wireframe view modes
+	 * (`viewMode`, edges as gl.LINES of the triangle edges),
 	 * point/polyline overlays, and pick-on-mesh — a click (when `pickActive`)
 	 * is raycast against the visible soups with a linear Möller–Trumbore
 	 * pass (no BVH; fine for display meshes) and reported via `onpick`.
+	 * Editor interactions: ctrl+wheel → `onToolWheel` (tool radius) instead
+	 * of zoom; double-click re-pivots the orbit on the clicked surface point
+	 * (unless `ondblpick` consumes it); a left-drag that starts on the mesh
+	 * while `paintActive` streams throttled `onpaint` hits along the path
+	 * (orbit still works from empty background); `editPoints` are draggable
+	 * markers (left-drag moves via `onpointdrag`, right-click removes via
+	 * `onpointremove`).
 	 * Intentionally independent of the planning viewers (no three.js scene
 	 * graph — one shader, one VBO pair per mesh).
 	 */
@@ -44,14 +56,38 @@
 		height = 340,
 		overlays = [],
 		pickActive = false,
-		onpick = undefined
+		onpick = undefined,
+		viewMode = 'surface',
+		onToolWheel = undefined,
+		ondblpick = undefined,
+		paintActive = false,
+		paintStepMm = 1,
+		onpaint = undefined,
+		onpaintend = undefined,
+		editPoints = undefined,
+		onpointdrag = undefined,
+		onpointremove = undefined
 	}: {
-		meshes: (WizardMesh & { raised?: boolean })[];
+		meshes: (WizardMesh & { raised?: boolean; opacity?: number })[];
 		resetTick?: number;
 		height?: number;
 		overlays?: CanvasOverlay[];
 		pickActive?: boolean;
 		onpick?: (hit: MeshPickHit | null) => void;
+		viewMode?: MeshViewMode;
+		/** ctrl+wheel over the canvas: adjust the active tool's radius (+1 = grow) */
+		onToolWheel?: (dir: 1 | -1) => void;
+		/** double-click resolved against the mesh; return true to consume (skips the pivot change) */
+		ondblpick?: (hit: MeshPickHit | null) => boolean;
+		/** drag-to-paint: left-drag starting on the mesh streams hits, throttled to paintStepMm */
+		paintActive?: boolean;
+		paintStepMm?: number;
+		onpaint?: (hit: MeshPickHit) => void;
+		onpaintend?: () => void;
+		/** draggable overlay points (e.g. margin line): left-drag moves, right-click removes */
+		editPoints?: { x: number; y: number; z: number }[];
+		onpointdrag?: (index: number, hit: MeshPickHit) => void;
+		onpointremove?: (index: number) => void;
 	} = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);

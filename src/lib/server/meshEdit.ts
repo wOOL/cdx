@@ -7,7 +7,10 @@
  * triangles (repeated welded vertices) are dropped on output.
  *
  *   smooth    — Laplacian (λ = 0.5, 3 iterations) on vertices within
- *               `radius` of `center` (no center ⇒ whole mesh). mode
+ *               `radius` of `center` (no center ⇒ whole mesh). `points`
+ *               selects the union of spheres around several centers instead
+ *               (the editor's "select area" smoothing: drag marks, one op =
+ *               one undo step). mode
  *               'flatten' is the wax knife: after smoothing, selected
  *               vertices are pushed inward along their area-weighted vertex
  *               normal ("smooth with a negative offset" — removes a thin
@@ -15,13 +18,25 @@
  *               (additive wax knife). The offset is picked by `strength`
  *               A–D (0.1 / 0.2 / 0.35 / 0.5 mm, default B = 0.2 mm — the
  *               historical flatten offset).
- *   remesh    — one pass: triangles whose centroid lies within the radius
- *               and whose longest edge exceeds 2× the local mean edge
- *               length are midpoint-split (longest edge only), then one
- *               smoothing iteration runs over the region. Shared split
+ *   remesh    — without `maxEdge`, one pass: triangles whose centroid lies
+ *               within the radius and whose longest edge exceeds 2× the
+ *               local mean edge length are midpoint-split (longest edge
+ *               only). With `maxEdge` (mm), split passes repeat (≤ 10, with
+ *               a triangle-count safety cap) until no selected triangle's
+ *               longest edge exceeds it. Then `iterations` smoothing
+ *               iterations (default 1, 0 = none — the "strength") run over
+ *               the region. Shared split
  *               edges weld back together; if only one side of an edge
  *               splits a hairline T-junction remains (acceptable for a
  *               display mesh, documented limitation).
+ *   partialFill — closes a SEGMENT of one hole: `a` and `b` snap to the
+ *               nearest boundary vertices (b on the same loop as a), the
+ *               shorter boundary arc between them (walked in loop
+ *               direction, mm length) is filled with a triangle fan from
+ *               the arc's first vertex — i.e. the region between the arc
+ *               and the straight a–b chord. The chord becomes part of the
+ *               remaining (smaller) boundary loop, winding stays
+ *               consistent with the surrounding triangles.
  *   fillHoles — boundary loops are found via the directed-edge-use map
  *               (an edge with no reverse partner borders a hole); loops of
  *               ≤ `maxEdges` edges (default 60) are closed with a centroid
@@ -108,6 +123,7 @@ export type MeshEditOpName =
 	| 'fillHoles'
 	| 'boundarySmooth'
 	| 'bridge'
+	| 'partialFill'
 	| 'parts'
 	| 'reduce'
 	| 'invert'
@@ -127,6 +143,7 @@ export interface MeshEditOp {
 	strength?: 'A' | 'B' | 'C' | 'D';
 	center?: Vec3;
 	radius?: number;
+	/** bridge / partialFill pick points */
 	a?: Vec3;
 	b?: Vec3;
 	/** parts */
@@ -136,16 +153,21 @@ export interface MeshEditOp {
 	hole?: number;
 	exceptLargest?: boolean;
 	maxEdges?: number;
-	/** boundarySmooth (iterations 1–10, default 3; loop = listHoles index, absent ⇒ all) */
+	/**
+	 * boundarySmooth: 1–10, default 3 (loop = listHoles index, absent ⇒ all);
+	 * remesh: smoothing iterations after splitting (0–10, default 1 — the "strength")
+	 */
 	iterations?: number;
 	loop?: number;
+	/** remesh: split selected triangles until no edge exceeds this length (mm) */
+	maxEdge?: number;
 	/** reduce */
 	targetPercent?: number;
 	/** erase */
 	deep?: boolean;
 	axis?: Vec3;
 	depth?: number;
-	/** marginCut */
+	/** marginCut polyline / smooth select-area centers */
 	points?: Vec3[];
 	keep?: 'inside' | 'outside';
 	/** planeCut: keep the half-space dot(p, axis) <= d (axis defaults to +z) */
@@ -283,20 +305,28 @@ function vertexNormals(w: Welded): Float64Array {
 	return out;
 }
 
-/** Selection flags for vertices within `radius` of `center` (null ⇒ all). */
-function selectVerts(w: Welded, center: Vec3 | null, radius: number): Uint8Array {
+/** Selection flags for vertices within `radius` of ANY center (null/empty ⇒ all). */
+function selectVerts(w: Welded, centers: Vec3[] | null, radius: number): Uint8Array {
 	const n = vertexCount(w);
 	const sel = new Uint8Array(n);
-	if (!center) {
+	if (!centers || centers.length === 0) {
 		sel.fill(1);
 		return sel;
 	}
 	const r2 = radius * radius;
 	for (let v = 0; v < n; v++) {
-		const dx = w.verts[v * 3] - center.x;
-		const dy = w.verts[v * 3 + 1] - center.y;
-		const dz = w.verts[v * 3 + 2] - center.z;
-		if (dx * dx + dy * dy + dz * dz <= r2) sel[v] = 1;
+		const x = w.verts[v * 3];
+		const y = w.verts[v * 3 + 1];
+		const z = w.verts[v * 3 + 2];
+		for (const c of centers) {
+			const dx = x - c.x;
+			const dy = y - c.y;
+			const dz = z - c.z;
+			if (dx * dx + dy * dy + dz * dz <= r2) {
+				sel[v] = 1;
+				break;
+			}
+		}
 	}
 	return sel;
 }
@@ -495,13 +525,13 @@ function fillLoops(
 
 function opSmooth(
 	positions: Float32Array,
-	center: Vec3 | null,
+	centers: Vec3[] | null,
 	radius: number,
 	mode?: 'flatten' | 'add',
 	strength?: 'A' | 'B' | 'C' | 'D'
 ): MeshEditResult {
 	const w = weld(positions);
-	const sel = selectVerts(w, center, radius);
+	const sel = selectVerts(w, centers, radius);
 	const moved = smoothVerts(w, sel, 3, SMOOTH_LAMBDA);
 	const offset = WAX_STRENGTH_MM[strength ?? 'B'];
 	if (mode === 'flatten' || mode === 'add') {
@@ -522,95 +552,141 @@ function opSmooth(
 			op: 'smooth',
 			mode: mode ?? 'laplacian',
 			...(mode ? { strength: strength ?? 'B', offsetMm: offset } : {}),
+			...(centers && centers.length > 1 ? { centers: centers.length } : {}),
 			vertices: moved,
 			iterations: 3
 		}
 	};
 }
 
-function opRemesh(positions: Float32Array, center: Vec3 | null, radius: number): MeshEditResult {
+/** Safety cap: maxEdge split passes stop once the mesh grows past this. */
+const REMESH_MAX_TRIS = 1_200_000;
+const REMESH_MAX_PASSES = 10;
+
+function opRemesh(
+	positions: Float32Array,
+	center: Vec3 | null,
+	radius: number,
+	maxEdge?: number,
+	iterations = 1
+): MeshEditResult {
 	const w = weld(positions);
-	const triCount = w.tris.length / 3;
 	const r2 = radius * radius;
 
-	// selected triangles: centroid within radius (no center ⇒ all)
-	const selectedTri = new Uint8Array(triCount);
-	let edgeSum = 0;
-	let edgeCount = 0;
-	for (let t = 0; t < triCount; t++) {
+	const triInRegion = (t: number): boolean => {
+		if (!center) return true;
 		const a = w.tris[t * 3] * 3;
 		const b = w.tris[t * 3 + 1] * 3;
 		const c = w.tris[t * 3 + 2] * 3;
-		if (center) {
-			const cx = (w.verts[a] + w.verts[b] + w.verts[c]) / 3;
-			const cy = (w.verts[a + 1] + w.verts[b + 1] + w.verts[c + 1]) / 3;
-			const cz = (w.verts[a + 2] + w.verts[b + 2] + w.verts[c + 2]) / 3;
-			if (dist2(cx, cy, cz, center) > r2) continue;
+		const cx = (w.verts[a] + w.verts[b] + w.verts[c]) / 3;
+		const cy = (w.verts[a + 1] + w.verts[b + 1] + w.verts[c + 1]) / 3;
+		const cz = (w.verts[a + 2] + w.verts[b + 2] + w.verts[c + 2]) / 3;
+		return dist2(cx, cy, cz, center) <= r2;
+	};
+
+	/** One split pass: midpoint-split the longest edge of every selected triangle longer than `limit`. */
+	const splitPass = (limit: number, useRegion: boolean, selectedTri?: Uint8Array): number => {
+		const triCount = w.tris.length / 3;
+		let split = 0;
+		const newTris: number[] = [];
+		for (let t = 0; t < triCount; t++) {
+			const ids = [w.tris[t * 3], w.tris[t * 3 + 1], w.tris[t * 3 + 2]];
+			const inSel = selectedTri ? selectedTri[t] === 1 : !useRegion || triInRegion(t);
+			if (inSel && limit > 0) {
+				// find the longest edge
+				let bestLen = -1;
+				let bestE = 0;
+				for (let e = 0; e < 3; e++) {
+					const i = ids[e] * 3;
+					const j = ids[(e + 1) % 3] * 3;
+					const len = Math.hypot(
+						w.verts[i] - w.verts[j],
+						w.verts[i + 1] - w.verts[j + 1],
+						w.verts[i + 2] - w.verts[j + 2]
+					);
+					if (len > bestLen) {
+						bestLen = len;
+						bestE = e;
+					}
+				}
+				if (bestLen > limit) {
+					const i0 = ids[bestE];
+					const i1 = ids[(bestE + 1) % 3];
+					const i2 = ids[(bestE + 2) % 3];
+					const mid = addVertex(
+						w,
+						(w.verts[i0 * 3] + w.verts[i1 * 3]) / 2,
+						(w.verts[i0 * 3 + 1] + w.verts[i1 * 3 + 1]) / 2,
+						(w.verts[i0 * 3 + 2] + w.verts[i1 * 3 + 2]) / 2
+					);
+					newTris.push(i0, mid, i2, mid, i1, i2);
+					split++;
+					continue;
+				}
+			}
+			newTris.push(ids[0], ids[1], ids[2]);
 		}
-		selectedTri[t] = 1;
-		for (const [i, j] of [
-			[a, b],
-			[b, c],
-			[c, a]
-		]) {
-			edgeSum += Math.hypot(
-				w.verts[i] - w.verts[j],
-				w.verts[i + 1] - w.verts[j + 1],
-				w.verts[i + 2] - w.verts[j + 2]
-			);
-			edgeCount++;
-		}
-	}
-	const meanEdge = edgeCount > 0 ? edgeSum / edgeCount : 0;
-	const limit = 2 * meanEdge;
+		w.tris = newTris;
+		return split;
+	};
 
 	let split = 0;
-	const newTris: number[] = [];
-	for (let t = 0; t < triCount; t++) {
-		const ids = [w.tris[t * 3], w.tris[t * 3 + 1], w.tris[t * 3 + 2]];
-		if (selectedTri[t] && limit > 0) {
-			// find the longest edge
-			let bestLen = -1;
-			let bestE = 0;
-			for (let e = 0; e < 3; e++) {
-				const i = ids[e] * 3;
-				const j = ids[(e + 1) % 3] * 3;
-				const len = Math.hypot(
+	let passes = 0;
+	let meanEdge = 0;
+	if (maxEdge != null && maxEdge > 0) {
+		// explicit target: split until no selected triangle's longest edge exceeds maxEdge
+		while (passes < REMESH_MAX_PASSES && w.tris.length / 3 <= REMESH_MAX_TRIS) {
+			const n = splitPass(maxEdge, true);
+			passes++;
+			split += n;
+			if (n === 0) break;
+		}
+	} else {
+		// legacy heuristic: one pass at 2× the local mean edge length
+		const triCount = w.tris.length / 3;
+		const selectedTri = new Uint8Array(triCount);
+		let edgeSum = 0;
+		let edgeCount = 0;
+		for (let t = 0; t < triCount; t++) {
+			if (!triInRegion(t)) continue;
+			selectedTri[t] = 1;
+			const a = w.tris[t * 3] * 3;
+			const b = w.tris[t * 3 + 1] * 3;
+			const c = w.tris[t * 3 + 2] * 3;
+			for (const [i, j] of [
+				[a, b],
+				[b, c],
+				[c, a]
+			]) {
+				edgeSum += Math.hypot(
 					w.verts[i] - w.verts[j],
 					w.verts[i + 1] - w.verts[j + 1],
 					w.verts[i + 2] - w.verts[j + 2]
 				);
-				if (len > bestLen) {
-					bestLen = len;
-					bestE = e;
-				}
-			}
-			if (bestLen > limit) {
-				const i0 = ids[bestE];
-				const i1 = ids[(bestE + 1) % 3];
-				const i2 = ids[(bestE + 2) % 3];
-				const mid = addVertex(
-					w,
-					(w.verts[i0 * 3] + w.verts[i1 * 3]) / 2,
-					(w.verts[i0 * 3 + 1] + w.verts[i1 * 3 + 1]) / 2,
-					(w.verts[i0 * 3 + 2] + w.verts[i1 * 3 + 2]) / 2
-				);
-				newTris.push(i0, mid, i2, mid, i1, i2);
-				split++;
-				continue;
+				edgeCount++;
 			}
 		}
-		newTris.push(ids[0], ids[1], ids[2]);
+		meanEdge = edgeCount > 0 ? edgeSum / edgeCount : 0;
+		split = splitPass(2 * meanEdge, true, selectedTri);
+		passes = 1;
 	}
-	w.tris = newTris;
 
-	// one smoothing iteration over the (re-selected, midpoints included) region
-	const sel = selectVerts(w, center, radius);
-	const smoothed = smoothVerts(w, sel, 1, SMOOTH_LAMBDA);
+	// smoothing ("strength") over the (re-selected, midpoints included) region
+	const it = Math.max(0, Math.min(10, Math.round(iterations)));
+	const sel = selectVerts(w, center ? [center] : null, radius);
+	const smoothed = it > 0 ? smoothVerts(w, sel, it, SMOOTH_LAMBDA) : 0;
 
 	return {
 		positions: toSoup(w),
-		report: { op: 'remesh', split, meanEdgeMm: Math.round(meanEdge * 1000) / 1000, smoothedVertices: smoothed }
+		report: {
+			op: 'remesh',
+			split,
+			...(maxEdge != null && maxEdge > 0
+				? { maxEdgeMm: maxEdge, passes }
+				: { meanEdgeMm: Math.round(meanEdge * 1000) / 1000 }),
+			smoothedVertices: smoothed,
+			iterations: it
+		}
 	};
 }
 
@@ -734,6 +810,96 @@ function opBridge(positions: Float32Array, a: Vec3, b: Vec3): MeshEditResult {
 	return {
 		positions: toSoup(w),
 		report: { op: 'bridge', loopA: n, loopB: m, trianglesAdded: added }
+	};
+}
+
+/**
+ * Partial hole repair: close only a segment of ONE boundary loop. `a` snaps
+ * to the nearest boundary vertex of any loop, `b` to the nearest vertex of
+ * THAT loop. The shorter arc between them (walked in loop direction, mm
+ * length, ties → the a→b arc) is filled with a triangle fan from the arc's
+ * first vertex — the region between the arc and the straight a–b chord. Fan
+ * triangles (c[j+1], c[j], c[0]) provide the reverse of each directed
+ * boundary edge, so winding stays consistent and the chord becomes a regular
+ * boundary edge of the remaining (smaller) hole.
+ */
+function opPartialFill(positions: Float32Array, a: Vec3, b: Vec3): MeshEditResult {
+	const w = weld(positions);
+	const { loops } = sortedLoops(w);
+	if (loops.length === 0) throw new Error('Mesh has no open boundaries');
+
+	// nearest boundary vertex to a over ALL loops → picks the loop
+	let li = 0;
+	let ia = 0;
+	let best = Infinity;
+	for (let l = 0; l < loops.length; l++) {
+		const loop = loops[l];
+		for (let i = 0; i < loop.length; i++) {
+			const o = loop[i] * 3;
+			const d = dist2(w.verts[o], w.verts[o + 1], w.verts[o + 2], a);
+			if (d < best) {
+				best = d;
+				li = l;
+				ia = i;
+			}
+		}
+	}
+	const loop = loops[li];
+	const n = loop.length;
+	// nearest vertex to b on the SAME loop
+	let ib = 0;
+	best = Infinity;
+	for (let i = 0; i < n; i++) {
+		const o = loop[i] * 3;
+		const d = dist2(w.verts[o], w.verts[o + 1], w.verts[o + 2], b);
+		if (d < best) {
+			best = d;
+			ib = i;
+		}
+	}
+	if (ia === ib) throw new Error('Pick two distinct points on the same open boundary');
+
+	// arc length (mm) walking the loop direction from index `from` to `to`
+	const segLen = (from: number, to: number): number => {
+		let len = 0;
+		for (let i = from; i !== to; i = (i + 1) % n) {
+			const p = loop[i] * 3;
+			const q = loop[(i + 1) % n] * 3;
+			len += Math.hypot(
+				w.verts[p] - w.verts[q],
+				w.verts[p + 1] - w.verts[q + 1],
+				w.verts[p + 2] - w.verts[q + 2]
+			);
+		}
+		return len;
+	};
+	const lenF = segLen(ia, ib);
+	const lenB = segLen(ib, ia);
+	// the shorter arc, walked in loop direction (so its directed boundary
+	// edges run c[j] → c[j+1] like the surviving triangles' edges)
+	const start = lenF <= lenB ? ia : ib;
+	const end = lenF <= lenB ? ib : ia;
+	const chain: number[] = [];
+	for (let i = start; ; i = (i + 1) % n) {
+		chain.push(loop[i]);
+		if (i === end) break;
+	}
+	const k = chain.length;
+	if (k < 3) {
+		throw new Error('Selected boundary segment is too short to fill — pick points further apart');
+	}
+	for (let j = 1; j < k - 1; j++) {
+		w.tris.push(chain[j + 1], chain[j], chain[0]);
+	}
+	return {
+		positions: toSoup(w),
+		report: {
+			op: 'partialFill',
+			loop: li,
+			segmentEdges: k - 1,
+			segmentMm: Math.round(Math.min(lenF, lenB) * 100) / 100,
+			trianglesAdded: k - 2
+		}
 	};
 }
 
@@ -1590,13 +1756,13 @@ export function applyMeshEdit(
 		case 'smooth':
 			return opSmooth(
 				positions,
-				op.center ?? null,
+				op.points?.length ? op.points : op.center ? [op.center] : null,
 				op.radius ?? 5,
 				op.mode === 'flatten' || op.mode === 'add' ? op.mode : undefined,
 				op.strength
 			);
 		case 'remesh':
-			return opRemesh(positions, op.center ?? null, op.radius ?? 5);
+			return opRemesh(positions, op.center ?? null, op.radius ?? 5, op.maxEdge, op.iterations ?? 1);
 		case 'fillHoles':
 			return opFillHoles(positions, {
 				maxEdges: op.maxEdges,
@@ -1610,6 +1776,9 @@ export function applyMeshEdit(
 		case 'bridge':
 			if (!op.a || !op.b) throw new Error('bridge requires points a and b');
 			return opBridge(positions, op.a, op.b);
+		case 'partialFill':
+			if (!op.a || !op.b) throw new Error('partialFill requires points a and b');
+			return opPartialFill(positions, op.a, op.b);
 		case 'parts':
 			if (!op.action) throw new Error('parts requires an action');
 			return opParts(positions, op.action, op.part);
