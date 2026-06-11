@@ -1284,6 +1284,9 @@
 	{#if data.plan.approved}
 		<span class="badge finalized">approved</span>
 	{/if}
+	{#if data.plan.sent}
+		<span class="badge new" title="This plan was sent to a contact and is write-protected">sent</span>
+	{/if}
 	<div class="plan-menu-wrap">
 		<button class="plan-chip" onclick={() => (planMenuOpen = !planMenuOpen)} title="Plans">
 			{data.plan.name} <Icon name="chevron-down" size={12} />
@@ -1345,6 +1348,37 @@
 							prompt('Read-only share link (copy with Ctrl+C):', url);
 						}
 					}}>Share read-only link…</button
+				>
+				<button
+					class="plan-menu-item"
+					onclick={async () => {
+						planMenuOpen = false;
+						const res = await fetch('/api/contacts');
+						const { contacts } = res.ok ? await res.json() : { contacts: [] };
+						if (!contacts?.length) {
+							alert('No contacts yet — add one on the Contacts page first.');
+							return;
+						}
+						const list = contacts
+							.map((c: { id: number; name: string }, i: number) => `${i + 1}. ${c.name}`)
+							.join('\n');
+						const pick = prompt(`Send read-only plan to which contact?\n${list}\n\nEnter the number:`, '1');
+						const idx = Number(pick) - 1;
+						if (!Number.isInteger(idx) || !contacts[idx]) return;
+						const comment = prompt('Comment for the recipient (optional):') ?? '';
+						const send = await fetch(`/api/plans/${data.plan.id}/send`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ contactId: contacts[idx].id, comment })
+						});
+						if (send.ok) {
+							alert('Plan sent — it is now write-protected. Track it in the Inbox.');
+							await invalidateAll();
+						} else {
+							const b = await send.json().catch(() => null);
+							alert(b?.message ?? 'Send failed');
+						}
+					}}>Send to contact…</button
 				>
 				<a
 					class="plan-menu-item"

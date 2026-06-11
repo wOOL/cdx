@@ -96,6 +96,12 @@
 			{data.user.name || data.user.email}
 		</span>
 	{/if}
+	<a class="btn ghost inbox-link" href="/inbox" title="Inbox — plan transfers & service requests">
+		<Icon name="case" size={16} />
+		{#if data.inboxUnread > 0}<span class="inbox-badge">{data.inboxUnread}</span>{/if}
+	</a>
+	<a class="btn ghost" href="/contacts" title="Contacts"><Icon name="patient-add" size={16} /></a>
+	<a class="btn ghost" href="/account" title="Account"><Icon name="patient" size={16} /></a>
 	<a class="btn ghost" href="/settings" title="Settings"><Icon name="settings" /></a>
 	<form method="POST" action="/logout">
 		<button class="btn ghost" title="Sign out"><Icon name="export" size={16} /></button>
@@ -437,6 +443,23 @@
 	.mode-toggle .mode-active {
 		background: var(--accent-dim);
 		color: #fff;
+	}
+	.inbox-link {
+		position: relative;
+	}
+	.inbox-badge {
+		position: absolute;
+		top: -2px;
+		right: -2px;
+		background: var(--accent-2);
+		color: #fff;
+		font-size: 9px;
+		min-width: 14px;
+		height: 14px;
+		border-radius: 7px;
+		display: grid;
+		place-items: center;
+		padding: 0 3px;
 	}
 
 	.db-layout {
