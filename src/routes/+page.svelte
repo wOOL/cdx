@@ -34,6 +34,26 @@
 		return `${Math.floor(diff / 3.15576e10)} y`;
 	}
 
+	let importInput: HTMLInputElement | undefined = $state();
+	let importing = $state(false);
+
+	async function importCase(file: File) {
+		importing = true;
+		try {
+			const form = new FormData();
+			form.append('file', file);
+			const res = await fetch('/api/import-case', { method: 'POST', body: form });
+			const body = await res.json().catch(() => null);
+			if (!res.ok) {
+				alert(body?.message ?? 'Import failed');
+				return;
+			}
+			await goto(`/cases/${body.caseId}`);
+		} finally {
+			importing = false;
+		}
+	}
+
 	let searchTimer: ReturnType<typeof setTimeout>;
 	function onSearchInput() {
 		clearTimeout(searchTimer);
@@ -85,6 +105,17 @@
 					<span>Delete</span>
 				</button>
 			</form>
+			<button class="tool-btn" onclick={() => importInput?.click()} title="Import a case archive (.zip)">
+				<Icon name="import" size={22} />
+				<span>{importing ? '…' : 'Import'}</span>
+			</button>
+			<input
+				type="file"
+				accept=".zip"
+				hidden
+				bind:this={importInput}
+				onchange={(e) => e.currentTarget.files?.[0] && importCase(e.currentTarget.files[0])}
+			/>
 		</div>
 
 		<div class="search-row">

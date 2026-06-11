@@ -41,9 +41,13 @@
 	let fetchSeq = 0;
 	let fetchTimer: ReturnType<typeof setTimeout> | undefined;
 
+	// cross = perpendicular to the curve; tangential = along the curve direction
+	let orientation = $state<'cross' | 'tangential'>('cross');
+
 	$effect(() => {
 		const c = ps.curve;
 		const u = ps.crossU;
+		const orient = orientation;
 		clearTimeout(fetchTimer);
 		if (!c) {
 			img = null;
@@ -51,7 +55,7 @@
 		}
 		const i = indexAtLength(c, u);
 		const origin = c.points[i];
-		const dir = c.normals[i];
+		const dir = orient === 'cross' ? c.normals[i] : c.tangents[i];
 		const seq = ++fetchSeq;
 		fetchTimer = setTimeout(async () => {
 			loading = true;
@@ -104,17 +108,21 @@
 		ctx.stroke();
 		ctx.setLineDash([]);
 
-		overlayDraw?.(ctx, t, { stepMM, width: img.width, height: img.height });
+		if (orientation === 'cross') {
+			overlayDraw?.(ctx, t, { stepMM, width: img.width, height: img.height });
+		}
 
 		ctx.fillStyle = 'rgba(216, 220, 228, 0.85)';
 		ctx.font = '11px Inter, sans-serif';
 		ctx.fillText(`@ ${ps.crossU.toFixed(1)} mm`, 8, canvas.height - 8);
-		// B/L orientation: normal points left of travel; with a counterclockwise-drawn
-		// arch (right→left), the normal points buccally (outward)
-		ctx.fillStyle = 'rgba(138, 145, 160, 0.9)';
-		ctx.font = '10px Inter, sans-serif';
-		ctx.fillText('B', canvas.width - 14, canvas.height / 2);
-		ctx.fillText('L', 6, canvas.height / 2);
+		if (orientation === 'cross') {
+			// B/L orientation: normal points left of travel; with a counterclockwise-drawn
+			// arch (right→left), the normal points buccally (outward)
+			ctx.fillStyle = 'rgba(138, 145, 160, 0.9)';
+			ctx.font = '10px Inter, sans-serif';
+			ctx.fillText('B', canvas.width - 14, canvas.height / 2);
+			ctx.fillText('L', 6, canvas.height / 2);
+		}
 	}
 
 	$effect(() => {
@@ -186,7 +194,14 @@
 		onpointerup={onPointerUp}
 		oncontextmenu={(e) => e.preventDefault()}
 	></canvas>
-	<div class="view-label">Cross section</div>
+	<div class="view-label">{orientation === 'cross' ? 'Cross section' : 'Tangential'}</div>
+	<button
+		class="orient-toggle"
+		title="Toggle cross-section / tangential"
+		onclick={() => (orientation = orientation === 'cross' ? 'tangential' : 'cross')}
+	>
+		{orientation === 'cross' ? '⊥' : '∥'}
+	</button>
 	{#if !ps.curve}
 		<div class="cross-hint muted">Requires a panoramic curve.</div>
 	{/if}
@@ -221,5 +236,26 @@
 		display: grid;
 		place-items: center;
 		pointer-events: none;
+	}
+	.orient-toggle {
+		position: absolute;
+		top: 4px;
+		right: 6px;
+		width: 22px;
+		height: 22px;
+		border-radius: 3px;
+		border: 1px solid var(--border);
+		background: var(--bg-2);
+		color: var(--text-dim);
+		font-size: 13px;
+		opacity: 0.4;
+		transition: opacity 0.15s;
+	}
+	.cross-view:hover .orient-toggle {
+		opacity: 1;
+	}
+	.orient-toggle:hover {
+		color: var(--text);
+		border-color: var(--accent-dim);
 	}
 </style>

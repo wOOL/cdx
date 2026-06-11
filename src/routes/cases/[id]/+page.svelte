@@ -701,6 +701,13 @@
 	</nav>
 
 	<div class="spacer"></div>
+	<a
+		class="btn ghost"
+		href="/api/cases/{data.caseData.id}/export"
+		title="Export case archive (zip)"
+	>
+		<Icon name="export" size={16} />
+	</a>
 	{#if ps?.locked}
 		<span class="badge planning" title="This plan is locked — editing disabled">🔒 locked</span>
 	{/if}
