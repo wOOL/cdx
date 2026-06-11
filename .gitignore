@@ -25,3 +25,8 @@ vite.config.ts.timestamp-*
 # coDiagnostiX data
 /data
 /docs/research
+
+# large generated test datasets (regenerate via scripts/make-synthetic-dicom.ts)
+/testdata/synthetic-cbct-large
+/testdata/synthetic-cbct-large.zip
+/testdata/synthetic-cbct

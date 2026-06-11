@@ -10,11 +10,13 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { zipSync } from 'fflate';
 
-const COLS = 256;
-const ROWS = 256;
-const SLICES = 160;
-const SPACING = 0.4; // mm, isotropic
-const OUT_DIR = 'testdata/synthetic-cbct';
+// usage: bun run scripts/make-synthetic-dicom.ts [cols rows slices spacing outdir]
+const argv = process.argv.slice(2);
+const COLS = Number(argv[0]) || 256;
+const ROWS = Number(argv[1]) || 256;
+const SLICES = Number(argv[2]) || 160;
+const SPACING = Number(argv[3]) || 0.4; // mm, isotropic
+const OUT_DIR = argv[4] || 'testdata/synthetic-cbct';
 
 // ---------------- DICOM writer (explicit VR LE) ----------------
 
@@ -272,7 +274,7 @@ for (let k = 0; k < SLICES; k++) {
 }
 
 const zipped = zipSync(zipEntries, { level: 6 });
-await Bun.write('testdata/synthetic-cbct.zip', zipped);
+await Bun.write(`${OUT_DIR}.zip`, zipped);
 console.log(
 	`Wrote ${SLICES} slices (${COLS}×${ROWS}, ${SPACING}mm) to ${OUT_DIR} and testdata/synthetic-cbct.zip (${(zipped.length / 1e6).toFixed(1)} MB)`
 );
