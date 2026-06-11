@@ -35,7 +35,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [~] [P2] Plan Compare: select 2 plans → difference report (incl. implant position deltas) — partial: implant position/axis deltas; no full report
 - [ ] [P2] Implant update mode per plan (3 options) + outdated-object prompt (keep vs replace + recheck notice)
 - [~] [P2] Plan autosave (debounced + on navigation) with last-editor/timestamp tracking — partial: no last-editor tracking (no accounts)
-- [ ] [P2] Anonymize dataset (toggleable pseudonymization of name/DOB/ID)
+- [x] [P2] Anonymize dataset (toggleable pseudonymization of name/DOB/ID)
 - [~] [P2] Undo/Redo framework for plan edits (Ctrl+Z / Ctrl+Shift+Z) + "undo last position change" toolbar action — partial: position/shape edits only, no create/delete undo
 - [ ] [P3] Dataset lock state (sent for production) + admin "remove lock" + lock audit entry
 - [ ] [P3] Plan status icons: "sent and locked", "copy of transferred plan"
@@ -321,7 +321,7 @@ Cross-references point to `docs/SPEC.md` sections.
 - [ ] [P3] Order Management (provider): registration with offered services, lab directory listing, asynchronous pairing (confirmation pending → email confirm)
 - [ ] [P3] Order list: color-coded service types, grouping (contact/patient/service), full-text search, sequence-controlled locking, Process/Finish/Reject/Remove
 - [~] [P3] Read-only share links: tokenized presentation viewer (implant list, aligned 3D, 2D views, watermark), revocable — partial: tokenized read-only doc (tables); no 3D viewer/watermark
-- [~] [P3] Quick Export/Import: single-plan archive download/upload (.caf-style) with write-protect + Sent label — partial: whole-case archive; no write-protect/Sent label
+- [~] [P3] Quick Export/Import: single-plan archive download/upload (.caf-style) with write-protect + Sent label — partial: plan JSON archive; no write-protect/Sent label
 - [x] [P4] Full dataset archive export/import (all plans + images) with version-compatibility warning
 - [ ] [P4] Auto-backup suggestions for stale datasets (N days, check frequency)
 
