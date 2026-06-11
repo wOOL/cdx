@@ -3199,18 +3199,16 @@
 									}}
 								/>
 							</label>
-							{#if m.kind === 'scan' || m.kind === 'waxup' || m.kind === 'guide'}
-								<button
-									class="btn"
-									title="Open this model in the Mesh Editor"
-									onclick={() => {
-										matching.modelId = m.id;
-										meshEditorOpen = true;
-									}}
-								>
-									Edit mesh…
-								</button>
-							{/if}
+							<button
+								class="btn"
+								title="Open this model in the Mesh Editor"
+								onclick={() => {
+									matching.modelId = m.id;
+									meshEditorOpen = true;
+								}}
+							>
+								Edit mesh…
+							</button>
 							<button
 								class="btn"
 								title="Move/rotate this model with numeric step nudges (patient or object frame)"
@@ -5091,6 +5089,13 @@
 		planId={data.plan.id}
 		models={aiReview}
 		onimport={aiImport}
+		onmanualalign={(scanModelId) => {
+			aiReview = null;
+			stage = 'align';
+			matching.modelId = scanModelId;
+			matching.pairs = [];
+			matching.mode = 'pick-scan';
+		}}
 		onclose={() => aiImport([])}
 	/>
 {/if}

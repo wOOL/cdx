@@ -41,6 +41,7 @@ original's content images (excluding the page-header logo) and names our counter
 | 84–85 | Licensing matrix | §11.5 (tier matrix) | — (table) | done |
 | 86–88 | Symbols | 12-symbols.md | ui symbol crops (see reconciliation) | done |
 | — (stage 2: 17 training videos) | Video completeness pass — every feature demonstrated in the 17 official training videos audited and documented (see docs/video-coverage/VIDEO_COVERAGE.md): import abort + AI offer (§3.3), EASY guided markers / nerve review (§4.2), crosshair colors (§5.2), in-view PCS rotation + occlusal plane (§6.1), guided markers (§6.2), nerve waypoints/stepping/spin (§6.3), scan auto-/copy-alignment + AI assistant workflow (§6.4), tooth-driven placement + sleeve grouping (§6.5), guide parity bundle + reduction simulation (§6.6), Mesh Editor (new §6.8), Virtual Planning Export (new §6.9), AI chip symbol (§12) | §3.3–§6.9, §12 | pcs-rotate-preview.png, occlusal-plane.png, pano-guided-markers.png, nerve-point-review.png, ai-review-objects.png, ai-review-pano.png, mesh-editor.png, vpe-format.png, vpe-scanbodies.png | done |
+| — (stage 3: 42 YouTube tutorials, batches 1–5) | Third pass against the 42 public tutorial videos (see docs/video-coverage/VIDEO_COVERAGE_YT.md): pinnable toolbar quick actions + sidebar collapse F9 (§5.1), Settings → Views display preferences, tooth numbers on implants, Shift+wheel zoom (§5.2), free 3D model import, per-model Look/Properties/Adjust position incl. Size ±5 %, Create merged model, measurement rename (§5.3), Copy-plan element selection (§5.4), nerve rename + ✕ Delete point (§6.3), import-time mesh-optimize offer + Fine-align Size section (§6.4), implant position lock / display color / fine-positioning panel / virtual-tooth wax-up models (§6.5), elongated (stadium) inspection windows (§6.6), Mesh Editor additions — Partial repair, Combine Subtract + show-object preview, Select-area smoothing, drag-to-paint, Ctrl+wheel radius, double-click pivot, view-type switch, margin-spline editing, Remesh max-edge/strength, Reduce guidance (§6.8) | §5.1–§5.4, §6.3–§6.6, §6.8 | yt-settings-views.png, yt-implant-toolbar.png | in progress (pass ongoing; batches 1–5 documented) |
 
 Reconciliation: a full page-by-page audit (every content figure of all 88 pages) was run on
 2026-06-11; the seven topic gaps and four figure gaps it found are closed (see GAPS.md
@@ -48,4 +49,7 @@ Reconciliation: a full page-by-page audit (every content figure of all 88 pages)
 GAPS.md (installer/dongle/regulatory-label material, live CAD session) or cosmetic. A second
 (stage-2) pass against the 17 official training videos was completed the same day — 17/17
 videos closed, reference docs/video-coverage/VIDEO_COVERAGE.md; residual low-severity
-interaction/catalog differences are tabled in GAPS.md.
+interaction/catalog differences are tabled in GAPS.md. A third (stage-3) pass against the
+42 public YouTube tutorials is ongoing (reference docs/video-coverage/VIDEO_COVERAGE_YT.md);
+the features of its first five build batches are documented above — AI tooth renumbering
+and AI tooth extraction were still in build at the time of writing and are not yet covered.

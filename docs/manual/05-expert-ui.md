@@ -24,8 +24,21 @@ in the Panoramic stage or *Add implant* in the Implants stage. Chapters 6.1–6.
 tools stage by stage.
 
 **Customizing.** Right-click the measurement-tool rail (left panel, *Measure (axial view)*)
-to choose which measurement tools are shown; *Reset to default* restores all of them. The
-selection is stored in the browser per workstation.
+to open the **Adjust toolbar** dialog. It controls two things:
+
+- **Measurement tools** — choose which measurement tools are shown; *Reset to default*
+  restores all of them.
+- **Quick actions pinned to the toolbar** — frequently used functions as one-click buttons
+  above the measurement rail: *Center implant* (center all views on the selected implant),
+  *Screen copy* (snapshot all views, F8), *Lock plan* (toggle the write-protection,
+  chapter 5.4), *Fine position* (fine-positioning panel of the selected implant,
+  chapter 6.5) and *Sidebar* (hide/show the sidebar).
+
+Both selections are stored in the browser per workstation.
+
+**Hiding the sidebar.** The narrow **«** tab at the left edge of the workspace — or **F9**,
+or the pinned *Sidebar* quick action — collapses the whole object-tree sidebar for an
+uncluttered view, e.g. while presenting; **»** (or F9 again) brings it back.
 
 ## 5.2 Views
 
@@ -39,7 +52,7 @@ share the same cursor: clicking in one view moves the crosshair in all of them.
 |------|---------|
 | Scroll slices | Mouse wheel over a 2D view (the slice number and mm position are shown in the corner). |
 | Window / level | Drag with the **right** mouse button in any 2D view, or pick a preset (Bone, Soft tissue, …) in the *View* panel; *Adjust grayscale…* opens the histogram dialog. |
-| Zoom | **Ctrl + mouse wheel**, or **Ctrl +/−** on the keyboard (applies to all 2D views together). |
+| Zoom | **Ctrl + mouse wheel** or **Shift + mouse wheel**, or **Ctrl +/−** on the keyboard (applies to all 2D views together). |
 | Reset zoom & pan | **Ctrl + 0**. |
 | Pan | Drag with the **middle** mouse button. |
 | Crosshair / reference lines | *Crosshair* checkbox in the View panel toggles the reference lines in all 2D views. Each line carries the color of the plane it represents — **axial blue, coronal green, sagittal red** — so you always know which view will move when you drag it. |
@@ -49,6 +62,24 @@ share the same cursor: clicking in one view moves the crosshair in all of them.
 | 3D rotation | Drag in the 3D view; the orientation cube and ANTERIOR/POSTERIOR labels indicate the direction; presets (occlusal, lateral, …) in the *View…* menu. |
 | 3D clipping | The clip buttons in the 3D view header cut the volume/models at the current axial or cross-section plane. |
 
+### Display preferences
+
+**Settings → Views** holds workstation-wide display preferences for the planning views:
+
+![Views preferences in Settings](img/yt-settings-views.png)
+
+- **Annotation color (2D views)** and **Measurement line color** — separate overlay colors
+  for annotations and measurements.
+- **Measurement & annotation text size (px)** — the label font size in the 2D views
+  (8–20 px).
+- **Overlay line thickness (for presentations)** — scales all overlay lines from *Normal*
+  up to *Presentation (2×)*; useful for screenshots and projected presentations.
+- **Implant axis extension (mm)** — how far the dashed implant-axis line extends beyond the
+  implant head and apex (0–30 mm) while *Implant axes* is enabled in the View panel.
+
+> 💡 The View panel also offers a **Tooth numbers on implants** checkbox: every implant is
+> tagged with its tooth position (FDI or Universal per Settings) directly in the views.
+
 ## 5.3 Object tree
 
 ![Object tree and view panel](img/object-tree.png)
@@ -56,17 +87,37 @@ share the same cursor: clicking in one view moves the crosshair in all of them.
 The object tree lists everything that belongs to the active plan:
 
 - **Volume data** — the imported dataset(s) with dimensions, voxel size and lock state.
-- **Models** — bone segmentations, matched scans, generated guides, augmentations. The 👁
-  button toggles visibility (also in 2D as contour lines), 🗑 deletes.
+- **Models** — bone segmentations, matched scans, generated guides, augmentations,
+  wax-ups. The 👁 button toggles visibility (also in 2D as contour lines), 🗑 deletes.
+  The **＋** in the group header imports a **free 3D model** (`.stl` / `.ply` / `.obj`):
+  it is placed unaligned and *Adjust position…* opens immediately so you can move it into
+  place. The icon next to it opens **Create merged model** (below).
 - **Implants** — one row per implant with tooth position, diameter × length and color chip.
   Selecting a row selects the implant in all views.
 - **Nerves** — the marked nerve canals with their colors.
 - **Measurements** — distances, angles, HU densities, polylines, annotations and auxiliary
-  lines; each can be deleted individually.
+  lines; each can be deleted individually. The ✎ button **renames** a measurement — the
+  name is shown before the value in the tree and in the views (e.g. *crest width: 5.2 mm*).
+
+Clicking a model name expands its options:
+
+- the display **color** and **opacity**;
+- **Edit mesh…** — opens the Mesh Editor (chapter 6.8) for scans, wax-ups and guides;
+- **Adjust position…** — numeric move/rotate nudges in the patient or object frame, plus a
+  **Size − 5 % / + 5 %** section that scales the model uniformly (chapter 6.4);
+- **Look** — the 3D display style: *Standard*, *Metallic* or *Triangles* (wireframe);
+- **Properties** — triangle count · volume in ml · bounding dimensions in mm.
+
+**Create merged model** (the icon in the *Models* group header, shown when the case has at
+least two models) combines several models into one new mesh — typically the AI tooth
+segmentations plus a jaw (chapter 6.4). Quick-picks select whole arches (**+ Upper
+teeth**, **+ Lower teeth**, *All*, *None*); name the result and *Merge n models* creates
+the copy. The source models stay untouched, and the merged model behaves like any other —
+it can be exported or edited.
 
 Below the tree, the **View panel** holds the window preset, grayscale dialog, the
-crosshair / implant-axes / crestal-planes / selection-box toggles and the measurement tool
-rail (chapter 7.3).
+crosshair / implant-axes / tooth-numbers / crestal-planes / selection-box toggles and the
+measurement tool rail (chapter 7.3).
 
 ## 5.4 Plans
 
@@ -78,8 +129,11 @@ selector in the header switches between them:
 
 Plans can be:
 
-- **Created, renamed, duplicated** — *Duplicate this plan* copies everything including
-  implants, sleeves and abutments; the master plan is marked.
+- **Created, renamed, duplicated** — *Duplicate this plan* opens the **Copy plan** dialog:
+  name the copy and choose what to copy into the new plan — *Implants (incl. sleeves &
+  abutments)*, *Nerve canals* and *Measurements & annotations* (all selected by default;
+  e.g. uncheck the implants to restart the placement on the same nerve marking). The
+  master plan is marked.
 - **Compared** — *Compare plans…* shows two plans side by side.
 - **Locked** — *Lock plan* write-protects it (reversible). A plan that was **sent** to a
   contact is locked automatically and shows the *sent* badge; duplicate it to continue

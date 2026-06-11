@@ -85,7 +85,7 @@ Open the **Nerve stage** (mandible plans):
 ![Nerve stage with auto-detect](img/nerve-stage.png)
 
 1. **Add right/left nerve** creates the nerve object with its color chip in the toolbar and
-   the object tree.
+   the object tree; double-click the chip label to **rename** the nerve.
 2. Click the entry point at the mental foramen and the exit at the mandibular foramen
    (panoramic, cross-section or axial view). All views center on each point as it is
    placed, so the next click starts from the right slice.
@@ -101,9 +101,10 @@ Open the **Nerve stage** (mandible plans):
    editing, each segment shows its **live length in mm**; labels turn orange above the
    recommended ~10 mm spacing. The point toolbar offers *Center views*, **◀ Prev point /
    Next point ▶** (select the neighbouring point and center all views on it — the fastest
-   way to verify the canal point by point), *To slice* (moves the point to the current
-   axial slice), *Swap ↔ next* (fixes point order) and **#** (shows point numbers along the
-   canal). The ⌀ field sets the diameter per point or for the whole nerve.
+   way to verify the canal point by point), **✕ Delete point** (removes the selected
+   point — a canal always keeps at least two points), *To slice* (moves the point to the
+   current axial slice), *Swap ↔ next* (fixes point order) and **#** (shows point numbers
+   along the canal). The ⌀ field sets the diameter per point or for the whole nerve.
 5. **Spin the section plane** when the canal is hard to see: the cross-section view header
    has a spin control (−90° … +90°) that rotates the section around the current position —
    for example until the canal's dark path becomes visible as a continuous line. The view
@@ -129,13 +130,18 @@ A matched surface scan is the basis for tooth-supported guides.
    or **do not align yet**. Color intraoral scans are supported: a `.ply` file with vertex
    colors renders with its own colors in the 3D views (the object-tree color then applies
    only to its 2D contours); monochrome scans use the assignable model color as before.
+   **Oversized scans** are flagged at import: above ~320 000 triangles the software offers
+   to **optimize** the mesh to ≈250 000 triangles for smooth editing and guide design — the
+   original file is kept as a backup, and the Mesh Editor's *Reduce* (chapter 6.8) remains
+   available any time.
 2. In the **Align stage**, pick the scan in *Match scan* and add **at least three point
    pairs**: click a distinctive spot on the scan in the 3D view, then the same anatomical
    spot in a slice view. **Align** computes the registration; **Refine fit (ICP)** optimizes
    it against the bone surface and reports the fit RMS.
 3. For manual corrections use **Drag scan** (drag in the axial view, Shift = rotate) or
    **Fine align…** — numeric nudge steps in millimetres/degrees, in the patient or object
-   frame:
+   frame. A **Size − 5 % / + 5 %** section scales the model uniformly around its center —
+   meant for wax-ups and free 3D models (chapter 5.3); never rescale a matched scan:
 
 ![Model scan matching](img/match-stage.png)
 
@@ -326,8 +332,28 @@ in the axial view):
 
 - **Parallelize…** aligns implants to a master or their mean direction; **Angles…** shows
   the live angle table between all implants; **Group abutments…** picks angulated abutments
-  automatically (All-on-4/6 style); **Virtual tooth…** places a prosthetic marker from the
-  tooth library.
+  automatically (All-on-4/6 style).
+- **Virtual tooth…** creates a prosthetic **wax-up** at the cursor position: pick the
+  position on the dental chart and a real 3D crown model (the library covers all 32 FDI
+  positions) is added as *Virtual tooth nn* under *Models*, opened directly in fine
+  alignment for moving, rotating and sizing (− 5 % / + 5 %). Use it for prosthetic-driven
+  planning — the wax-up is a planning reference and is not part of the generated guide.
+- With an implant selected, the toolbar carries its per-implant controls — the
+  diameter/length steppers, ▲/▼ depth steps, *Change…* — and three positioning aids:
+
+![Implant toolbar with lock, fine positioning and display color](img/yt-implant-toolbar.png)
+
+- **🔓 Lock** freezes the implant's position once it is confirmed (e.g. with the
+  surgeon): a locked implant ignores dragging and all geometry changes — enforced on the
+  server as well — while its **sleeve and the guide stay editable**. Click **🔒 Locked**
+  to unlock.
+- **Fine…** opens the fine-positioning panel: numeric step nudges expressed in the
+  implant's own frame — **Mesial/Distal**, **Buccal/Lingual** and **Depth (along axis)**
+  with an adjustable mm step, plus **Tilt M/D** / **Tilt B/L** in degree steps around a
+  selectable pivot (*Shoulder — head fixed* or *Tip — apex fixed*). Fine positioning is
+  also available as a pinnable toolbar quick action (chapter 5.1).
+- The **color** swatch sets the implant's display color in all views — e.g. to
+  distinguish planning alternatives at a glance.
 - Abutments are assigned per implant (preset straight/angled or a custom abutment built in
   the segment editor); the rotation dial aligns an angled abutment around the implant axis.
 - Red warnings appear when a safety distance is violated; the affected pair and distance are
@@ -373,7 +399,11 @@ Open the **Guide stage**:
    connectors and the sleeve-mount hole shape (cylindrical or press-fit). **Windows** places
    inspection openings by clicking the guide in the 3D view — keep them small and away from
    sleeve mounts: an opening must never compromise the stability of the guide or the
-   accuracy of drilling (the design rules warn when a window overlaps a mount).
+   accuracy of drilling (the design rules warn when a window overlaps a mount). Windows
+   clicked in 3D are round; in the *Inspection windows* list of the design options each
+   window additionally takes a **length** and an **angle** — a length greater than the
+   diameter stretches the opening into an elongated (stadium-shaped) slot, rotated by the
+   angle in the axial plane.
    - **Add object (merge into guide)** merges selected case models — e.g. the denture STL
      of a dual-scan case — into the generated guide body. Drill corridors and inspection
      windows are cut **through the merged geometry** as well, so the tool paths stay open.
@@ -522,14 +552,19 @@ classes and guided drill lengths, active **safety warnings**, the nerve list, im
 Imported scans are not always production-ready: loose debris from the scanner, holes,
 oversized rims, an appliance and its bite key in one file. The **Mesh Editor** is a
 dedicated window for this clean-up work. Open it from the **Align stage** — select the
-model under *Match scan* and click **Edit mesh…** in the mesh utilities:
+model under *Match scan* and click **Edit mesh…** in the mesh utilities — or from the
+model's options in the object tree (chapter 5.3):
 
 ![Mesh Editor with the function list and 3D preview](img/mesh-editor.png)
 
 The function list on the left is ordered the way a mesh is typically worked, top-down;
 each entry shows a short help text and its parameters. The 3D preview fills the rest of
-the window (drag to rotate, wheel to zoom, *Reset view* to recenter); functions that need
-a position are driven by clicking the mesh directly.
+the window — drag to rotate, wheel to zoom, **double-click** the mesh to set the turning
+point (the orbit pivot), *Reset view* to recenter and restore it. The **Surface /
+Surface + edges / Mesh only** switch below the preview changes the display style — *Mesh
+only* shows the bare triangle wireframe for judging mesh quality. Functions that need a
+position are driven by clicking the mesh directly; for the radius tools (wax knife,
+eraser, remesh) **Ctrl + mouse wheel** adjusts the tool radius without leaving the mesh.
 
 | Function | What it does |
 |----------|--------------|
@@ -537,19 +572,21 @@ a position are driven by clicking the mesh directly.
 | **Close holes** | *Detect holes* lists every hole with edge count and circumference. Close **all** holes, close all **without the largest** (keeps the intentional opening of an intraoral scan), or close one **selected** hole. |
 | **Boundary optimization** | Smooths the ragged open borders (scan rims) of a mesh by relaxing each boundary vertex toward its neighbors along the rim (1–10 iterations, optionally limited to one selected boundary loop); interior geometry is never modified. |
 | **Bridge boundaries** | Click the mesh near two open boundaries (A, then B), then *Bridge boundaries* connects them with a strip of triangles — e.g. to join an outer and inner rim before closing the rest. |
-| **Remesh** | Splits long triangles and relaxes the result — around a clicked center with adjustable radius, or the *whole mesh*. |
-| **Reduce** | Decimates the mesh to a target percentage of its triangles (10–95 %) — for oversized scans. |
+| **Partial repair** | Click two points on the **same** open boundary — the shorter boundary path between them is closed with a straight strip, the rest of the hole stays open. Mends a notch in a scan rim without closing the scan's intentional opening. |
+| **Remesh** | Splits the selected triangles until no edge exceeds the **max edge length** (clear the field for the automatic 2× mean-edge pass), then relaxes them with the chosen **strength** (smoothing iterations) — around a clicked center with adjustable radius, or the *whole mesh*. |
+| **Reduce** | Decimates the mesh to a target percentage of its triangles (10–95 %) — for oversized scans. The panel shows the **projected triangle count** next to the recommended ranges: maxilla 200–300k, mandible 150–200k triangles. |
 | **Invert mesh** | Flips the orientation of every triangle — for scans delivered inside-out. |
-| **Wax knife** | Click the mesh to work it locally: *Smooth*, *Remove* or *Add* material, with strengths **A–D** and adjustable radius — the digital counterpart of waxing a model. |
-| **Eraser** | Click to delete the triangles around the point (adjustable radius); **deep erase** cuts through the full thickness instead of only the front surface. |
-| **Cut along margin line** | Click point by point along a margin on the mesh, then *Cut — keep inside* / *keep outside*, or **Cut — split into two models**: the kept side stays in the editor, the other side is saved as a new model of the case (e.g. separating an appliance from its bite key). |
-| **Combine** | Merges another model of the case into this mesh, alignment-aware (both meshes keep their registered position). |
+| **Wax knife** | Work the mesh locally: *Smooth*, *Remove* or *Add* material, with strengths **A–D** and adjustable radius — click once, or hold the button and **drag to paint** along a path. **Select area** marks a region by dragging and smooths the whole marked area in one step (one undo). The digital counterpart of waxing a model. |
+| **Eraser** | Deletes the triangles around the point (adjustable radius) — click once, or **drag to erase** along a path; **deep erase** cuts through the full thickness instead of only the front surface. |
+| **Cut along margin line** | Click point by point along a margin on the mesh — **drag** a point to move it, **right-click** a point to remove it, click (or double-click) the **first point** to close the line — then *Cut — keep inside* / *keep outside*, or **Cut — split into two models**: the kept side stays in the editor, the other side is saved as a new model of the case (e.g. separating an appliance from its bite key). |
+| **Combine** | Merges another model of the case into this mesh, alignment-aware (both meshes keep their registered position); *show object* previews the selected model as a transparent ghost first. **Subtract (remove overlap)** removes this mesh's surface inside the other model and adds the inverted overlap walls instead — e.g. subtract a segmented tooth from the jaw scan to leave the **extraction socket**. |
 
 Editing is non-destructive until you say otherwise:
 
 - **Undo / Redo** are exact for every operation — the editor replays the recorded operation
   list deterministically, and previews never modify the stored mesh.
-- The footer shows the live **point and triangle counts** and the number of edits.
+- The footer shows the live **point and triangle counts** and the number of edits; the
+  triangle count turns red above the recommended 300k ceiling (see *Reduce*).
 - **Save as copy** stores the result as a **new** model and leaves the original untouched.
 - **Apply** overwrites the edited model; the first Apply keeps a one-time backup of the
   original file (`.orig`), so the untouched scan is never lost.

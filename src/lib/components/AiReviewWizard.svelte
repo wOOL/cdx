@@ -63,6 +63,7 @@
 		planId = undefined,
 		models,
 		onimport,
+		onmanualalign,
 		onclose
 	}: {
 		datasetId: number;
@@ -71,6 +72,8 @@
 		planId?: number;
 		models: { id: number; name: string; ok: boolean }[];
 		onimport: (modelIds: number[]) => void | Promise<void>;
+		/** jump out of the wizard into manual point-pair matching for a scan */
+		onmanualalign?: (scanModelId: number) => void;
 		onclose: () => void;
 	} = $props();
 
@@ -246,7 +249,7 @@
 
 	const steps = $derived.by(() => {
 		const list: { key: StepKey; title: string; sub: string }[] = [
-			{ key: 'objects', title: '3D objects', sub: 'Review and import objects' }
+			{ key: 'objects', title: '3D objects', sub: `${aiModels.length} detected objects` }
 		];
 		if (hasPcs)
 			list.push({
@@ -255,9 +258,14 @@
 				sub: pcsApplied ? 'Rotation applied' : 'Verify the proposed orientation'
 			});
 		if (hasPano) list.push({ key: 'pano', title: 'Panoramic curve', sub: 'Verify the detected curve' });
-		if (hasNerve) list.push({ key: 'nerve', title: 'Nerve canal', sub: 'Check each canal point' });
+		if (hasNerve)
+			list.push({ key: 'nerve', title: 'Nerve canal', sub: `${canals.length} detected nerves` });
 		if (scans.length)
-			list.push({ key: 'scan', title: 'Scan alignment', sub: 'Verify the scan registration' });
+			list.push({
+				key: 'scan',
+				title: 'Scan alignment',
+				sub: `${scans.length} scan${scans.length === 1 ? '' : 's'} to verify`
+			});
 		return list;
 	});
 	const step = $derived(steps[Math.max(0, Math.min(stepIdx, steps.length - 1))]);
@@ -475,6 +483,19 @@
 	function deselectAll(): void {
 		if (anySelected) for (const m of aiModels) excluded[m.id] = true;
 		else for (const m of aiModels) excluded[m.id] = false;
+	}
+
+	/** one-click subset selection (desktop 'Selection:' preset buttons) */
+	function selectSubset(which: 'upper' | 'lower' | 'jaws' | 'canals'): void {
+		for (const m of aiModels) {
+			const pick =
+				which === 'jaws'
+					? m.objectKind === 'jaw'
+					: which === 'canals'
+						? m.objectKind === 'canal'
+						: m.objectKind === 'tooth' && m.fdi != null && (m.fdi < 30) === (which === 'upper');
+			if (pick && m.ok) excluded[m.id] = false;
+		}
 	}
 
 	// ---------------------------------------------------------------- step 2: PCS
@@ -862,6 +883,20 @@
 		void patchScanTransform(sc.id, next);
 	}
 
+	/** re-center the scan-step slice views on the active scan's mesh */
+	function resetScanView(): void {
+		const sc = activeScan;
+		if (!sc || !geom) return;
+		const pos = meshPositions[sc.id];
+		if (!pos) return;
+		const b = meshBounds(pos, scanTransforms[sc.id] ?? null);
+		scanSlices = {
+			axial: clampIdx(Math.round(b.center[2] / geom.sz), geom.slices),
+			coronal: clampIdx(Math.round(b.center[1] / geom.sy), geom.rows),
+			sagittal: clampIdx(Math.round(b.center[0] / geom.sx), geom.cols)
+		};
+	}
+
 	function resetScanAlignment(): void {
 		const sc = activeScan;
 		if (!sc || !scanOrig[sc.id]) return;
@@ -1025,6 +1060,18 @@
 							<button class="btn" onclick={deselectAll}>
 								{anySelected ? 'Deselect all' : 'Select all'}
 							</button>
+							<button class="btn" title="Select upper-arch teeth" onclick={() => selectSubset('upper')}>
+								+ Upper teeth
+							</button>
+							<button class="btn" title="Select lower-arch teeth" onclick={() => selectSubset('lower')}>
+								+ Lower teeth
+							</button>
+							<button class="btn" title="Select the jaw bones" onclick={() => selectSubset('jaws')}>
+								+ Jaws
+							</button>
+							<button class="btn" title="Select the nerve canals" onclick={() => selectSubset('canals')}>
+								+ Canals
+							</button>
 							<button class="btn" onclick={() => resetTick++} disabled={!geom}>Reset view</button>
 							<span class="muted">{selectedIds.length} of {aiModels.length} objects selected</span>
 						</div>
@@ -1170,7 +1217,23 @@
 						</div>
 						<div class="aw-row">
 							<button class="btn" onclick={() => (fineAlignOpen = true)}>Fine alignment…</button>
+							{#if onmanualalign && activeScan}
+								<button
+									class="btn"
+									title="Leave the wizard and align this scan manually with point pairs (Align stage)"
+									onclick={() => onmanualalign?.(activeScan.id)}
+								>
+									Manual alignment…
+								</button>
+							{/if}
 							<button class="btn" onclick={resetScanAlignment}>Reset alignment</button>
+							<button
+								class="btn"
+								title="Re-center the three slice views on the scan"
+								onclick={resetScanView}
+							>
+								Reset view
+							</button>
 							<button
 								class="btn"
 								class:primary={!scanAccepted[activeScan.id]}
