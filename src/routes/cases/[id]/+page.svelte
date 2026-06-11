@@ -21,6 +21,7 @@
 	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
 	import PerioChart, { type PerioData } from '$lib/components/PerioChart.svelte';
 	import TemplateMatchDialog from '$lib/components/TemplateMatchDialog.svelte';
+	import VpeDialog from '$lib/components/VpeDialog.svelte';
 	import AugmentWizard from '$lib/components/AugmentWizard.svelte';
 	import AiReviewDialog from '$lib/components/AiReviewDialog.svelte';
 	import ProstheticImportDialog from '$lib/components/ProstheticImportDialog.svelte';
@@ -137,7 +138,7 @@
 		data: 'Import the CBCT scan (.dcm files or .zip) and, if available, the intraoral model scan (.stl/.ply). The volume builds automatically after upload.',
 		align:
 			'Check the patient orientation in all views; use “Align patient axes” for corrections. Create a bone model with the threshold, and match the model scan: add ≥3 point pairs (click scan in 3D, then the same spot in a slice), Align, then Refine fit (ICP).',
-		pano: 'Enable “Draw curve” and click 5–7 points along the middle of the dental arch on the axial view, posterior → posterior. The panoramic view builds live; drag points to refine.',
+		pano: 'Enable “Draw curve” and click 5–7 points along the middle of the dental arch on the axial view, posterior → posterior — or use “Guided markers” to be prompted through the five named anatomical points (incisal, canine/premolar, tooth 8). The panoramic view builds live; drag points to refine.',
 		nerve:
 			'Add the right/left nerve, then click along the canal in the panoramic view from the mental foramen backwards. Set point diameters where the canal widens. The safety system warns at < 2 mm clearance.',
 		implant:
@@ -235,6 +236,31 @@
 	// ---------- panoramic curve editing on the axial view ----------
 	let dragPointIndex = -1;
 
+	// Guided anatomical markers (EASY flow of the original): prompted click order
+	// incisal → canine/premolar R → canine/premolar L → tooth-8 R → tooth-8 L,
+	// then reassembled into arch order (right-posterior → … → left-posterior).
+	const PANO_GUIDED_MARKERS = [
+		'Incisal point — between the central incisors',
+		'Between canine and first premolar — patient right',
+		'Between canine and first premolar — patient left',
+		'Tooth-position 8 region — patient right',
+		'Tooth-position 8 region — patient left'
+	];
+	const PANO_GUIDED_ARCH_ORDER = [3, 1, 0, 2, 4]; // click-order indices in arch order
+	let panoGuidedStep = $state(-1); // -1 = off
+	let panoGuidedPoints: { x: number; y: number }[] = [];
+
+	function startGuidedCurve() {
+		if (!ps) return;
+		if (ps.curveControl.length && !confirm('Replace the existing panoramic curve?')) return;
+		ps.markEdit();
+		ps.curveControl.length = 0;
+		ps.saveCurve();
+		panoGuidedPoints = [];
+		panoGuidedStep = 0;
+		ps.curveEditMode = true;
+	}
+
 	function curveOverlay(ctx: CanvasRenderingContext2D, t: ViewTransform) {
 		if (!ps) return;
 		const sx = ps.ds.spacing_x;
@@ -294,6 +320,20 @@
 		const mm = { x: e.px * ps.ds.spacing_x, y: e.py * ps.ds.spacing_y };
 		if (e.type === 'down') {
 			ps.markEdit();
+			if (panoGuidedStep >= 0) {
+				// guided placement: every click is a new named marker, no drag-pick
+				panoGuidedPoints.push(mm);
+				ps.curveControl.push(mm);
+				ps.curveZ = ps.cursor.z;
+				if (panoGuidedPoints.length >= PANO_GUIDED_MARKERS.length) {
+					ps.curveControl = PANO_GUIDED_ARCH_ORDER.map((i) => panoGuidedPoints[i]);
+					panoGuidedStep = -1; // done — drag-refine stays available
+				} else {
+					panoGuidedStep = panoGuidedPoints.length;
+				}
+				ps.saveCurve();
+				return true;
+			}
 			const idx = ps.curveControl.findIndex((p) => Math.hypot(p.x - mm.x, p.y - mm.y) < 2.5);
 			if (idx >= 0) {
 				dragPointIndex = idx;
@@ -321,6 +361,10 @@
 		if (!ps) return;
 		ps.markEdit();
 		ps.curveControl.pop();
+		if (panoGuidedStep > 0) {
+			panoGuidedPoints.pop();
+			panoGuidedStep = panoGuidedPoints.length;
+		}
 		ps.saveCurve();
 	}
 	function clearCurve() {
@@ -328,6 +372,8 @@
 		if (ps.curveControl.length && !confirm('Clear the panoramic curve?')) return;
 		ps.markEdit();
 		ps.curveControl.length = 0;
+		panoGuidedStep = -1;
+		panoGuidedPoints = [];
 		ps.saveCurve();
 	}
 
@@ -862,6 +908,7 @@
 	let helpOpen = $state(false);
 	let showPerio = $state(false);
 	let showTemplateMatch = $state(false);
+	let showVpe = $state(false);
 	let perioData = $state<PerioData>(
 		(() => {
 			try {
@@ -1200,7 +1247,50 @@
 		return false;
 	}
 
+	// ---------- in-view PCS rotation (drag to rotate the patient axes) ----------
+	let pcsDragMode = $state(false);
+	let pcsDragStart: number | null = null;
+	let pcsDragBase = 0;
+
+	/**
+	 * Drag around the view center adjusts the pending PCS angle visible in that
+	 * plane. Effect of the /align args (verified empirically against
+	 * rotateVolume): yaw = axial ↻, pitch = coronal ↻, roll = sagittal ↺ —
+	 * `flip` makes every drag clockwise-positive on screen.
+	 */
+	function pcsRotTool(axis: 'yaw' | 'pitch' | 'roll', flip = false) {
+		return (e: ToolPointerEvent): boolean => {
+			if (!ps || !pcsDragMode || stage !== 'align') return false;
+			// view center in slice px (axial: cols×rows, coronal: cols×slices, sagittal: rows×slices)
+			const cx = (axis === 'roll' ? ps.ds.rows : ps.ds.cols) / 2;
+			const cy = (axis === 'yaw' ? ps.ds.rows : ps.ds.slices) / 2;
+			const a = (Math.atan2(e.py - cy, e.px - cx) * 180) / Math.PI; // clockwise+ (y down)
+			if (e.type === 'down') {
+				pcsDragStart = a;
+				pcsDragBase = pcsAngles[axis];
+				return true;
+			}
+			if (e.type === 'move' && pcsDragStart !== null) {
+				let d = a - pcsDragStart;
+				if (d > 180) d -= 360;
+				else if (d < -180) d += 360;
+				if (flip) d = -d;
+				pcsAngles[axis] = Math.max(-45, Math.min(45, Math.round((pcsDragBase + d) * 2) / 2));
+				return true;
+			}
+			if (e.type === 'up') {
+				pcsDragStart = null;
+				return true;
+			}
+			return false;
+		};
+	}
+	const pcsRotYaw = pcsRotTool('yaw');
+	const pcsRotCoronal = pcsRotTool('pitch'); // pitch arg rotates the coronal plane
+	const pcsRotSagittal = pcsRotTool('roll', true); // roll arg: ↺ positive → flip
+
 	function alignAxialTool(e: ToolPointerEvent): boolean {
+		if (pcsRotYaw(e)) return true;
 		if (segTool(e)) return true;
 		if (scanAlignTool(e)) return true;
 		return axialTool(e);
@@ -1448,6 +1538,9 @@
 	// ---------- patient coordinate system alignment ----------
 	let pcsDialog: HTMLDialogElement | undefined = $state();
 	let pcsAngles = $state({ yaw: 0, pitch: 0, roll: 0 });
+	const pcsPending = $derived(
+		pcsAngles.yaw !== 0 || pcsAngles.pitch !== 0 || pcsAngles.roll !== 0
+	);
 	let pcsBusy = $state(false);
 	let pcsCut = $state(false);
 	let pcsProposing = $state(false);
@@ -1859,16 +1952,37 @@
 	let showAngleDialog = $state(false);
 	let showAbutmentAngles = $state(false);
 
+	/** Review stepping: select the prev/next point of the nerve and center all views on it. */
+	function stepNervePoint(n: { id: number; points: { x: number; y: number; z: number }[] }, dir: -1 | 1) {
+		if (!ps?.lastNervePoint) return;
+		const i = Math.max(0, Math.min(n.points.length - 1, ps.lastNervePoint.index + dir));
+		ps.lastNervePoint = { nerveId: n.id, index: i };
+		const pt = n.points[i];
+		ps.cursor.z = Math.max(0, Math.min(ps.ds.slices - 1, Math.round(pt.z / ps.ds.spacing_z)));
+		ps.cursor.x = Math.round(pt.x / ps.ds.spacing_x);
+		ps.cursor.y = Math.round(pt.y / ps.ds.spacing_y);
+	}
+
 	async function autoDetectNerve(nerveId: number) {
 		if (!ps) return;
 		const n = ps.nerves.find((x) => x.id === nerveId);
 		if (!n || n.points.length < 2) return;
+		const nVia = n.points.length - 2;
+		const msg =
+			nVia > 0
+				? `Detect the nerve canal from marker 1 to marker ${n.points.length}, routing through the ${nVia} intermediate marker${nVia === 1 ? '' : 's'}? The markers will be replaced by the detected path.`
+				: 'Detect the nerve canal between the two placed markers? They will be replaced by the detected path.';
+		if (!confirm(msg)) return;
 		nerveDetecting = true;
 		try {
 			const res = await fetch(`/api/datasets/${ps.ds.id}/nerve-detect`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ start: n.points[0], end: n.points[n.points.length - 1] })
+				body: JSON.stringify({
+					start: n.points[0],
+					end: n.points[n.points.length - 1],
+					via: n.points.slice(1, -1).map((p) => ({ x: p.x, y: p.y, z: p.z }))
+				})
 			});
 			if (!res.ok) {
 				const b = await res.json().catch(() => null);
@@ -2166,6 +2280,14 @@
 					class="plan-menu-item"
 					href="/api/plans/{data.plan.id}/export"
 					onclick={() => (planMenuOpen = false)}>Export plan (.cdxplan)</a
+				>
+				<button
+					class="plan-menu-item"
+					title="Export model scan and implant positions for processing in CAD/CAM systems (STL, implant or abutment level, optional scanbodies/analogs)"
+					onclick={() => {
+						planMenuOpen = false;
+						showVpe = true;
+					}}>Virtual Planning Export…</button
 				>
 				<button
 					class="plan-menu-item"
@@ -2792,12 +2914,32 @@
 				{#if stage === 'pano'}
 					<button
 						class="btn"
-						class:primary={ps.curveEditMode}
-						onclick={() => ps && (ps.curveEditMode = !ps.curveEditMode)}
+						class:primary={ps.curveEditMode && panoGuidedStep < 0}
+						onclick={() => {
+							if (!ps) return;
+							panoGuidedStep = -1;
+							ps.curveEditMode = !ps.curveEditMode;
+						}}
 					>
 						<Icon name="edit" size={14} />
-						{ps.curveEditMode ? 'Drawing curve — click along the arch' : 'Draw curve'}
+						{ps.curveEditMode && panoGuidedStep < 0
+							? 'Drawing curve — click along the arch'
+							: 'Draw curve'}
 					</button>
+					<button
+						class="btn"
+						class:primary={panoGuidedStep >= 0}
+						title="Place the five named anatomical markers one by one; the curve is assembled automatically"
+						onclick={startGuidedCurve}
+					>
+						Guided markers
+					</button>
+					{#if panoGuidedStep >= 0}
+						<span class="muted">
+							Marker {panoGuidedStep + 1}/{PANO_GUIDED_MARKERS.length}:
+							<strong>{PANO_GUIDED_MARKERS[panoGuidedStep]}</strong>
+						</span>
+					{/if}
 					<button class="btn" disabled={!ps.curveControl.length} onclick={undoCurvePoint}>
 						Undo point
 					</button>
@@ -2900,6 +3042,29 @@
 					<button class="btn" onclick={() => pcsDialog?.showModal()}>
 						<Icon name="rotate" size={14} /> Align patient axes…
 					</button>
+					<button
+						class="btn"
+						class:primary={pcsDragMode}
+						title="Drag in a slice view to rotate the patient axes around that view's center (axial = yaw, sagittal = pitch, coronal = roll); the image previews the pending rotation live"
+						onclick={() => (pcsDragMode = !pcsDragMode)}
+					>
+						{pcsDragMode ? 'Rotating in views — drag a slice' : 'Rotate in views'}
+					</button>
+					{#if pcsPending}
+						<span class="muted">
+							yaw {pcsAngles.yaw.toFixed(1)}° · pitch {pcsAngles.pitch.toFixed(1)}° · roll {pcsAngles.roll.toFixed(1)}°
+						</span>
+						<button class="btn primary" disabled={pcsBusy} onclick={() => applyPcs()}>
+							{pcsBusy ? 'Applying…' : 'Apply rotation'}
+						</button>
+						<button
+							class="btn"
+							title="Discard the pending (not yet applied) rotation"
+							onclick={() => (pcsAngles = { yaw: 0, pitch: 0, roll: 0 })}
+						>
+							Discard
+						</button>
+					{/if}
 					{#if data.datasets.length >= 2}
 						<button
 							class="btn"
@@ -3114,6 +3279,22 @@
 							</button>
 							<button
 								class="btn"
+								title="Select the previous nerve point and center the views on it"
+								disabled={ps.lastNervePoint.index <= 0}
+								onclick={() => stepNervePoint(pn, -1)}
+							>
+								◀ Prev point
+							</button>
+							<button
+								class="btn"
+								title="Select the next nerve point and center the views on it"
+								disabled={ps.lastNervePoint.index >= pn.points.length - 1}
+								onclick={() => stepNervePoint(pn, +1)}
+							>
+								Next point ▶
+							</button>
+							<button
+								class="btn"
 								title="Move this point onto the current axial slice"
 								onclick={() => {
 									if (!ps?.lastNervePoint) return;
@@ -3155,7 +3336,7 @@
 							<button
 								class="btn"
 								disabled={nerveDetecting}
-								title="Trace the canal automatically between the first and last marked point (foramen seeds). Intermediate points are replaced."
+								title="Trace the canal automatically from the first to the last marked point, routing through the intermediate markers as waypoints."
 								onclick={() => autoDetectNerve(an.id)}
 							>
 								{nerveDetecting ? 'Detecting…' : 'Auto detect'}
@@ -3559,18 +3740,25 @@
 							plane="axial"
 							overlayDraw={axialOverlay}
 							onToolPointer={alignAxialTool}
-							overlayDeps={[JSON.stringify(ps.curveControl), ps.crossU, objectsVersion, contourTick, modelsVersion, maskTick, segEdit.active]}
+							previewRotate={pcsAngles.yaw}
+							overlayDeps={[JSON.stringify(ps.curveControl), ps.crossU, objectsVersion, contourTick, modelsVersion, maskTick, segEdit.active, pcsAngles.yaw]}
 						/>
 						{@render maxBtn('aax')}
 					</div>
 					<div class="view panel" class:cell-max={maximized === 'acor'} class:cell-hidden={maximized && maximized !== 'acor'}>
 						<SliceView state={ps}
-							zoomSignal={zoomSig} plane="coronal" />
+							zoomSignal={zoomSig} plane="coronal"
+							onToolPointer={pcsRotCoronal}
+							previewRotate={pcsAngles.pitch}
+							overlayDeps={[pcsAngles.pitch]} />
 						{@render maxBtn('acor')}
 					</div>
 					<div class="view panel" class:cell-max={maximized === 'asag'} class:cell-hidden={maximized && maximized !== 'asag'}>
 						<SliceView state={ps}
-							zoomSignal={zoomSig} plane="sagittal" />
+							zoomSignal={zoomSig} plane="sagittal"
+							onToolPointer={pcsRotSagittal}
+							previewRotate={-pcsAngles.roll}
+							overlayDeps={[pcsAngles.roll]} />
 						{@render maxBtn('asag')}
 					</div>
 				</div>
@@ -3803,6 +3991,10 @@
 
 {#if aiReview}
 	<AiReviewDialog models={aiReview} onimport={aiImport} onclose={() => aiImport([])} />
+{/if}
+
+{#if showVpe}
+	<VpeDialog caseId={data.caseData.id} planId={data.plan.id} onclose={() => (showVpe = false)} />
 {/if}
 
 {#if showTemplateMatch && ps}
@@ -4072,11 +4264,11 @@
 				<input id="pcs-yaw" type="number" min="-45" max="45" step="1" bind:value={pcsAngles.yaw} style="width:100%" />
 			</div>
 			<div>
-				<label for="pcs-pitch">Pitch (sagittal, °)</label>
+				<label for="pcs-pitch">Pitch (coronal ↻, °)</label>
 				<input id="pcs-pitch" type="number" min="-45" max="45" step="1" bind:value={pcsAngles.pitch} style="width:100%" />
 			</div>
 			<div>
-				<label for="pcs-roll">Roll (coronal, °)</label>
+				<label for="pcs-roll">Roll (sagittal ↺, °)</label>
 				<input id="pcs-roll" type="number" min="-45" max="45" step="1" bind:value={pcsAngles.roll} style="width:100%" />
 			</div>
 		</div>

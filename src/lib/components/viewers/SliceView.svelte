@@ -17,7 +17,8 @@
 		onToolPointer,
 		onImageDblClick,
 		overlayDeps,
-		zoomSignal
+		zoomSignal,
+		previewRotate = 0
 	}: {
 		state: PlanningState;
 		plane: Plane;
@@ -32,6 +33,8 @@
 		overlayDeps?: unknown;
 		/** external zoom command: f > 0 multiplies, f === 0 resets (seq triggers) */
 		zoomSignal?: { seq: number; f: number };
+		/** pending in-plane rotation preview (°, clockwise) — image only, before baking */
+		previewRotate?: number;
 	} = $props();
 
 	let lastZoomSeq = 0;
@@ -189,6 +192,17 @@
 		const t = fitTransform(slice);
 		ctx.imageSmoothingEnabled = true;
 		ctx.imageSmoothingQuality = 'high';
+		const rot = ((previewRotate || 0) * Math.PI) / 180;
+		if (rot) {
+			// rotate the image about its canvas center (midpoint formula also holds
+			// for the mirrored case where scaleX < 0)
+			ctx.save();
+			const mx = t.ox + (slice.width * t.scaleX) / 2;
+			const my = t.oy + (slice.height * t.scaleY) / 2;
+			ctx.translate(mx, my);
+			ctx.rotate(rot);
+			ctx.translate(-mx, -my);
+		}
 		if (t.scaleX < 0) {
 			// mirrored: flip the bitmap, overlays use the mirrored transform directly
 			ctx.save();
@@ -198,6 +212,13 @@
 			ctx.restore();
 		} else {
 			ctx.drawImage(offscreen, t.ox, t.oy, slice.width * t.scaleX, slice.height * t.scaleY);
+		}
+		if (rot) {
+			ctx.restore();
+			ctx.fillStyle = 'rgba(240, 138, 36, 0.95)';
+			ctx.font = '11px Inter, sans-serif';
+			const rt = `${(previewRotate || 0).toFixed(1)}° pending`;
+			ctx.fillText(rt, cw / 2 - ctx.measureText(rt).width / 2, 26);
 		}
 
 		// crosshair

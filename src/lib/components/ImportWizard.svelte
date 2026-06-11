@@ -221,10 +221,13 @@
 		localStorage.setItem('cdx_advanced_import', alwaysAdvanced ? '1' : '0');
 	}
 
+	let abortCtl = $state<AbortController | null>(null);
+
 	async function doImport(): Promise<void> {
 		if (!pf || phase === 'importing') return;
 		phase = 'importing';
 		errorMsg = '';
+		abortCtl = new AbortController();
 		try {
 			const opts: AdvancedImportOptions = {
 				sliceFrom,
@@ -242,9 +245,14 @@
 			const body = buildForm();
 			body.append('options', JSON.stringify(opts));
 			progress = `Importing volume (${sliceTo - sliceFrom + 1} slices)…`;
-			const res = await fetch(`/api/cases/${caseId}/import/advanced`, { method: 'POST', body });
+			const res = await fetch(`/api/cases/${caseId}/import/advanced`, {
+				method: 'POST',
+				body,
+				signal: abortCtl.signal
+			});
 			if (!res.ok) throw new Error(await readError(res, `Import failed (${res.status})`));
 			const { dataset } = (await res.json()) as { dataset: { id: number } };
+			abortCtl = null; // dataset persisted — past the point of no return
 
 			if (addExtras && pf.extras.length > 0) {
 				progress = 'Adding embedded 2D images to the library…';
@@ -258,8 +266,15 @@
 			}
 			ondone(dataset.id);
 		} catch (e) {
-			errorMsg = e instanceof Error ? e.message : 'Import failed';
+			errorMsg =
+				e instanceof Error && e.name === 'AbortError'
+					? 'Import cancelled — nothing was imported.'
+					: e instanceof Error
+						? e.message
+						: 'Import failed';
 			phase = 'ready';
+		} finally {
+			abortCtl = null;
 		}
 	}
 </script>
@@ -436,7 +451,13 @@
 			</label>
 		</div>
 		<div class="dialog-actions">
-			<button class="btn" onclick={onclose} disabled={phase === 'importing'}>Cancel</button>
+			{#if phase === 'importing'}
+				<button class="btn" onclick={() => abortCtl?.abort()} disabled={!abortCtl}>
+					Abort import
+				</button>
+			{:else}
+				<button class="btn" onclick={onclose}>Cancel</button>
+			{/if}
 			{#if phase === 'importing'}
 				<span class="muted iw-progress">{progress}</span>
 			{/if}

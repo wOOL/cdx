@@ -342,9 +342,16 @@ function shearRows(src: Int16Array, cols: number, rows: number, shift: number): 
 export async function importDicomToCaseAdvanced(
 	caseId: number,
 	buffers: Uint8Array[],
-	opts: AdvancedImportOptions = {}
+	opts: AdvancedImportOptions = {},
+	signal?: AbortSignal
 ): Promise<{ dataset: Dataset; warnings: string[] }> {
+	// nothing is persisted until createDataset at the end, so bailing at the
+	// phase boundaries leaves no partial state behind
+	const bail = (): void => {
+		if (signal?.aborted) throw new Error('Import cancelled');
+	};
 	const a = analyzeSeries(buffers);
+	bail();
 	const warnings = [...a.warnings];
 	const first = a.main[0];
 	let cols = first.cols;
@@ -357,6 +364,7 @@ export async function importDicomToCaseAdvanced(
 	let planes: { z: number; data: Int16Array }[] = [];
 	for (let i = from; i <= to; i++) planes.push({ z: a.zPos[i], data: toHu(a.main[i]) });
 
+	bail();
 	// 2 — fill missing slices: a gap of ~k× the median gets k−1 synthetic planes
 	if (opts.fillMissing && planes.length > 1) {
 		const filled: typeof planes = [planes[0]];
@@ -440,6 +448,7 @@ export async function importDicomToCaseAdvanced(
 	}
 	if (opts.zSpacingOverride && opts.zSpacingOverride > 0) zSpacing = opts.zSpacingOverride;
 
+	bail();
 	// 7 — assemble volume + preview
 	const nSlices = planes.length;
 	const volume = new Int16Array(cols * rows * nSlices);
@@ -470,6 +479,7 @@ export async function importDicomToCaseAdvanced(
 	};
 	const preview = buildPreview(vol, 256, grayLo, grayHi);
 
+	bail();
 	const rel = caseRel(caseId);
 	const stamp = crypto.randomUUID().slice(0, 8);
 	const volPath = join(rel, `vol_${stamp}.i16`);

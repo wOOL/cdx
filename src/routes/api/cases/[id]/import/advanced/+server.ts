@@ -44,7 +44,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	}
 
 	try {
-		const { dataset, warnings } = await importDicomToCaseAdvanced(caseId, buffers, opts);
+		const { dataset, warnings } = await importDicomToCaseAdvanced(
+			caseId,
+			buffers,
+			opts,
+			request.signal
+		);
 		return json({ dataset, warnings });
 	} catch (e) {
 		error(400, e instanceof Error ? e.message : 'DICOM import failed');
