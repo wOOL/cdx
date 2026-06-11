@@ -10,6 +10,7 @@
 	import PlanCompare from '$lib/components/PlanCompare.svelte';
 	import MakeParallel from '$lib/components/MakeParallel.svelte';
 	import DistancePopover from '$lib/components/DistancePopover.svelte';
+	import ImportWizard from '$lib/components/ImportWizard.svelte';
 	import { indexAtLength } from '$lib/curve';
 	import type { ToolPointerEvent, ViewTransform } from '$lib/client/render2d';
 	import {
@@ -452,6 +453,16 @@
 	}
 
 	let selectedImplant = $derived(ps?.implants.find((i) => i.id === ps?.selectedImplantId) ?? null);
+
+	// implants whose article no longer exists in the active catalog (catalog updates)
+	let outdatedImplants = $derived(
+		(ps?.implants ?? []).filter((im) => {
+			const line = IMPLANT_LIBRARY.find(
+				(l) => l.manufacturer === im.manufacturer && l.line === im.line
+			);
+			return !line || !line.diameters.includes(im.diameter) || !line.lengths.includes(im.length);
+		})
+	);
 
 	// auto-recenter the cross-section on the selected implant
 	let lastRecenteredId = -1;
@@ -1142,6 +1153,8 @@
 
 	// ---------- DICOM upload ----------
 	let uploading = $state(false);
+	let wizardFiles = $state<File[] | null>(null);
+	let advInput: HTMLInputElement | undefined = $state();
 	let uploadError = $state('');
 	let dragOver = $state(false);
 	let fileInput: HTMLInputElement | undefined = $state();
@@ -1156,6 +1169,13 @@
 			// route surface scans (.stl/.ply/.obj) to model import, the rest to DICOM
 			const modelFiles = list.filter((f) => /\.(stl|ply|obj)$/i.test(f.name));
 			const dicomFiles = list.filter((f) => !/\.(stl|ply|obj)$/i.test(f.name));
+
+			// advanced import mode: route DICOM files through the wizard instead
+			if (dicomFiles.length && localStorage.getItem('cdx_advanced_import') === '1') {
+				wizardFiles = dicomFiles;
+				uploading = false;
+				if (!modelFiles.length) return;
+			}
 
 			for (const f of modelFiles) {
 				if (ps) {
@@ -1173,7 +1193,7 @@
 				}
 			}
 
-			if (dicomFiles.length) {
+			if (dicomFiles.length && !wizardFiles) {
 				const form = new FormData();
 				for (const f of dicomFiles) form.append('files', f);
 				const res = await fetch(`/api/cases/${data.caseData.id}/import`, {
@@ -1183,6 +1203,20 @@
 				if (!res.ok) {
 					const body = await res.json().catch(() => null);
 					throw new Error(body?.message ?? `Import failed (${res.status})`);
+				}
+				// verify patient identity: warn when the DICOM tags disagree with the record
+				const { dataset } = await res.json().catch(() => ({ dataset: null }));
+				const dicomName = String(dataset?.patient_name ?? '').replace('^', ', ').toLowerCase();
+				const recordName = `${data.patient.last_name}, ${data.patient.first_name}`.toLowerCase();
+				if (
+					dicomName &&
+					recordName.trim() !== ',' &&
+					!dicomName.includes(data.patient.last_name.toLowerCase()) &&
+					data.patient.last_name
+				) {
+					alert(
+						`Verify patient data: the DICOM files report "${dataset.patient_name}" but this record is "${data.patient.last_name}, ${data.patient.first_name}". The record was NOT overwritten — make sure the data was imported into the correct patient.`
+					);
 				}
 			}
 			await invalidateAll();
@@ -1875,6 +1909,22 @@
 				{#if uploadError}
 					<div class="upload-error"><Icon name="warning" size={16} /> {uploadError}</div>
 				{/if}
+				<div class="adv-row">
+					<button class="btn" onclick={() => advInput?.click()}>
+						<Icon name="settings" size={14} /> Advanced import… (slice selection, crop, gantry, histogram)
+					</button>
+					<input
+						type="file"
+						multiple
+						accept=".dcm,.zip,application/zip,application/dicom"
+						hidden
+						bind:this={advInput}
+						onchange={(e) => {
+							const fl = e.currentTarget.files;
+							if (fl?.length) wizardFiles = Array.from(fl);
+						}}
+					/>
+				</div>
 
 				{#if data.datasets.length}
 					<div class="dataset-list">
@@ -2118,6 +2168,16 @@
 					<button class="btn primary" onclick={openImplantDialog}>
 						<Icon name="implant" size={14} /> Add implant
 					</button>
+					{#if outdatedImplants.length}
+						<span
+							class="warn-text"
+							title="These implants are no longer in the active catalog (outdated article). Use Change… to replace them, or keep them knowingly: {outdatedImplants
+								.map((i) => i.article)
+								.join(', ')}"
+						>
+							<Icon name="warning" size={12} /> {outdatedImplants.length} outdated
+						</span>
+					{/if}
 					{#if selectedImplant}
 						<div class="tool-sep"></div>
 						<span>
@@ -2529,6 +2589,18 @@
 			</div>
 		</div>
 	</div>
+{/if}
+
+{#if wizardFiles}
+	<ImportWizard
+		caseId={data.caseData.id}
+		files={wizardFiles}
+		onclose={() => (wizardFiles = null)}
+		ondone={async () => {
+			wizardFiles = null;
+			await invalidateAll();
+		}}
+	/>
 {/if}
 
 {#if distancePopover && ps}
@@ -3295,6 +3367,10 @@
 	.dropzone.drag-over {
 		border-color: var(--accent);
 		color: var(--text);
+	}
+	.adv-row {
+		display: flex;
+		justify-content: center;
 	}
 	.upload-error {
 		display: flex;
