@@ -67,10 +67,10 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 30 | 3D Mouse *(8)* | verifying | (3Dconnexion HID + fly-through → GAPS hardware row) |
 | 31 | Adjusting the toolbar *(10)* | verifying | stage-bar step hiding; extended quick-action catalog; full reset |
 | 32 | caseXchange registration code *(12)* | verifying | (vendor cloud onboarding → GAPS; pairing codes are the equivalent) |
-| 33 | Changing the implant color *(–)* | pending | |
+| 33 | Changing the implant color *(18)* | verifying | per-implant picker + default color setting; x-ray implants; dbl-click 3D pivot; settings link |
 | 34 | Deleting Patient Data *(12)* | verifying | (two-pane delete dialog → GAPS; inline deletes are the equivalent) |
 | 35 | Distance Measurements *(–)* | pending | |
-| 36 | Exporting a Plan *(–)* | pending | |
+| 36 | Exporting a Plan *(10)* | verifying | (OS file association → GAPS; plan export/import present) |
 | 37 | Hotkeys *(–)* | pending | |
 | 38 | Inserting Logo in Printouts *(–)* | pending | |
 | 39 | Locking implant positions *(–)* | pending | |

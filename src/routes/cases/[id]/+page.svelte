@@ -3589,7 +3589,7 @@
 							</div>
 						</div>
 					{/if}
-					<label for="measure-tools">Measure (axial view)</label>
+					<label for="measure-tools">Measure (axial & cross views)</label>
 					<button
 						class="btn perio-btn"
 						title="Periodontal charting: bone-loss values in six directions per tooth (calculated planning aid)"

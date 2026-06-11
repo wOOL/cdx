@@ -594,6 +594,9 @@ export function drawCrossOverlay(
 	if (!frame) return;
 	const map = crossMap(ps, t, info);
 
+	// measurements: points/segments near or crossing the section plane
+	drawSectionMeasurements(ps, ctx, map, frame);
+
 	// nerves: segment intersections with the plane
 	for (const n of ps.nerves) {
 		if (!n.visible || n.points.length === 0) continue;
@@ -707,6 +710,16 @@ function crossTo3D(ps: PlanningState, w: number, zmm: number): Vec3 | null {
 export function crossTool(ps: PlanningState, e: CrossToolEvent): boolean {
 	const frame = crossFrame(ps);
 	if (!frame || ps.locked) return false;
+
+	// measurements in the tangential/cross view: points are true 3D positions
+	// on the section plane, so endpoints on different sections measure in 3D
+	// (density stays axial-only — it samples the axial slice)
+	if (ps.measureTool !== 'none' && ps.measureTool !== 'density') {
+		if (e.type !== 'down') return true;
+		const p3 = crossTo3D(ps, e.w, e.zmm);
+		if (!p3) return true;
+		return measureAcceptPoint(ps, { ...p3 });
+	}
 
 	// nerve point placement (click or click-drag) + drag-correction of existing points
 	if (ps.nerveEditMode && ps.activeNerveId != null) {
@@ -975,6 +988,14 @@ export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolea
 		return true;
 	}
 
+	return measureAcceptPoint(ps, p);
+}
+
+/**
+ * Shared measurement point intake (axial + cross views): endpoints may come
+ * from different views/slices, so distances and angles are genuinely 3D.
+ */
+export function measureAcceptPoint(ps: PlanningState, p: Vec3): boolean {
 	if (ps.measureTool === 'annotation') {
 		const text = window.prompt('Annotation text:');
 		if (text) ps.addMeasurement('annotation', [p], 0, text);
@@ -1019,6 +1040,62 @@ export function measureAxialTool(ps: PlanningState, e: ToolPointerEvent): boolea
 		ps.measureTool = 'none';
 	}
 	return true;
+}
+
+/** measurement overlay for the cross/tangential views (3D points projected to the section) */
+function drawSectionMeasurements(
+	ps: PlanningState,
+	ctx: CanvasRenderingContext2D,
+	map: ReturnType<typeof crossMap>,
+	frame: NonNullable<ReturnType<typeof crossFrame>>
+) {
+	const near = (v: number) => Math.abs(v) < 1.5;
+	const drawPts = (pts: { w: number; v: number; zmm: number }[], label: string, color: string) => {
+		ctx.strokeStyle = color;
+		ctx.fillStyle = color;
+		ctx.lineWidth = 1.5 * LS;
+		ctx.beginPath();
+		pts.forEach((q, i) => {
+			const c = map.toCanvas(q.w, q.zmm);
+			if (i === 0) ctx.moveTo(c.x, c.y);
+			else ctx.lineTo(c.x, c.y);
+		});
+		if (pts.length > 1) ctx.stroke();
+		for (const q of pts) {
+			const c = map.toCanvas(q.w, q.zmm);
+			ctx.beginPath();
+			ctx.arc(c.x, c.y, 3, 0, Math.PI * 2);
+			ctx.fill();
+		}
+		if (label) {
+			const c = map.toCanvas(pts[pts.length - 1].w, pts[pts.length - 1].zmm);
+			ctx.font = `${ps.labelSize}px Inter, sans-serif`;
+			ctx.fillStyle = '#dfe4ff';
+			ctx.fillText(label, c.x + 8, c.y - 6);
+		}
+	};
+	for (const m of ps.measurements) {
+		const proj = m.points.map((q) => projectToSection(frame, q));
+		if (!proj.some((q) => near(q.v))) continue;
+		if (m.type === 'annotation') {
+			const c = map.toCanvas(proj[0].w, proj[0].zmm);
+			ctx.fillStyle = ps.annotationColor;
+			ctx.beginPath();
+			ctx.arc(c.x, c.y, 3.5, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.font = `${ps.labelSize}px Inter, sans-serif`;
+			ctx.fillText(m.label, c.x + 8, c.y + 4);
+			continue;
+		}
+		drawPts(proj, (m.name ? m.name + ': ' : '') + m.label, hexAlpha(ps.measureColor, 0.95));
+	}
+	if (ps.pendingMeasure.length) {
+		drawPts(
+			ps.pendingMeasure.map((q) => projectToSection(frame, q)),
+			'…',
+			hexAlpha(ps.measureColor, 0.5)
+		);
+	}
 }
 
 /** complete a pending polyline measurement (≥2 points) */
