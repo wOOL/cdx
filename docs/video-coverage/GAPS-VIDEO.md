@@ -114,3 +114,4 @@ deltas, each with a working equivalent. None blocks a user following a video.
 | Patient-data window AFTER import-source selection (AI provide-data) | web flow inverts the order: patient entered before import; DICOM tags prefill + mismatch warning | low |
 | In-dialog result preview before committing an extraction (AI extraction) | operation is non-destructive: result lands as a NEW model to inspect/delete; source untouched | low |
 | 'Entire maxilla/mandible' one-click group toggles (AI numbering) | jaw pills + '+ Upper/Lower teeth' and '+ Jaws' subset presets | none |
+| Nerve points placed in the spin-rotated tangential view (EXPERT nerve) | placement + drag-correction in pano/cross/axial with section spin for review | low |
