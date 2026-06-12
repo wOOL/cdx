@@ -806,6 +806,14 @@
 				vec3 pos = u_camPos + rd * t;
 				float v = sampleVol(pos);
 				if (v >= u_threshold && prev < u_threshold) {
+					// hit confirmation: real bone stays above the threshold one step
+					// further along the ray; an isolated noise voxel (inflated by the
+					// linear filter) does not — skip it instead of shading a speckle
+					float vNext = sampleVol(u_camPos + rd * min(t + stepSize, tFar));
+					if (vNext < u_threshold) {
+						prev = v;
+						continue;
+					}
 					// binary refine
 					float a = t - stepSize;
 					float b = t;
