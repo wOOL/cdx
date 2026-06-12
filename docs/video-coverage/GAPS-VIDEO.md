@@ -111,3 +111,4 @@ deltas, each with a working equivalent. None blocks a user following a video.
 | Guide-wizard 'From template' start (Enjoy) | Copy-plan dialog (duplicates design settings) + guide recipes | low |
 | Branded implant detail naming in the properties panel (Enjoy) | article · platform · total-length readout; open catalogs (stage-2 family) | low |
 | Merge-dialog FDI chart + in-dialog 3D preview (AI merge) | checkbox list + arch quick-picks; result visible in the 3D view after merge | low |
+| Patient-data window AFTER import-source selection (AI provide-data) | web flow inverts the order: patient entered before import; DICOM tags prefill + mismatch warning | low |
