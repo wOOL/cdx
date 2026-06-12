@@ -89,6 +89,7 @@ deltas, each with a working equivalent. None blocks a user following a video.
 |---|---|---|
 | Double-click the view title bar to maximize (Basic 1, EXPERT nerve/implant) | ⛶ button per view + Esc restore (no title bars in our grid) | low |
 | Drag-and-drop toolbar/workflow customization (TT Adjusting the toolbar) | Adjust-toolbar dialog: checkboxes for tools, quick-action pins, hideable workflow steps | low |
+| Full ~50-symbol pinnable function catalog (TT Adjusting the toolbar) | curated catalog: 6 measure tools + 9 quick actions + 5 hideable steps (every demonstrated pin covered) | low |
 | Workflow step reorder by drag (TT Adjusting the toolbar) | stages enforce no order in EXPERT mode; steps can be hidden | none |
 | Region-paint matching blobs (AI merge video) | ≥3 point-pair correspondences, unlimited pairs | low |
 | 'Align to another object' registration-target choice (AI merge) | scans register into the shared volume frame; copy alignment for same-frame scans | low |
