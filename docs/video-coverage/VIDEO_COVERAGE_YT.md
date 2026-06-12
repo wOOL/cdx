@@ -64,7 +64,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
-| 30 | 3D Mouse *(8)* | verifying | (3Dconnexion HID + fly-through → GAPS hardware row) |
+| 30 | 3D Mouse *(8)* | closed¹ | (3Dconnexion HID + fly-through → GAPS hardware row) |
 | 31 | Adjusting the toolbar *(10)* | verifying | stage-bar step hiding; extended quick-action catalog; full reset |
 | 32 | caseXchange registration code *(12)* | verifying | (vendor cloud onboarding → GAPS; pairing codes are the equivalent) |
 | 33 | Changing the implant color *(18)* | verifying | per-implant picker + default color setting; x-ray implants; dbl-click 3D pivot; settings link |
