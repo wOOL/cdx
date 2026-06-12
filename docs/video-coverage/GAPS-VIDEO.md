@@ -115,3 +115,5 @@ deltas, each with a working equivalent. None blocks a user following a video.
 | In-dialog result preview before committing an extraction (AI extraction) | operation is non-destructive: result lands as a NEW model to inspect/delete; source untouched | low |
 | 'Entire maxilla/mandible' one-click group toggles (AI numbering) | jaw pills + '+ Upper/Lower teeth' and '+ Jaws' subset presets | none |
 | Nerve points placed in the spin-rotated tangential view (EXPERT nerve) | placement + drag-correction in pano/cross/axial with section spin for review | low |
+| Group select-all highlight via the tree group header (EXPERT sleeve) | single-implant selection by design; group ops exist (toggle-all, parallelize, bulk lock) | none |
+| Per-sleeve drill-handle (+1 mm)/milling-cutter ⌀ readouts in the sleeve dialog (EXPERT sleeve) | live drill-length readout in the toolbar + per-step handle/length in the drill protocol | low |
