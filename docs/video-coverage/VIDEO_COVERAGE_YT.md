@@ -74,7 +74,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 37 | Hotkeys *(8)* | closed¹ | ⌨ hotkeys button (mouse path to the list) |
 | 38 | Inserting Logo in Printouts *(13)* | closed | logo accepts PNG/JPEG/BMP/WebP |
 | 39 | Locking implant positions *(7)* | closed | per-implant lock + bulk Lock implants + tree padlocks |
-| 40 | Moving implants *(11)* | verifying | 0.1° fine-rotation step; (right-drag gestures → GAPS, handle drags equivalent) |
+| 40 | Moving implants *(11)* | closed¹ | 0.1° fine-rotation step; (right-drag gestures → GAPS, handle drags equivalent) |
 | 41 | Surgical Guide Visualization *(14)* | verifying | metallic/wireframe/x-ray looks; properties readout (tris/points/area/volume) |
 | 42 | Transparent Segmentation *(14)* | closed¹ | (model opacity/color = the transparency; setup-dialog style → GAPS) |
 
