@@ -92,6 +92,10 @@ deltas, each with a working equivalent. None blocks a user following a video.
 | Full ~50-symbol pinnable function catalog (TT Adjusting the toolbar) | curated catalog: 6 measure tools + 9 quick actions + 5 hideable steps (every demonstrated pin covered) | low |
 | Settings tabs named Implants/Stereo 3D (TT implant color) | same preferences under Views/Planning & Safety; stereo lives on the 3D view itself | none |
 | Implant-axis cylinder diameter parameter (TT implant color) | axis extension length (mm) setting + global overlay line-thickness preference | low |
+| Hover hand-cursor before re-grabbing a measurement endpoint (TT distance) | endpoint drag works within 1.6 mm without a tool; rail copy-cursor while armed | none |
+| Drag-editing measurement endpoints in the cross view (TT distance) | endpoints drag-edit in axial; cross view places 3D points; tree rename/delete | low |
+| Del/F2 keyboard shortcuts on measurements (TT distance) | measurements have no keyboard selection; inline ✎/🗑 per tree row | low |
+| Per-metric status-bar chips incl. density (TT distance/transparent seg) | nerve/implant distance chips + per-implant density readout in the toolbar | low |
 | Workflow step reorder by drag (TT Adjusting the toolbar) | stages enforce no order in EXPERT mode; steps can be hidden | none |
 | Region-paint matching blobs (AI merge video) | ≥3 point-pair correspondences, unlimited pairs | low |
 | 'Align to another object' registration-target choice (AI merge) | scans register into the shared volume frame; copy alignment for same-frame scans | low |

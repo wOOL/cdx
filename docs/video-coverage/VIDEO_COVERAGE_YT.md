@@ -69,7 +69,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 32 | caseXchange registration code *(12)* | closed¹ | (vendor cloud onboarding → GAPS; pairing codes are the equivalent) |
 | 33 | Changing the implant color *(18)* | closed¹ | per-implant picker + default color setting; x-ray implants; dbl-click 3D pivot; settings link |
 | 34 | Deleting Patient Data *(12)* | closed¹ | (two-pane delete dialog → GAPS; inline deletes are the equivalent) |
-| 35 | Distance Measurements *(17)* | verifying | 3D measurements in cross view; armed-tool cursor |
+| 35 | Distance Measurements *(17)* | closed¹ | 3D measurements in cross view; armed-tool cursor |
 | 36 | Exporting a Plan *(10)* | closed¹ | (OS file association → GAPS; plan export/import present) |
 | 37 | Hotkeys *(8)* | verifying | ⌨ hotkeys button (mouse path to the list) |
 | 38 | Inserting Logo in Printouts *(13)* | verifying | logo accepts PNG/JPEG/BMP/WebP |
