@@ -72,8 +72,8 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 35 | Distance Measurements *(17)* | closed¹ | 3D measurements in cross view; armed-tool cursor |
 | 36 | Exporting a Plan *(10)* | closed¹ | (OS file association → GAPS; plan export/import present) |
 | 37 | Hotkeys *(8)* | closed¹ | ⌨ hotkeys button (mouse path to the list) |
-| 38 | Inserting Logo in Printouts *(13)* | verifying | logo accepts PNG/JPEG/BMP/WebP |
-| 39 | Locking implant positions *(7)* | verifying | per-implant lock + bulk Lock implants + tree padlocks |
+| 38 | Inserting Logo in Printouts *(13)* | closed | logo accepts PNG/JPEG/BMP/WebP |
+| 39 | Locking implant positions *(7)* | closed | per-implant lock + bulk Lock implants + tree padlocks |
 | 40 | Moving implants *(11)* | verifying | 0.1° fine-rotation step; (right-drag gestures → GAPS, handle drags equivalent) |
 | 41 | Surgical Guide Visualization *(14)* | verifying | metallic/wireframe/x-ray looks; properties readout (tris/points/area/volume) |
 | 42 | Transparent Segmentation *(14)* | closed¹ | (model opacity/color = the transparency; setup-dialog style → GAPS) |
