@@ -44,7 +44,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
 | 19 | Start a new case *(14)* | closed¹ | (scan-date field → pending verdict) |
-| 20 | Segment DICOM data (Expert) *(18)* | verifying | upper HU bound in editor; zoom readout; 3D volume-render toggle |
+| 20 | Segment DICOM data (Expert) *(18)* | closed¹ | upper HU bound in editor; zoom readout; 3D volume-render toggle |
 | 21 | Use the coordinate system *(11)* | closed | — (already complete) |
 | 22 | Detect the nerve canal (Expert) *(19)* | closed¹ | |
 | 23 | Place an implant *(19)* | closed¹ | |
@@ -57,8 +57,8 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
 | 27 | Segment DICOM data (Easy) *(14)* | closed | — (already complete) |
-| 28 | Define the panoramic curve (Easy) *(14)* | verifying | (3D inset thumbnail → GAPS) |
-| 29 | Detect the nerve canal (Easy) *(18)* | verifying | detect with-or-without intermediate waypoints choice |
+| 28 | Define the panoramic curve (Easy) *(14)* | closed¹ | (3D inset thumbnail → GAPS) |
+| 29 | Detect the nerve canal (Easy) *(18)* | closed¹ | detect with-or-without intermediate waypoints choice |
 
 ## Tips & Tricks
 

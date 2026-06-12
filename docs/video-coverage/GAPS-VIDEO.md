@@ -117,3 +117,4 @@ deltas, each with a working equivalent. None blocks a user following a video.
 | Nerve points placed in the spin-rotated tangential view (EXPERT nerve) | placement + drag-correction in pano/cross/axial with section spin for review | low |
 | Group select-all highlight via the tree group header (EXPERT sleeve) | single-implant selection by design; group ops exist (toggle-all, parallelize, bulk lock) | none |
 | Per-sleeve drill-handle (+1 mm)/milling-cutter ⌀ readouts in the sleeve dialog (EXPERT sleeve) | live drill-length readout in the toolbar + per-step handle/length in the drill protocol | low |
+| Filled segment recolors the live 3D volume render (EXPERT segment) | instant colored axial overlay + 3D-seeded fill; colored 3D mesh after Build model | low |
