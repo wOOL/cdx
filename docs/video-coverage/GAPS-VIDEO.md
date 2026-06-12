@@ -112,3 +112,4 @@ deltas, each with a working equivalent. None blocks a user following a video.
 | Branded implant detail naming in the properties panel (Enjoy) | article · platform · total-length readout; open catalogs (stage-2 family) | low |
 | Merge-dialog FDI chart + in-dialog 3D preview (AI merge) | checkbox list + arch quick-picks; result visible in the 3D view after merge | low |
 | Patient-data window AFTER import-source selection (AI provide-data) | web flow inverts the order: patient entered before import; DICOM tags prefill + mismatch warning | low |
+| In-dialog result preview before committing an extraction (AI extraction) | operation is non-destructive: result lands as a NEW model to inspect/delete; source untouched | low |
