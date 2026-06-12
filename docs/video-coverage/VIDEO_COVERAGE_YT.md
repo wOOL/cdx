@@ -67,7 +67,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 30 | 3D Mouse *(8)* | closed¹ | (3Dconnexion HID + fly-through → GAPS hardware row) |
 | 31 | Adjusting the toolbar *(10)* | closed¹ | stage-bar step hiding; extended quick-action catalog; full reset |
 | 32 | caseXchange registration code *(12)* | closed¹ | (vendor cloud onboarding → GAPS; pairing codes are the equivalent) |
-| 33 | Changing the implant color *(18)* | verifying | per-implant picker + default color setting; x-ray implants; dbl-click 3D pivot; settings link |
+| 33 | Changing the implant color *(18)* | closed¹ | per-implant picker + default color setting; x-ray implants; dbl-click 3D pivot; settings link |
 | 34 | Deleting Patient Data *(12)* | closed¹ | (two-pane delete dialog → GAPS; inline deletes are the equivalent) |
 | 35 | Distance Measurements *(17)* | verifying | 3D measurements in cross view; armed-tool cursor |
 | 36 | Exporting a Plan *(10)* | verifying | (OS file association → GAPS; plan export/import present) |
