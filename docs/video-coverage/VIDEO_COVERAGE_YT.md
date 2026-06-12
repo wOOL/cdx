@@ -16,13 +16,13 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
 | 1 | Basic Training 1 *(61)* | closed¹ | nerve delete-point; toolbar quick actions |
-| 2 | Basic Training 2 *(94)* | verifying | measurement rename; annotation/measure colors + label size; implant color picker; tooth-number tags; implant-axis length; line thickness; per-implant lock; plan-copy element selection; nerve rename; fine positioning; free 3D model import; sidebar collapse (F9) |
-| 3 | Mesh Editor — Opportunities and new tools *(42)* | verifying | Combine Subtract mode; Mesh-Editor delta batch (ctrl-wheel radius, pivot, drag-paint, view types, margin spline edit, partial fill, remesh params, area smooth, combine preview, reduce guidance) |
-| 4 | Predictable surgical guide design (webinar) *(35)* | verifying | import-time mesh-optimize offer |
-| 5 | Planning workflow — 7 steps *(26)* | verifying | (insertion undercut coloring pending verdict) |
-| 6 | coDiagnostiX EASY *(43)* | verifying | (vendor integrations → GAPS) |
+| 2 | Basic Training 2 *(94)* | closed¹ | measurement rename; annotation/measure colors + label size; implant color picker; tooth-number tags; implant-axis length; line thickness; per-implant lock; plan-copy element selection; nerve rename; fine positioning; free 3D model import; sidebar collapse (F9) |
+| 3 | Mesh Editor — Opportunities and new tools *(42)* | closed¹ | Combine Subtract mode; Mesh-Editor delta batch (ctrl-wheel radius, pivot, drag-paint, view types, margin spline edit, partial fill, remesh params, area smooth, combine preview, reduce guidance) |
+| 4 | Predictable surgical guide design (webinar) *(35)* | closed¹ | import-time mesh-optimize offer |
+| 5 | Planning workflow — 7 steps *(26)* | closed | (insertion undercut coloring pending verdict) |
+| 6 | coDiagnostiX EASY *(43)* | closed¹ | (vendor integrations → GAPS) |
 | 7 | coDiagnostiX EASY — A Simplified Implant Planning Solution *(42)* | closed | — (already complete) |
-| 8 | Enjoy fast and easy drill guide design (Dental Wings) *(29)* | verifying | elongated inspection windows (stadium length+angle) |
+| 8 | Enjoy fast and easy drill guide design (Dental Wings) *(29)* | closed¹ | elongated inspection windows (stadium length+angle) |
 | 9 | Transformations in Dentistry *(14)* | closed | — (marketing; already complete) |
 | 10 | Teaser — clinicians *(9)* | closed | — (marketing) |
 | 11 | Teaser — labs *(13)* | closed | — (marketing) |
@@ -31,26 +31,26 @@ listed in GAPS-VIDEO.md (stage-3 section).
 
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
-| 12 | Discover the AI Assistant *(21)* | verifying | wizard parity batch (subset presets, counts, manual-align jump, reset view) |
-| 13 | How to provide data to the AI Assistant *(22)* | verifying | |
-| 14 | How to Review Import Data from the AI Assistant *(22)* | verifying | (wizard refinement batch queued) |
-| 15 | How to merge and use results from the AI Assistant *(22)* | verifying | Create merged model dialog (+ arch quick-picks) |
-| 16 | How to change AI tooth numbering *(17)* | verifying | AI renumbering (builder in flight) |
-| 17 | How to perform AI tooth extraction *(15)* | verifying | AI tooth extraction (cut/cut+close/alveolus + add-tooth) |
+| 12 | Discover the AI Assistant *(21)* | closed¹ | wizard parity batch (subset presets, counts, manual-align jump, reset view) |
+| 13 | How to provide data to the AI Assistant *(22)* | closed¹ | |
+| 14 | How to Review Import Data from the AI Assistant *(22)* | closed¹ | (wizard refinement batch queued) |
+| 15 | How to merge and use results from the AI Assistant *(22)* | closed¹ | Create merged model dialog (+ arch quick-picks) |
+| 16 | How to change AI tooth numbering *(17)* | closed¹ | AI renumbering (builder in flight) |
+| 17 | How to perform AI tooth extraction *(15)* | closed¹ | AI tooth extraction (cut/cut+close/alveolus + add-tooth) |
 | 18 | Time saving with the AI Assistant *(–)* | closed | — (marketing) |
 
 ## How-to EXPERT mode
 
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
-| 19 | Start a new case *(14)* | verifying | (scan-date field → pending verdict) |
+| 19 | Start a new case *(14)* | closed¹ | (scan-date field → pending verdict) |
 | 20 | Segment DICOM data (Expert) *(18)* | verifying | upper HU bound in editor; zoom readout; 3D volume-render toggle |
 | 21 | Use the coordinate system *(11)* | closed | — (already complete) |
-| 22 | Detect the nerve canal (Expert) *(19)* | verifying | |
-| 23 | Place an implant *(19)* | verifying | |
-| 24 | Place a sleeve *(20)* | verifying | (catalog rows → GAPS) |
-| 25 | Design a drill guide *(40)* | verifying | label presets: Date of birth, Tooth positions |
-| 26 | Export on abutment level *(24)* | verifying | (branded abutment catalogs → GAPS; scanbody thumbnails) |
+| 22 | Detect the nerve canal (Expert) *(19)* | closed¹ | |
+| 23 | Place an implant *(19)* | closed¹ | |
+| 24 | Place a sleeve *(20)* | closed¹ | (catalog rows → GAPS) |
+| 25 | Design a drill guide *(40)* | closed | label presets: Date of birth, Tooth positions |
+| 26 | Export on abutment level *(24)* | closed¹ | (branded abutment catalogs → GAPS; scanbody thumbnails) |
 
 ## How-to EASY mode
 
