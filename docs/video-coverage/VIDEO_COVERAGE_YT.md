@@ -19,7 +19,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 2 | Basic Training 2 *(94)* | closed¹ | measurement rename; annotation/measure colors + label size; implant color picker; tooth-number tags; implant-axis length; line thickness; per-implant lock; plan-copy element selection; nerve rename; fine positioning; free 3D model import; sidebar collapse (F9) |
 | 3 | Mesh Editor — Opportunities and new tools *(42)* | closed¹ | Combine Subtract mode; Mesh-Editor delta batch (ctrl-wheel radius, pivot, drag-paint, view types, margin spline edit, partial fill, remesh params, area smooth, combine preview, reduce guidance) |
 | 4 | Predictable surgical guide design (webinar) *(35)* | closed¹ | import-time mesh-optimize offer |
-| 5 | Planning workflow — 7 steps *(26)* | closed | (insertion undercut coloring pending verdict) |
+| 5 | Planning workflow — 7 steps *(26)* | closed | undercut preview for the insertion direction |
 | 6 | coDiagnostiX EASY *(43)* | closed¹ | (vendor integrations → GAPS) |
 | 7 | coDiagnostiX EASY — A Simplified Implant Planning Solution *(42)* | closed | — (already complete) |
 | 8 | Enjoy fast and easy drill guide design (Dental Wings) *(29)* | closed¹ | elongated inspection windows (stadium length+angle) |
@@ -43,7 +43,7 @@ listed in GAPS-VIDEO.md (stage-3 section).
 
 | # | Video | Status | Built this pass |
 |---|-------|--------|-----------------|
-| 19 | Start a new case *(14)* | closed¹ | (scan-date field → pending verdict) |
+| 19 | Start a new case *(14)* | closed¹ | — |
 | 20 | Segment DICOM data (Expert) *(18)* | closed¹ | upper HU bound in editor; zoom readout; 3D volume-render toggle |
 | 21 | Use the coordinate system *(11)* | closed | — (already complete) |
 | 22 | Detect the nerve canal (Expert) *(19)* | closed¹ | |
@@ -75,9 +75,22 @@ listed in GAPS-VIDEO.md (stage-3 section).
 | 38 | Inserting Logo in Printouts *(13)* | closed | logo accepts PNG/JPEG/BMP/WebP |
 | 39 | Locking implant positions *(7)* | closed | per-implant lock + bulk Lock implants + tree padlocks |
 | 40 | Moving implants *(11)* | closed¹ | 0.1° fine-rotation step; (right-drag gestures → GAPS, handle drags equivalent) |
-| 41 | Surgical Guide Visualization *(14)* | verifying | metallic/wireframe/x-ray looks; properties readout (tris/points/area/volume) |
+| 41 | Surgical Guide Visualization *(14)* | closed¹ | metallic/wireframe/x-ray looks; properties readout (tris/points/area/volume) |
 | 42 | Transparent Segmentation *(14)* | closed¹ | (model opacity/color = the transparency; setup-dialog style → GAPS) |
 
 ## Verification
 
-(filled at the end of the pass)
+Method stats: 42 analyzers enumerated **~975 demonstrated features**; every
+non-present claim (≈150) was adversarially re-verified against the code after the
+build batches — the verdicts confirmed each one as actually-present (built this
+pass), known-residual (GAPS-VIDEO.md stage-3 tables), or not-applicable
+(marketing/hardware). 14 build batches landed in commits `245eb84..HEAD`.
+
+Every build type-checked (`bun run check` 0 errors). Unit suites all green:
+test-vpe, test-aireview, test-guide/2/3/4, test-meshedit2/3, test-meshsubtract
+(23), test-toothops (46), test-virtualtooth, test-auto-align, test-abutment,
+test-augment-ai, test-catalogs, test-i18n, test-mask/2, test-import-advanced.
+Live evidence screenshots in `img/yt-*.png` (implant toolbar with lock/color/
+fine-positioning, settings view preferences, merge-models dialog, Mesh Editor
+tools incl. Combine subtract). Manual updated through chapter 7 with the new
+features; PDF rebuilt (67 figures).

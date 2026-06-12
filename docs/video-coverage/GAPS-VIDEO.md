@@ -96,6 +96,8 @@ deltas, each with a working equivalent. None blocks a user following a video.
 | Drag-editing measurement endpoints in the cross view (TT distance) | endpoints drag-edit in axial; cross view places 3D points; tree rename/delete | low |
 | Del/F2 keyboard shortcuts on measurements (TT distance) | measurements have no keyboard selection; inline ✎/🗑 per tree row | low |
 | Per-metric status-bar chips incl. density (TT distance/transparent seg) | nerve/implant distance chips + per-implant density readout in the toolbar | low |
+| Undemonstrated desktop representation modes beyond shaded/metallic/wireframe (TT guide viz) | Look select covers every mode the video shows | none |
+| Double-click the finished guide to reopen design finalization (TT guide viz) | 'Guide design options' button + per-model Look/Properties reach the same places | low |
 | Workflow step reorder by drag (TT Adjusting the toolbar) | stages enforce no order in EXPERT mode; steps can be hidden | none |
 | Region-paint matching blobs (AI merge video) | ≥3 point-pair correspondences, unlimited pairs | low |
 | 'Align to another object' registration-target choice (AI merge) | scans register into the shared volume frame; copy alignment for same-frame scans | low |
