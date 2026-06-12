@@ -84,7 +84,7 @@ Elements:
   - **Mark this plan as final** (checkbox, **irreversible**; to modify, copy the plan).
   - **Implant update mode**: `Check for updates if new implants are available` (default) | `Never check plan for updated implants` | `Check for updates each time the plan is opened`.
 - **Plan panel** (top of left sidebar in EXPERT): combo box listing all plans; status icons: "Plan sent and locked for editing", "Copy of a transferred plan (enabled for editing)".
-- **Plan menu**: New (Ctrl+Shift+N), Create Copy (dialog lets user pick which elements to copy; copy auto-loads), Properties, Finalize, Management, Send, Print ▸, Check Lock State for Production.
+- **Plan menu**: New (Ctrl+Shift+N), Create Copy (dialog lets user pick which elements to copy — Implants incl. sleeves & abutments | Nerve canals | Measurements & annotations; name prefilled "<plan> (copy)"; a duplicate plan name shows an inline warning and disables Create; copy auto-loads), Properties, Finalize, **Lock implants / Unlock implants** (bulk position lock over all implants of the plan, §7.3), Management, Send, Print ▸, Check Lock State for Production.
 - **Plan Management dialog**: lists plans with name, status, last editor, modification date; actions: open, Properties (edit without opening), **Delete** (only here, to prevent accidents), **Compare** (select 2 plans → diff of all differences, incl. implant move distances). Transferred plans show as write-protected sub-entries under their editable copies ("+" head entry).
 - **Outdated objects handling**: per the plan's implant-update mode, when an implant/abutment in the plan is marked outdated in the catalog, prompt: keep outdated vs use newer version; after replacing, prompt user to recheck the plan.
 - **Finalization rule**: exports (guide STL, VPE) and production sends require a finalized, unlocked plan; UI must surface this.
@@ -130,7 +130,7 @@ Object tree categories: Groups, Tooth positions, Implants, Abutments, Sleeves, T
 Shared wizard used by EXPERT toolbar "Add model scan", EASY model-scan sub-step, and object-tree Add menu.
 
 **Step 1 — Source**:
-- **Load model scan** — upload **STL** or **PLY** (PLY supports vertex-color intraoral scans). (OBJ unsupported, matching the original.)
+- **Load model scan** — upload **STL** or **PLY** (PLY supports vertex-color intraoral scans). (OBJ unsupported, matching the original.) Scans above **320k triangles** trigger an optimize offer at import: decimate to ~**250k** triangles for smooth editing and guide design; the original is kept as a backup [WEB].
 - **Import segmentation** — import a segmentation from another dataset of the same patient (dual-scan method, §2.3); choose level of detail; result appears as a 3D object.
 - **Import from device or service** — [WEB] stub integration point (order inbox); out-of-scope for parity with DWOS Connect/3Shape, P4.
 
@@ -138,7 +138,7 @@ Shared wizard used by EXPERT toolbar "Add model scan", EASY model-scan sub-step,
 - **Align to other object** (standard; runs all steps below).
 - **Copy alignment** — reuse the registration of a previously aligned scan exported in the same coordinate system (wax-up workflow); skips matching steps.
 - **Do not align** — postpone; the scan appears in the object tree with an **exclamation mark**; double-click later to align.
-- **Align using AI** — automated surface matching when AI preprocessing exists (P4; behind feature flag).
+- **Align using AI** — automated scan→volume surface registration (coarse-to-fine search; synchronous, ~1–2 s on a 256³ volume).
 - "Visualization and properties" button: set scan color (auto-assigned from an editable default palette).
 
 **Step 3 — Registration object**: a segmentation of the volume or a previously imported model scan; must cover analogous anatomical regions. **Edit segmentations** shortcut to clean noise/artifacts.
@@ -147,11 +147,11 @@ Shared wizard used by EXPERT toolbar "Add model scan", EASY model-scan sub-step,
 
 **Step 5 — Automatic registration**: Next runs coarse alignment from region pairs, then ICP-style surface best-fit refinement. On failure: fall back to regions-only alignment + guidance (reposition pairs, add pairs, or align manually).
 
-**Step 6 — Verify / manual alignment**: show merged contours in all 4 views (axial / panoramic / cross-sectional / 3D); manual drag (left = move, right = rotate; "mouse not recommended" note) and **Fine Alignment** dialog (numeric step width for translation mm and rotation °, patient-oriented vs object-oriented frame). **Finish** applies the import.
+**Step 6 — Verify / manual alignment**: show merged contours in all 4 views (axial / panoramic / cross-sectional / 3D); manual drag (left = move, right = rotate; "mouse not recommended" note) and **Fine Alignment** dialog (numeric step width for translation mm and rotation °, patient-oriented vs object-oriented frame; a **Size** row scales the mesh in ±5 % steps about its centroid — wax-up/library-tooth fitting [WEB]). **Finish** applies the import.
 - Caution (verbatim, both modes): "Thoroughly check the congruency of the contours of the merged 3D objects in all views… Matching accuracy directly influences the accuracy of the designed surgical guide."
 
 **Post-import scan tools** (context menu of model scan / 3D model):
-- **Visualization…** (color palette picker, Edit palettes), **Replace Mesh** (swap geometry, keep alignment), **Convert to 3D model** (for segmentations/guides), **Fine Alignment…**, virtual tooth extraction (§5.6), mesh-repair tools (repair / detect / cut, P3), Export.
+- **Visualization…** (color palette picker, Edit palettes), per-model **Look** (Standard | Metallic | Triangles | X-ray through surfaces), **Replace Mesh** (swap geometry, keep alignment), **Convert to 3D model** (for segmentations/guides), **Fine Alignment…**, virtual tooth extraction (§5.6), **Mesh Editor** (§5.7), mesh repair (remove degenerate/duplicate triangles, unify winding; original kept as `.orig`), **Mesh properties** (triangles, points, surface area, volume in ml, bounding-box dimensions — served by `/api/models/[id]/stats`), Export.
 - **3D Model import** (no matching): Object > Add > 3D Model / Protected 3D model; manual placement via positioning mode.
 - Multiple scans per plan supported (situ scan + separate wax-up scan; wax-up must be a separate file — "model scan must not include any wax-up or prosthetic setup").
 
@@ -174,21 +174,22 @@ Render the volume and all plan objects in five synchronized, color-coded views; 
 - Regions: **Toolbar** (top), **Views grid** (center), **Object tree + Plan panel + Tooth Position panel + Density statistics** (left sidebar), **Status bar** (bottom).
 - Default view arrangement: top-left = **Cross-sectional group** (three parallel slices, group title "Cross sectionals (+/- 1.0 mm)") with **Tangential view** below; top-right = **Axial**; bottom-left = **3D**; bottom-right = **Panoramic**.
 - View **color coding** (reference line/plane color in other views): Axial = **cyan**, Cross-sectional = **red**, Panoramic = **green**, Tangential = **blue**.
-- Every view title bar: color label, caption, and buttons: **Snapshot** (save high-res image to Image Management or download; size selection), **Reset** (zoom + best fit), **Maximize/Restore** (also double-click title bar; F11 fullscreen/hide sidebar).
+- Every view title bar: color label, caption, and buttons: **Snapshot** (save high-res image to Image Management or download; size selection), **Reset** (zoom + best fit), **Maximize/Restore** (also double-click title bar). **F9** collapses/restores the left sidebar for a clean view [WEB: F11 is the browser's native fullscreen].
+- Case title row: patient name, case title + status badge, plus quick buttons: **⚙ settings** (safety distances, view preferences, printout) and **⌨ hotkeys** (opens the Ctrl+F1 list) [WEB].
 - Scrollbars: double-click slider = jump to default position.
 
 ### 3.3 View behaviors
 - **Axial**: axial slice; patient left/right reversed, anterior at top; right scrollbar / mouse wheel scrolls the stack; title-bar **mirror horizontally** button.
-- **Cross-sectional** (×3): cuts perpendicular to the panoramic curve, vestibular→oral; in-view labels "VESTIBULAR" / "ORAL"; mm scale bar; left/right pane offset configurable (default **±1.00 mm**); **link button** "jointly move and zoom" (default ON); auto-recenters when another implant is selected; bottom scrollbar of the panoramic view moves the position along the curve.
+- **Cross-sectional** (×3): cuts perpendicular to the panoramic curve, vestibular→oral; in-view labels "VESTIBULAR" / "ORAL"; mm scale bar; left/right pane offset configurable (default **±2 mm** [WEB; desktop default ±1.00 mm], 0.5–10 mm in 0.5 steps); **link button** "jointly move and zoom" (default ON); auto-recenters when another implant is selected; bottom scrollbar of the panoramic view moves the position along the curve.
 - **Tangential**: cut along the curve at the middle cross-section position; vertical scrollbar rotates **±90°** around the cut line; when views are aligned to an implant it rotates **360° around the implant axis**; display-mode chooser: `Cross-Sectional Views and Tangential View` | `3D View and Tangential View`.
 - **Panoramic (virtual OPG)**: curved slab along the panoramic curve; right scrollbar shifts a **temporary parallel curve** orally/vestibularly (original curve untouched; title-bar **Reset panorama offset**); bottom scrollbar moves the cross-section position along the curve; **X-ray mode toggle** (ray-sum projection of the slab vs single curved slice).
-- **3D**: surface rendering of segmentations (§5); scrollbars orbit; **default-perspective dropdown** (Left, Right, Anterior, Posterior, Superior, Inferior); stereo 3D toggle (red/cyan anaglyph; P4).
+- **3D**: surface rendering of segmentations (§5); scrollbars orbit; **default-perspective dropdown** (Left, Right, Anterior, Posterior, Superior, Inferior); **3D volume render** toggle (hide the CBCT render to show only segmentations/models); **Implants through surfaces** toggle (implants drawn x-ray-style on top of bone and scans); **double-click** on a surface sets the orbit pivot to the clicked point (Reset view restores it); stereo 3D toggle (red/cyan anaglyph; P4).
 - Display-mode chooser per pane group switches pane configurations (`Cross-Sectional + Tangential`, `Cross-Sectional + Panoramic`, `Cross-Sectional only`, …); optional toolbar button cycles configurations.
 
 ### 3.4 Navigation tools (toolbar toggles + View menu)
 - **Move and Turn** (Ctrl+M): left-drag pans any view; right-drag rotates the 3D view only.
 - **Localizer** (Ctrl+L): click centers all views on the clicked 3D point (MPR crosshair); double-click with Localizer = add implant at that point.
-- **Zoom** tool: left-click = step zoom in, right-click = step zoom out, hold + drag = dynamic; **Shift + wheel** = zoom anywhere; zoom "enhances measurement accuracy".
+- **Zoom** tool: left-click = step zoom in, right-click = step zoom out, hold + drag = dynamic; **Shift + wheel** = zoom anywhere; zoom "enhances measurement accuracy"; 2D views show a numeric **zoom readout** next to the slice counter whenever zoom ≠ 1 (e.g. "zoom 1.25×") [WEB].
 - **Reset all views** (fit content); per-view Reset.
 - **Reference lines 2D** toggle; **Reference planes 3D** toggle.
 - **Align views to implant**: aligns cross-sectional, tangential and axial views to the selected implant/instrument axis (≥1 planned); click again reverts; optional per-view rotation on alignment (settings, default OFF).
@@ -214,7 +215,7 @@ Sections: **Segmentations** (per-slot visibility, name, color, transparency); **
 - **Implant verification chips** (live, for the selected implant): `Average density: NNN HU`, `Distance to other implants`, `Distance to nerve canal`, `Distance to other sleeves` — green when OK, red on violation; clicking a distance chip opens a popup listing every other object with its live distance (1 decimal, mm).
 
 ### 3.9 Hotkeys (global)
-F1 help; Ctrl+F1 hotkey list; Ctrl+O open dataset; wheel scroll, Shift+wheel zoom; Ctrl+Z / Ctrl+Shift+Z undo/redo; Ctrl+Shift+N new plan; Ctrl+P edit panoramic curve; Ctrl+A add object; F2 rename; DEL delete; Ctrl+E positioning mode; Ctrl+L localizer; Ctrl+M move&turn; F8 screenshot; F11 fullscreen; Ctrl+1..6 orientation model; EASY: Ctrl+'+'/'−'/0 zoom in/out/reset.
+F1 help; Ctrl+F1 (or ?) hotkey list; Ctrl+O open dataset; wheel scroll, Shift+wheel zoom; Ctrl+Z / Ctrl+Shift+Z undo/redo; Ctrl+Shift+N new plan; Ctrl+P edit panoramic curve; Ctrl+A add object; F2 rename; DEL delete; Ctrl+E positioning mode; Ctrl+L localizer; Ctrl+M move&turn; F8 screenshot; F9 sidebar collapse [WEB]; F11 fullscreen; 1..7 jump to a workflow step [WEB]; Ctrl+1..6 orientation model; Ctrl+'+'/'−'/0 zoom in/out/reset.
 
 ### 3.10 Image Management & Image Viewer
 - **Image Management** (Extras): per-patient image library (screenshots, photos, OPGs); add from file (BMP/JPEG/TIFF/DICOM image) with metadata (information, scan date, comment); select all/invert/clear; delete; **export selected** (destination, filename = image info | consecutive numbering, format choice with JPEG quality note); show in **Image Viewer**.
@@ -260,13 +261,13 @@ Segmentation turns voxels into named, colored, individually controllable regions
 - Layout: large main view + 4 small reference views (axial, coronal, sagittal, 3D); drag & drop view types between panes; **Fast Paint** performance toggle (no interpolation 2D / low-res 3D); left parameter pane.
 - Tool pane areas: **Target slot** (radio select; "exclude" toggle column), **Source** (constrains tools; "None" = free segmentation; "Source visible in 3D" checkbox), **Volume readout** (ml), **Tools**, **Threshold sliders**.
 - Slots: visibility checkbox, editable name (Enter to commit; right-click name = predefined list: Mandible, Maxilla, "Mandible w. Teeth", …), color swatch (left-click cycles palette, right-click opens Color Palettes dialog), transparency.
-- **Tools**: Flood Fill (LMB add / RMB delete; respects boundaries; Ctrl+F); Brush (3 sizes small/medium/large, Ctrl+P / Ctrl+S; in 3D affects pixels within & behind cursor); Segmentation boundary polyline/freehand in yellow (Ctrl+L; right-click finishes; Ctrl+Backspace deletes last point) + Clear boundary; **Automatic segmentation** slice-propagation (Ctrl+A; Page Up/Down advance; 2D only; warning to check slice-by-slice); All voxels in current slice (LMB select / RMB clear); Segment whole dataset (confirm); Clear whole segmentation (confirm); Import segmentation boundaries from surface objects; Undo/Redo (10 steps, toggleable in Extras > Segmentation Options together with "Automatically refresh small 3D view").
+- **Tools**: Flood Fill (LMB add / RMB delete; respects boundaries; Ctrl+F; fill range has an editable **upper HU bound** — default 32767 = no upper limit — to keep bright restorations/metal out of bone fills); Brush (3 sizes small/medium/large, Ctrl+P / Ctrl+S; in 3D affects pixels within & behind cursor); Segmentation boundary polyline/freehand in yellow (Ctrl+L; right-click finishes; Ctrl+Backspace deletes last point) + Clear boundary; **Automatic segmentation** slice-propagation (Ctrl+A; Page Up/Down advance; 2D only; warning to check slice-by-slice); All voxels in current slice (LMB select / RMB clear); Segment whole dataset (confirm); Clear whole segmentation (confirm); Import segmentation boundaries from surface objects; Undo/Redo (10 steps, toggleable in Extras > Segmentation Options together with "Automatically refresh small 3D view").
 - Auxiliary in-module tools: Grayscale drag, Zoom, Move, Localizer, Measurement grid (mm), user-defined **oblique cut**, area measurement (trace outline → cm²), **3D cut** dialog (Square/Plane/Pyramid cuts; cut faces rendered as grayscale).
 
 ### 5.4 Convert to 3D model & exports
 - Right-click segmentation (or guide) > **Convert to 3D model** → mesh object in tree (marching-cubes style extraction with level-of-detail preset).
 - Level-of-detail presets: **Coarse / Standard (default) / Fine**; expert editing of preset parameters (algorithm, resolution, noise reduction, reduction, filter); preset CRUD.
-- **Virtual Planning Export (VPE)** (Plan menu): export one segmentation or model scan at a time as **STL** (`Untouched` or `Insert implant analogs`; "Include implant positions" STL-only), coordinate system = patient CS or any object CS; single-file vs **multi-file export**. Other proprietary container formats are out of scope [WEB]; P4 stub.
+- **Virtual Planning Export (VPE)** (Plan menu): export one segmentation or model scan at a time as **STL** (`Untouched` or `Insert implant analogs`; "Include implant positions" STL-only), coordinate system = patient CS or any object CS; single-file vs **multi-file export**; the per-implant scanbody/level table renders **profile thumbnails drawn to scale** (abutment/scanbody glyphs) next to each choice; 3D preview before download. Other proprietary container formats are out of scope [WEB]; P4 stub.
 - Per-dataset export fee/locking from the desktop product maps to **export credits** on the account [WEB].
 
 ### 5.5 Augmentation (sinus lift / bone graft evaluation)
@@ -278,29 +279,38 @@ Segmentation turns voxels into named, colored, individually controllable regions
 
 ### 5.6 Virtual tooth extraction
 - **Manual** (P2): segment jaw bone excluding the tooth; in the guide designer use a bone-support region at that position (§9.5).
-- **Automated mesh extraction** (P3/P4, requires tooth labeling): context menu of a surface scan → three modes: **Cut out**, **Cut out and close** (mimic healed site), **Cut out dental alveolus** (keep socket contour).
+- **Automated mesh extraction** (requires an AI tooth model of the same case, §10.6): "Tooth extraction…" on a surface scan → pick the tooth + extraction-site mode: **Cut out** (opening left as is), **Cut out and close** (openings closed to mimic a healed site; the largest hole stays open), **Cut out dental alveolus** (scan − tooth; socket walls kept). The source scan and tooth stay untouched — the result is a new model "<scan name> (tooth extraction)". Optional **Add extracted tooth to planning** copies the tooth into its own wax-up model "Extracted tooth <FDI>" (own mesh file; deleting either model never breaks the other). The same endpoint also accepts a direct capsule region (head point + axis + diameter + mode) for scans without AI teeth.
 
-### 5.7 Mesh editor (P3)
-Local smoothing, wax knife (add/remove material), local remeshing, partial hole filling, surface bridges between two meshes. Jaw hole filling (AI) is P4.
+### 5.7 Mesh editor
+Modal editor on any mesh object: model centered in a 3D view, a left function rail worked top-down (Part detection → Close holes → Boundary optimization → Bridge → Partial repair → Remesh → Reduce → Invert → Wax knife → Eraser → Margin cut → Combine), bottom bar with Undo/Redo, live point/triangle counts and **Save as copy / Apply / Cancel**. Edits are an operation list replayed server-side from the pristine baseline — previews never write the file; Apply persists (one-time `.orig` backup), Save as copy writes a new model row, Cancel leaves the disk untouched. [WEB]
+- View types **Surface | Surface + edges | Mesh only**; **double-click** sets the turning point (orbit pivot); **Ctrl+wheel** adjusts the active tool radius (on-view flash readout); brush tools work with a single click or **hold-and-drag paint strokes** along a path.
+- **Wax knife** (add / flatten) and **local smoothing** with strengths **A–D**: smoothing = **2/3/5/8** Laplacian iterations (λ = 0.5, default B), wax offset = **0.1/0.2/0.35/0.5 mm**; smoothing also accepts a traced **select-area** outline instead of the brush; **Eraser** + deep erase (20 mm depth).
+- **Remesh**: split triangles until no edge exceeds **max edge** (default **0.2 mm**, ≤ 10 passes), then relax iterations (editor strength slider 1–5, default 1; the server op accepts 0–10); scoped to a picked point + radius (default 5 mm) or the whole mesh.
+- **Close holes** (all, or all except the largest opening) and **partial fill** between two picked points.
+- **Cut along margin line**: click point-by-point; the spline closes on its first point (click or double-click); points are draggable/removable afterwards; cut away **inside | outside**, or split into two models.
+- **Reduce**: target **10–95 %** with live projected triangle count; recommendations shown: maxilla **200–300k**, mandible **150–200k** triangles.
+- **Combine**: merge another model of this case into the mesh, or **Subtract (remove overlap)** — alignment-aware (e.g. subtract a segmented tooth from the jaw scan); a transparent **show object** preview displays the candidate inside the editor before applying.
+
+Jaw hole filling (AI) is P4.
 
 ---
 
 ## 6. Nerve Canals & Measurements
 
 ### 6.1 Nerve canal objects
-- First-class objects under tree category "Nerve canals": **Left nerve canal**, **Right nerve canal**, plus arbitrary renamable branch objects (e.g. "Incisive branch"; branches always traced manually).
+- First-class objects under tree category "Nerve canals": **Left nerve canal**, **Right nerve canal**, plus arbitrary renamable branch objects (e.g. "Incisive branch"; branches always traced manually). Every canal is renamable (double-click its label).
 - A canal = ordered polyline of points; each point has 3D position + **individual diameter**; rendered as an interpolated **pink/magenta tube** in 3D, a pink circle where crossing 2D slices, and a pink curve with ⊕ point markers in panoramic view; endpoints visually distinct.
 - Definable for mandible and maxilla (manual recommended for maxilla).
 - Adding: toolbar Nerve Canal workflow button (adds both sides + auto-activates positioning mode), Object > Add > Left/Right Nerve Canal, or tree Add menu.
 
 ### 6.2 Manual tracing
 - Click in **any 2D view** to append points (point lands on current slice); drag to move (with **live density readout** under the cursor while dragging); verify in all views.
-- Point context menu (positioning mode): Reset This View; Delete Point; Delete All Points; Bring Point to Current Slice; **Point Diameter…**; Clickzoom Enabled (default on); Interchange Point with Successor / Predecessor (anterior-loop ordering fix); Delete (whole canal); Positioning Mode; **Nerve Canal Detection**; Center Views to Point (default on); Show Point Numbers.
+- Point context menu (positioning mode): Reset This View; Delete Point (a canal always keeps ≥ 2 points); Delete All Points; Bring Point to Current Slice; **Point Diameter…**; Clickzoom Enabled (default on); Interchange Point with Successor / Predecessor (anterior-loop ordering fix); Delete (whole canal); Positioning Mode; **Nerve Canal Detection**; Center Views to Point (default on); Show Point Numbers.
 - **Point Diameter dialog** ("Change point diameter"): numeric text box + slider, checkbox **"Apply to all points"**, Accept/Cancel. Default diameter **2.0 mm** (per-point override).
 
 ### 6.3 Automatic detection
 - Seed with two points: **entry at the mental foramen**, **exit at the mandibular foramen**; start via **Detect** button next to the canal in the object tree, context menu "Nerve Canal Detection", or EASY **Auto detect** footer button.
-- Detection traces the radiolucent canal between seeds and replaces all intermediate points. Switching manual → automatic warns that intermediate points are removed.
+- Detection traces the radiolucent canal between seeds and replaces all intermediate points. When intermediate markers exist, the user chooses whether to route the detection **through them as waypoints** (one path search per consecutive pair) or to detect from the start/end seeds only. Switching manual → automatic warns that intermediate points are removed.
 - Cautions (always displayed with the feature): "Automatic nerve detection does not guarantee exact and accurate nerve canal display. Make sure to always verify the correct position of the nerve canal manually." / "If nerve definition is not clear due to poor image quality, the dataset must not be used." / "Always maintain an appropriate safety distance to the nerve canal."
 
 ### 6.4 Safety distance engine
@@ -316,7 +326,8 @@ Local smoothing, wax knife (add/remove material), local remeshing, partial hole 
 
 ### 6.5 Measurement objects
 - Types (Object > Add / tree Add menu): **Distance** (2 points, mm, 1 decimal), **Continuous distance** (polyline; per-segment labels in view, total in tree), **Angle** (3 points, °), **Auxiliary line** (2 points, no value).
-- Behavior: points are placed in one view and the measurement displays **only in that view**; value shown in view + object tree; points on the current slice; off-slice points render transparent; clicking a hidden point jumps to its slice; positioning-mode editing (red cross handles, selected object blue); **Shift+drag moves the whole measurement**; point context menu: Reset This View / Delete Point / Bring Point to Current Slice / Delete / Positioning Mode.
+- Measurements carry an optional **name** (rename via the tree's pencil button; stored per measurement); named measurements display as "name: value" in the tree and tooltip.
+- Behavior: points are placed in the **axial or cross-sectional/tangential views**; cross/tangential endpoints are true 3D positions on the section plane, so endpoints picked on different sections produce real **3D measurements** [WEB: the desktop confines each measurement to the view it was created in]; an armed measure tool shows a distinct cursor; value shown in view + object tree; points on the current slice; off-slice points render transparent; clicking a hidden point jumps to its slice; positioning-mode editing (red cross handles, selected object blue); **Shift+drag moves the whole measurement**; point context menu: Reset This View / Delete Point / Bring Point to Current Slice / Delete / Positioning Mode.
 - Adding a measurement auto-enables positioning mode. Decimal places configurable (Settings > Common).
 - **Annotations**: point-anchored multi-line text (dialog with OK/Cancel), displayed in **all views** + tree; rendered red.
 
@@ -351,6 +362,8 @@ Local smoothing, wax knife (add/remove material), local remeshing, partial hole 
 - After insert: implants appear in all views + tree under their tooth position; **positioning mode auto-activated**.
 - Mouse: **left-drag = translate** (follows cursor in any 2D view and 3D), **right-drag = rotate**; rotation pivot: cursor below implant → rotate around **crestal level**, above → around **tip** (disable via setting "Set rotation point based on mouse position" → always crestal).
 - Precision: **Fine Alignment dialog** (nudge buttons; step width edit boxes mm/°; patient-oriented vs implant-oriented frame).
+- **Fine positioning panel** ("Fine…" on the implant toolbar): step nudges expressed in the implant's **own frame** — M/D and B/L translation, depth along the axis, and tilts around the **shoulder** (head fixed) or the **tip** (apex fixed); translation step default **0.1 mm** (min 0.05), rotation step default **1°**, adjustable in 0.1° increments down to **0.1°**.
+- **Position lock** per implant (🔒 toggle; locked implants ignore move/rotate drags in every view; the tree row shows a padlock) + bulk **Lock implants / Unlock implants** in the plan menu.
 - Verification flow: **Align views to implant** + 360° tangential rotation.
 - Rendering: 2D outline (configurable color) or true 3D model in 2D views; **Implant Appearance** submenu toggles Implant Axes (length/diameter configurable), Crestal Planes (green disc at crestal level), 3D Models. Selection box around the active object (flash or permanent per setting). "Implants visible through segmentations" setting.
 - **Tooth Position panel** (sidebar, tabs): **Implant** (info, Change Implant button, prev/next **diameter and length stepper buttons** showing neighbor catalog values, full list popup of all length/diameter combinations in the series), **Abutment** (info / Edit abutments…), **Sleeve** (system combo + editable values), **Tooth** (virtual tooth / cut-profile info).
@@ -358,7 +371,7 @@ Local smoothing, wax knife (add/remove material), local remeshing, partial hole 
 - **Re-labeling tooth position**: right-click position header > Properties > new position — relabels only, never moves geometry.
 - **Make Parallel** (right-click implant/group): checkbox list of affected implants; orientation = align to master (Master column) | mean direction; Preview / Reset / OK (confirmation) / Cancel.
 - Fixation pins and endodontic drills are planned identically (same dialog, same positioning; pins default to XX; lateral pins auto-placed at an angle). Endodontic planning = straight path to the root-canal entry only.
-- **Virtual teeth** (wax-up library): Object > Add > Tooth — library tooth meshes for prosthetic-driven planning; positioned like implants (P3).
+- **Virtual teeth** (wax-up library): Object > Add > Tooth — picker by tooth position (FDI/Universal); the server generates a **watertight crown solid** from the library tooth outline (ring-stack extrusion; origin at the cervical base, +z occlusal, upper teeth flipped automatically) and stores it as a real **wax-up mesh** in the tree; positioned like other 3D models and resizable via the Fine Alignment **Size** control (±5 % steps).
 
 ### 7.4 Abutments
 - One abutment per implant. Sources: **catalog abutments** (compatible list per implant) | **user-defined abutment** | **no abutment**.
@@ -432,6 +445,7 @@ Back-navigation through all steps is required; edits regenerate downstream resul
 - The current 3D viewing direction = insertion direction; adjust by sliders or mouse (left move / right rotate; wheel zoom).
 - Checkbox **"Use bottom side of dual scan"** (intaglio mucosa support).
 - Undercuts are **blocked out automatically** from this direction (inner surface = silhouette-swept model surface + offset); no manual block-out step.
+- **Undercut preview** toggle: colors the base model by the seating direction — red areas face away from it (undercuts that would block insertion); recomputed live while the direction or base model changes.
 
 ### 9.5 Bone support regions (optional)
 - Default support surface = model scan; "Add bone support region" → select segmentation → drag box **handles** to scope the region where the segmented bone replaces the scan.
@@ -452,10 +466,12 @@ Back-navigation through all steps is required; edits regenerate downstream resul
 ### 9.8 Bone reduction bars (cutting guides)
 - Per-side checkboxes **Oral** / **Vestibular**; per bar: **Width**, **Height**, **Offset** (distance to bone/profile).
 - Recommended ranges: apicoectomy W 3.9–4.0 / H 3.0–4.0 / O 0.5–1.0; sinus lift W 3.0–4.0 / H 3.0–4.0 / O 0.5–1.5; absolute minimum 4 × 3 mm at 40 mm span.
+- **Bars from implants**: proposes bars between consecutive implant positions at platform level (then refined in the design options).
+- **Simulate reduction**: plane-cuts the anatomy model at the bar profile height shifted by a **gingiva height** (default **2 mm**, min **0.5**) so soft tissue keeps its space — mandible removes bone above the profile, maxilla below; the post-reduction situation is saved as a new model "<name> (reduced)".
 
 ### 9.9 Inspection windows & labels
-- **Windows**: click in the view to add (cylindrical cutouts along view direction); unlimited count/placement; per-window height & diameter via left-panel boxes or mouse wheel over the active window. Caution: windows must not compromise stability. Endodontic guides: place windows **below the sleeves**.
-- **Labels**: Add → type text → drag the red-cross anchor on the guide; confirm with green check; multiple labels; font size/style editor (text icon or wheel); **presets** (factory + "Add text to presets"); embossed on the surface.
+- **Windows**: click the guide/scan in the 3D view to add (vertical cutouts through the full guide height); unlimited count/placement; diameter **2–10 mm** (0.5 steps, default 5) while placing, with Undo/Clear; a window is round by default — a total **length** greater than the diameter turns it into a **stadium-shaped (elongated) slot** oriented by an **angle** (°, occlusal plane); per-window x/y/diameter/length/angle remain editable in the design options. Caution: windows must not compromise stability. Endodontic guides: place windows **below the sleeves**.
+- **Labels**: Add → type text → drag the red-cross anchor on the guide; confirm with green check; multiple labels; font size/style editor (text icon or wheel); **text presets** built from case metadata — Patient name, Patient ID, Date, **Date of birth**, **Tooth positions** (only presets with a value are offered); embossed or impressed on the surface.
 
 ### 9.10 Finish, validity & export
 - Review render; back-navigate to adjust. On finish the guide becomes an object-tree object; 2D views render its cross-section (guide white, sleeve green, soft tissue orange).
@@ -480,7 +496,7 @@ Back-navigation through all steps is required; edits regenerate downstream resul
 ### 10.2 EXPERT toolbar & workflow area
 - Toolbar = workflow-step buttons (numbered, left→right standard order; numbers turn **green** when the step is complete) + view tools + menu access.
 - Digital workflow preset order: Segmentation → Align PCS → Panoramic curve → Nerve canal → Add model scan → Add Implant → Edit Sleeves → Add Surgical Guide → Print. (Analog/gonyX preset out of scope.)
-- Toolbar customization: right-click > Adjust → drag buttons in/out (optional buttons: quick measurements, view-configuration switch, Quick Import/Export) (P3).
+- Toolbar customization ("Adjust toolbar" dialog): per-tool show/hide of the measure tools, show/hide of optional workflow steps (panoramic curve, nerve, sleeve, guide, report — the active step always stays visible), **pinnable quick actions** (screen copy, sidebar toggle, fine position, center on implant, lock plan, …) and a **Reset to default**; choices persist per browser [WEB].
 - Main menu: Patient, Plan, Object, View, Extras, Help (?).
 
 ### 10.3 EASY mode
@@ -503,8 +519,10 @@ All multi-step dialogs (model-scan import, guide design, custom sleeve, augmenta
 - Plan > Treatment Evaluation: studies list (New/Load). Two study types: (A) postoperative **model scan with scanbodies**, (B) postoperative **CT/CBCT**.
 - Shared pipeline: study properties (name, type, comment, tooth-position selection, change-implant correction) → load postop data + select segmentations → corresponding regions → automatic surface registration (+ manual) → **implant alignment** (click scanbody tops / align to CT contours; arrows cycle implants) → **evaluation report**: per-implant deviation table (planned vs actual, multiple directions), views below, Print + **Export results table to CSV**; Finish saves the study.
 
-### 10.6 AI assistance (P4, feature-flagged) [WEB]
-- Optional server-side pipeline mirroring the AI Assistant: auto segmentation (teeth labeled + jaw), PCS + panoramic-curve proposal, nerve detection, surface matching, tooth extraction. Offered at import (declinable) and via toolbar button; background job with status (hourglass/check) on toolbar + dataset list; **review dialog** (object list, checkmark selection, yellow-warning errors unselectable, "Import reviewed data"); manual tooth-label correction. Input constraints surfaced: CBCT only, slice/pixel spacing 0.05–0.5 mm, thickness ≤ 0.8 mm, uniformity 0.01 mm.
+### 10.6 AI assistance [WEB: backend chosen by env — a real vendor CBCT inference service (volume streamed to the external service; an explicit, audited user action) when CDX_AISEG_* credentials are set, otherwise an offline heuristic]
+- Server-side pipeline mirroring the AI Assistant: auto segmentation — vendor model, or as offline fallback threshold + morphology over HU (bone > 300 HU largest connected component after a closing pass; teeth > 1400 HU components near the bone z-range; soft-tissue envelope > −300 HU; mandible/maxilla split at the bone z center-of-mass), each class meshed at half resolution and stored as a segmentation model; plus PCS/panoramic-curve proposal (§4), nerve detection (§6.3), surface matching (§2.2) and tooth extraction (§5.6). Jobs run asynchronously (job id + polling); **review wizard** with object list and checkmark selection — empty/failed classes are struck through and unselectable; "Import reviewed data"; unimported rows are discarded.
+- **Tooth renumbering** (review-wizard FDI chart or tooth-model context): re-labels an AI tooth to a target position; a same-arch target shifts the whole contiguous run of existing teeth by the position delta (renumbering 24→23 while 23..17 exist renumbers all of them by −1); collisions with teeth outside the run, or shifts off the arch, are rejected.
+- **Create merged AI model**: pick ≥ 2 models (typically AI teeth + a jaw) → merged into one new exportable mesh; the source models stay untouched.
 
 ---
 
@@ -563,10 +581,10 @@ Accessible via Plan > Print ▸ and the toolbar Print dropdown; every protocol r
 ## 13. Settings & Administration
 
 ### 13.1 Settings dialog (Extras > Settings; per-user) — tabs
-1. **Views**: Smooth view transitions (ON); Orientation indicator model (default "Face"); Adjust object outline width to zoom level (ON); colors — Auxiliary lines (green), Annotations (yellow), Measurements (yellow); Text size of measures and annotations (default 8); Jointly move and zoom all cross-sectional views (ON); Rotate view when aligned to an implant — cross-sectional (OFF) and axial (OFF); Distance between cross-sectional views (default 1.00 mm).
+1. **Views**: Smooth view transitions (ON); Orientation indicator model (default "Face"); Adjust object outline width to zoom level (ON); colors — Annotation color (default `#d05050`) and Measurement color (default `#7a8cf0`) pickers [WEB defaults; desktop ships yellow]; Label size of measures and annotations (**8–20 px**, default **11**); Overlay line thickness for presentations (Normal | 1.25× | 1.5× | 2×); Jointly move and zoom all cross-sectional views (ON); Rotate view when aligned to an implant — cross-sectional (OFF) and axial (OFF); Distance between cross-sectional views (default **2 mm**, 0.5–10 in 0.5 steps).
 2. **Safety distance**: "Warn if implants are too close to each other" ☑ + Allowed minimal distance (default 3 mm; note "Sleeves are also checked."); "Warn if implants are too close to the nerve" ☑ + Allowed minimal distance (default 2 mm); ranges 0–10 mm.
-3. **Implants**: Dental notation (FDI | Universal); Implant axes (show + length/diameter); Implants visible through segmentations; Show object selection box permanently; Set rotation point based on mouse position; 2D implant color.
-4. **Printout**: Print plan comment on material list; Use logo in header of printouts (+ logo upload).
+3. **Implants**: Dental notation (FDI | Universal); Implant axis extension (**0–30 mm**, default **8**); Implants visible through segmentations; Show object selection box permanently; Set rotation point based on mouse position; Default implant color (empty = automatic per-implant palette).
+4. **Printout**: Print plan comment on material list; Use logo in header of printouts (+ logo upload — PNG/JPEG/BMP/WebP accepted).
 5. **Stereo 3D** (P4): mode, invert sides, eye angle, separate-monitor option.
 6. **Screenshot**: Filename scheme (Default | Anonymized | User-defined with placeholders); Storage (Image Management | download folder) + format; Notification after saving.
 7. **Common**: decimal places for measurements.
@@ -598,7 +616,7 @@ Accessible via Plan > Print ▸ and the toolbar Print dropdown; every protocol r
 | Implant↔implant warning distance | 3 mm | 0–10 mm, also checks sleeves |
 | Implant↔nerve warning distance | 2 mm | 0–10 mm |
 | Sleeve↔sleeve collision | 0 mm | fixed |
-| Cross-sectional view offset | ±1.00 mm | settings spin box |
+| Cross-sectional view offset | ±2 mm [WEB] | 0.5–10 mm, 0.5 steps; desktop default ±1.00 mm |
 | Nerve point diameter | 2.0 mm | per-point; "Apply to all points" |
 | Segmentation slots | 8 | slot 1 = "Default" threshold |
 | Segmentation undo depth | 10 steps | toggleable |
@@ -613,7 +631,19 @@ Accessible via Plan > Print ▸ and the toolbar Print dropdown; every protocol r
 | 3D move step | 5 px | |
 | 3D zoom step | 12 % | |
 | Measurement decimals | 1 | settings (Common) |
-| Text size measures/annotations | 8 | |
+| Measure/annotation label size | 11 px | 8–20 px |
+| Overlay line scale | 1 (Normal) | 1 / 1.25 / 1.5 / 2 |
+| Implant axis extension | 8 mm | 0–30 mm |
+| Implant fine-position steps | 0.1 mm / 1° | mm ≥ 0.05; ° in 0.1° increments (min 0.1°) |
+| Fine-align Size step | ±5 % | mesh scaling about its centroid |
+| Mesh smoothing strengths A–D | B (3 iter.) | 2/3/5/8 Laplacian iterations |
+| Wax-knife strengths A–D | B (0.2 mm) | 0.1/0.2/0.35/0.5 mm offset |
+| Remesh max edge | 0.2 mm | ≤ 10 split passes; relax iterations 1–5 in the editor (default 1; server op accepts 0–10) |
+| Import mesh-optimize offer | > 320k tris | reduce to ~250k; original kept as backup |
+| Reduce recommendation | maxilla 200–300k | mandible 150–200k triangles |
+| Inspection window Ø | 5 mm | 2–10 mm, 0.5 steps; length > Ø = stadium slot |
+| Gingiva height (reduction sim) | 2 mm | min 0.5 mm |
+| Flood-fill upper HU bound | 32767 | = no upper limit |
 | Mesostructure inclination | 0–45° | user-defined abutment |
 | Corresponding region pairs | ≥ 3 | not collinear |
 | Panoramic curve basic points | 5 | not deletable |
