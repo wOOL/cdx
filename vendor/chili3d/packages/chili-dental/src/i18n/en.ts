@@ -5,10 +5,12 @@ const en: Record<string, string> = {
     // ribbon
     "ribbon.tab.restoration": "Restoration",
     "ribbon.group.dental.case": "Case",
+    "ribbon.group.dental.scan": "Scan",
     "ribbon.group.dental.design": "Design",
     "ribbon.group.dental.output": "Output",
     // commands
     "command.dental.start": "Open Restoration",
+    "command.dental.optimize": "Optimize Mesh",
     "command.dental.autotag": "Auto-tag Teeth (AI)",
     "command.dental.select": "Select Tooth",
     "command.dental.margin": "Margin Line",
@@ -17,6 +19,8 @@ const en: Record<string, string> = {
     // toasts / prompts
     "toast.dental.started": "Restoration workflow ready",
     "toast.dental.noscan": "Import a surface scan first (no mesh in the document)",
+    "toast.dental.optimizing": "Optimizing scan mesh…",
+    "toast.dental.optimized": "Mesh optimized — {0} triangles",
     "toast.dental.segmenting": "Segmenting teeth with AI…",
     "toast.dental.tagged": "Tagged {0} teeth: {1}",
     "toast.dental.failed": "Tooth segmentation failed: {0}",

@@ -7,17 +7,20 @@ import {
     CMD_AUTOTAG,
     CMD_AXIS,
     CMD_MARGIN,
+    CMD_OPTIMIZE,
     CMD_PROPOSE,
     CMD_SELECT,
     CMD_START,
     DENTAL_TAB,
     GROUP_CASE,
     GROUP_DESIGN,
+    GROUP_SCAN,
 } from "./keys";
 
 // Side-effect imports: running each module executes its @command decorator,
 // registering the command in the global registry keyed by its string.
 import "./commands/start";
+import "./commands/optimize";
 import "./commands/autoTag";
 import "./commands/selectTooth";
 import "./commands/margin";
@@ -43,6 +46,7 @@ export class DentalModule implements IAdditionalModule {
     ribbonCommands(): AdditionalCommand[] {
         return [
             { tabName: DENTAL_TAB, groupName: GROUP_CASE, command: CMD_START },
+            { tabName: DENTAL_TAB, groupName: GROUP_SCAN, command: CMD_OPTIMIZE },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_AUTOTAG },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_SELECT },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_MARGIN },

@@ -17,11 +17,13 @@ export const t = (s: string) => s as unknown as I18nKeys;
 // Ribbon tab + groups (DWOS station grouping).
 export const DENTAL_TAB = i18nKey("ribbon.tab.restoration");
 export const GROUP_CASE = i18nKey("ribbon.group.dental.case");
+export const GROUP_SCAN = i18nKey("ribbon.group.dental.scan");
 export const GROUP_DESIGN = i18nKey("ribbon.group.dental.design");
 export const GROUP_OUTPUT = i18nKey("ribbon.group.dental.output");
 
 // Command keys (registry id == string after `command.`).
 export const CMD_START = cmdKey("dental.start");
+export const CMD_OPTIMIZE = cmdKey("dental.optimize");
 export const CMD_AUTOTAG = cmdKey("dental.autotag");
 export const CMD_SELECT = cmdKey("dental.select");
 export const CMD_MARGIN = cmdKey("dental.margin");
