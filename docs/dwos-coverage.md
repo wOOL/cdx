@@ -13,17 +13,17 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
 ## A. Order & case management (IFU 5.1, 4.3)
 | # | Feature | Status | Notes |
 |---|---|---|---|
-| A1 | Order creation station | ⬜ | only a no-op "Open Restoration"; no order form |
-| A2 | Order types (Cnb & Implant, Virtual Wax-up, Denture, Bite Splint, Orthodontic, Partial, Synergy, coDiagnostiX, …) | ⬜ | |
-| A3 | Auto order ID; Dentist + Patient | 🟡 | host case has patient; no order id/dentist on CAD side |
-| A4 | Prosthesis Family (Crowns, Pontics, …) | ⬜ | |
-| A5 | Prosthesis Subtype (Full crown, Full pontic, …) | ⬜ | |
-| A6 | Material selection + Material Management (.XML) | ⬜ | |
-| A7 | Colour / shade | ⬜ | |
-| A8 | Anatomy Family selection | ⬜ | |
-| A9 | FDI tooth-chart selection (pillars/pontics) | ⬜ | |
-| A10 | Create Bridge (join units) | ⬜ | |
-| A11 | Route Order | ⬜ | |
+| A1 | Order creation station | ✅ | /restoration-orders + order panel in /cad |
+| A2 | Order types (Cnb & Implant, Virtual Wax-up, Denture, Bite Splint, …) | 🟡 | roles/subtypes cover crown/pontic/etc; no per-indication order types yet |
+| A3 | Auto order ID; Dentist + Patient | ✅ | order_number auto; dentist field; patient via case |
+| A4 | Prosthesis Family / role (crown, pontic, abutment, inlay, …) | ✅ | |
+| A5 | Prosthesis Subtype (Full crown, Full pontic, …) | ✅ | per-role subtype picker |
+| A6 | Material selection (+ Material Management .XML) | 🟡 | material list (generic); no per-material .XML constraints yet |
+| A7 | Colour / shade | ✅ | VITA classical |
+| A8 | Anatomy Family selection | ✅ | placeholder library names |
+| A9 | FDI tooth-chart selection (pillars/pontics) | ✅ | clickable two-row chart |
+| A10 | Create Bridge (join units) | ✅ | bridge groupings |
+| A11 | Route Order | 🟡 | status field (draft→…); no production routing yet |
 | A12 | Active cases list (Chairside/Easy) | 🟡 | host case panel exists |
 | A13 | Import .xorder / model scans (Easy) | ⬜ | |
 
@@ -62,7 +62,7 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
 | E2 | Tooth-Chain technology (context + statistics) | ⬜ | biogeneric/data problem (no model needed) |
 | E3 | Intrados / cement-gap (fitting surface) | ⬜ | needs robust mesh offset/boolean |
 | E4 | Full-contour crown solid (anatomy ∪ collar, hollowed) | ⬜ | |
-| E5 | Shaping: Add/Remove material | ⬜ | host wax-knife seed |
+| E5 | Shaping: Add/Remove material | ✅ | interactive wax-knife brush (Shape group) via /api/cad/mesh-edit |
 | E6 | Shaping: Clinical Handles | ⬜ | |
 | E7 | Shaping: Transforms | ⬜ | |
 | E8 | Shaping: smooth / fill | ⬜ | |
@@ -131,8 +131,9 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
   Everything else — incl. DWOS Connect/Synergy, implant/material/anatomy libraries (our own,
   generic) — is buildable. 🚫 now ≈ 4 (B1, B2, G1-implant-data, H4-implant-data).
 - Buildable feature lines: ~74
-- ✅ done: 7 · 🟡 partial: ~14 · ⬜ missing: ~53
-- **Approx. completeness: ~16%** of buildable scope. (pass 2: + Optimize Mesh / B5)
+- ✅ done: ~18 · 🟡 partial: ~14 · ⬜ missing: ~42
+- **Approx. completeness: ~28%** of buildable scope.
+  (pass 2: Optimize Mesh/B5; pass 3: order station A1–A11, Add/Remove material E5)
 
 ## Build order (depth + breadth, long-run-correct)
 1. **Order creation station** (A) — real order model: families/subtypes/materials/shades/FDI chart/routing.

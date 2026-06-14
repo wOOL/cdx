@@ -9,11 +9,18 @@ intraoral surface scan. The figures are captured from the running application.
 
 ## 5.1 Order creation
 
-Open a case and start the workflow:
+Create the restoration order that specifies what to design:
 
-1. Sign in and open the case for the patient.
-2. The CAD workstation loads; wait for **CAD ready**.
-3. On the **Restoration** ribbon tab, in the **Case** group, click **Open Restoration**.
+1. Sign in and open the case. In the CAD workstation's **Case** panel, click
+   **Manage orders** (or go to `/restoration-orders?case=<id>`).
+2. Enter the **dentist**, choose **material**, **shade** and **anatomy family**, then on
+   the **FDI tooth chart** click each tooth and assign its **role** (crown / pontic /
+   abutment …) and **subtype**. Group units into a bridge with **Create bridge** if
+   needed. Save the order.
+3. Back in the workstation, select the order as the **active order** in the Case panel,
+   wait for **CAD ready**, and in the **Case** group click **Open Restoration**.
+
+![Restoration order: material/shade/anatomy + an FDI tooth-unit chart.](img/order-creation.png)
 
 ## 5.2 Scan import
 
@@ -22,6 +29,9 @@ document as a mesh (supported formats: **STL**, **PLY**, **OBJ**). The scan appe
 the **Items** tree and in the viewport.
 
 ![An intraoral surface scan imported into the workstation.](img/scan-loaded.png)
+
+Optionally clean the scan first: in the **Scan** group click **Optimize Mesh** to keep the
+largest connected part (removing stray artifacts) and repair small holes before tagging.
 
 ## 5.3 Auto-tagging (AI tooth segmentation)
 
@@ -66,6 +76,13 @@ no manual alignment is needed. The crown is added to the **Items** tree as
 *Crown 11 (proposal)*.
 
 ![A library crown proposed at the detected FDI 11 site.](img/propose-crown.png)
+
+### Shaping the proposal
+
+Refine the proposed crown with the wax-knife. In the **Shape** group click **Add
+Material** or **Remove Material**, then click on the crown surface — each click adds or
+removes material locally. Continue dabbing until the form is right; press **Esc** (or
+right-click) to finish.
 
 ## 5.6 Intrados
 

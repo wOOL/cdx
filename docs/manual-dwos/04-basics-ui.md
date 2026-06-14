@@ -28,13 +28,18 @@ The ribbon carries the general CAD tabs (**Startup**, **Sketch**, **Tools**) plu
 dedicated **Restoration** tab that drives the dental workflow. Its commands are grouped
 into stations that follow the design order, left to right:
 
-- **Case** — *Open Restoration*: brings the restoration workflow online for the active
-  document.
+- **Case** — *Open Restoration*: brings the restoration workflow online. The Case panel
+  also lists the case's **restoration orders** (created/managed at *Manage orders*) and
+  selects the active one.
+- **Scan** — *Optimize Mesh*: clean the imported scan (keep the largest part, repair
+  holes) before tagging.
 - **Design** — *Auto-tag Teeth (AI)* (identify each tooth by FDI from the scan);
   *Select Tooth* (click a tooth to choose the working site); *Margin Line* (trace the
   selected tooth's emergence line on the surface); *Insertion Axis* (show its
   insertion/withdrawal direction); *Propose Crown* (place a library tooth at a
   detected edentulous site).
+- **Shape** — *Add Material* / *Remove Material*: an interactive wax-knife brush; each
+  click adds or removes material locally on the design surface.
 - **Output** — the design is returned to the case as an STL wax-up from the **Case**
   panel (*Attach CAD design to case*).
 
