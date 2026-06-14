@@ -90,7 +90,15 @@ The cement-gap **intrados** (the fitting surface offset from the preparation, bo
 the margin) is part of the planned design refinement (chapter 2 roadmap). The full-contour
 proposal from 5.5 is exported as-is in this demonstration build.
 
-## 5.7 Export
+## 5.7 Nesting
+
+In the **Output** group, click **Nest in Blank**. The restoration is positioned in a
+standard milling disc (Ø98 × 16 mm) drawn around the design, and a fit check confirms it
+sits within the blank.
+
+![The crown nested in a Ø98 × 16 mm milling blank.](img/nesting.png)
+
+## 5.8 Export
 
 Return the design to the case as manufacturing output:
 
