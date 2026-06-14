@@ -12,11 +12,13 @@ import {
     CMD_OPTIMIZE,
     CMD_PROPOSE,
     CMD_REMMAT,
+    CMD_NEST,
     CMD_SELECT,
     CMD_START,
     DENTAL_TAB,
     GROUP_CASE,
     GROUP_DESIGN,
+    GROUP_OUTPUT,
     GROUP_SCAN,
     GROUP_SHAPE,
 } from "./keys";
@@ -32,6 +34,7 @@ import "./commands/margin";
 import "./commands/insertionAxis";
 import "./commands/proposeCrown";
 import "./commands/sculpt";
+import "./commands/nest";
 
 /**
  * DWOS-style dental restoration design layer, registered with the Chili3D
@@ -61,6 +64,7 @@ export class DentalModule implements IAdditionalModule {
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_PROPOSE },
             { tabName: DENTAL_TAB, groupName: GROUP_SHAPE, command: CMD_ADDMAT },
             { tabName: DENTAL_TAB, groupName: GROUP_SHAPE, command: CMD_REMMAT },
+            { tabName: DENTAL_TAB, groupName: GROUP_OUTPUT, command: CMD_NEST },
         ];
     }
 }

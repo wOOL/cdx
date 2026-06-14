@@ -20,6 +20,7 @@ const en: Record<string, string> = {
     "command.dental.propose": "Propose Crown",
     "command.dental.addmat": "Add Material",
     "command.dental.remmat": "Remove Material",
+    "command.dental.nest": "Nest in Blank",
     // toasts / prompts
     "toast.dental.started": "Restoration workflow ready",
     "toast.dental.noscan": "Import a surface scan first (no mesh in the document)",
@@ -40,6 +41,9 @@ const en: Record<string, string> = {
     "toast.dental.axisdone": "Insertion axis shown for FDI {0}",
     "prompt.dental.addmat": "Click on a surface to add material (Esc / right-click to finish)",
     "prompt.dental.remmat": "Click on a surface to remove material (Esc / right-click to finish)",
+    "toast.dental.nodesign": "Design a restoration first (Propose Crown)",
+    "toast.dental.nested": "Nested in a Ø98 × 16 mm milling blank",
+    "toast.dental.nestexceeds": "Design exceeds the Ø98 × 16 mm blank",
     "toast.dental.notagged": "Run Auto-tag Teeth (AI) first",
     "toast.dental.nogap": "No single-tooth gap detected to restore",
     "toast.dental.proposing": "Proposing a crown for FDI {0}…",

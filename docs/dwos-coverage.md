@@ -105,7 +105,7 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
 ## I. Nesting & manufacturing (IFU 5.1–5.2)
 | # | Feature | Status | Notes |
 |---|---|---|---|
-| I1 | Nesting (position in milling blank/disc) | ⬜ | |
+| I1 | Nesting (position in milling blank/disc) | 🟡 | Nest in Blank (Ø98×16 outline + fit check); multi-part packing/sprues pending |
 | I2 | Milling / CAM tool-data config | ⬜ | |
 | I3 | Production Management station | ⬜ | |
 | I4 | Export manufacturing STL | ✅ | bridge export (attach to case) |
