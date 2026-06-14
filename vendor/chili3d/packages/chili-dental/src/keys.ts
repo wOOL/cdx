@@ -25,6 +25,7 @@ export const GROUP_OUTPUT = i18nKey("ribbon.group.dental.output");
 // Command keys (registry id == string after `command.`).
 export const CMD_START = cmdKey("dental.start");
 export const CMD_OPTIMIZE = cmdKey("dental.optimize");
+export const CMD_MATCH = cmdKey("dental.match");
 export const CMD_AUTOTAG = cmdKey("dental.autotag");
 export const CMD_SELECT = cmdKey("dental.select");
 export const CMD_MARGIN = cmdKey("dental.margin");

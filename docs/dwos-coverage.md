@@ -33,9 +33,9 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
 | B1 | Arch Scan station (scanner control) | 🚫 | needs scanner hardware/driver |
 | B2 | Multi-die scan station (scanner control) | 🚫 | hardware |
 | B3 | Scan Import (STL/PLY/OBJ) | ✅ | bridge loads single mesh as MeshNode |
-| B4 | Multiple named scans (arch / antagonist / occlusion-key / gingiva) | ⬜ | only one scan |
+| B4 | Multiple named scans (arch / antagonist / occlusion-key / gingiva) | 🟡 | can load several + align them; named roles via order pending |
 | B5 | Mesh optimization (trim in-depth/on-surface, repair holes, remove artifacts) | 🟡 | Optimize Mesh (keep-largest + fill-holes) done via /api/cad/mesh-edit; interactive trim/plane-cut pending |
-| B6 | Scan matching: smart-match (ICP) | ⬜ | host registration.ts (icp) ready |
+| B6 | Scan matching: smart-match (ICP) | ✅ | Match Scan station + /api/cad/align (host icp); RMS-verified |
 | B7 | Scan matching: 3-point match | ⬜ | host markerReg.matchMarkers ready |
 | B8 | Occlusion-key alignment (upper↔lower) | ⬜ | |
 | B9 | Orientation to reference axes (front/right/top, vertical axis) | ⬜ | |

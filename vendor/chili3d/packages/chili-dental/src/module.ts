@@ -8,6 +8,7 @@ import {
     CMD_AUTOTAG,
     CMD_AXIS,
     CMD_MARGIN,
+    CMD_MATCH,
     CMD_OPTIMIZE,
     CMD_PROPOSE,
     CMD_REMMAT,
@@ -24,6 +25,7 @@ import {
 // registering the command in the global registry keyed by its string.
 import "./commands/start";
 import "./commands/optimize";
+import "./commands/matchScan";
 import "./commands/autoTag";
 import "./commands/selectTooth";
 import "./commands/margin";
@@ -51,6 +53,7 @@ export class DentalModule implements IAdditionalModule {
         return [
             { tabName: DENTAL_TAB, groupName: GROUP_CASE, command: CMD_START },
             { tabName: DENTAL_TAB, groupName: GROUP_SCAN, command: CMD_OPTIMIZE },
+            { tabName: DENTAL_TAB, groupName: GROUP_SCAN, command: CMD_MATCH },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_AUTOTAG },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_SELECT },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_MARGIN },
