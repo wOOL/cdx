@@ -8,6 +8,7 @@ const en: Record<string, string> = {
     "ribbon.group.dental.scan": "Scan",
     "ribbon.group.dental.design": "Design",
     "ribbon.group.dental.shape": "Shape",
+    "ribbon.group.dental.appliance": "Appliances",
     "ribbon.group.dental.output": "Output",
     // commands
     "command.dental.start": "Open Restoration",
@@ -23,6 +24,7 @@ const en: Record<string, string> = {
     "command.dental.addmat": "Add Material",
     "command.dental.remmat": "Remove Material",
     "command.dental.nest": "Nest in Blank",
+    "command.dental.splint": "Bite Splint",
     // toasts / prompts
     "toast.dental.started": "Restoration workflow ready",
     "toast.dental.noscan": "Import a surface scan first (no mesh in the document)",
@@ -50,6 +52,8 @@ const en: Record<string, string> = {
     "toast.dental.nodesign": "Design a restoration first (Propose Crown)",
     "toast.dental.nested": "Nested in a Ø98 × 16 mm milling blank",
     "toast.dental.nestexceeds": "Design exceeds the Ø98 × 16 mm blank",
+    "toast.dental.splintworking": "Generating bite splint…",
+    "toast.dental.splintdone": "Bite splint generated — {0} triangles",
     "toast.dental.notagged": "Run Auto-tag Teeth (AI) first",
     "toast.dental.nogap": "No single-tooth gap detected to restore",
     "toast.dental.proposing": "Proposing a crown for FDI {0}…",

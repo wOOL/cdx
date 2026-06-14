@@ -16,8 +16,10 @@ import {
     CMD_REMMAT,
     CMD_NEST,
     CMD_SELECT,
+    CMD_SPLINT,
     CMD_START,
     DENTAL_TAB,
+    GROUP_APPLIANCE,
     GROUP_CASE,
     GROUP_DESIGN,
     GROUP_OUTPUT,
@@ -38,6 +40,7 @@ import "./commands/insertionAxis";
 import "./commands/proposeCrown";
 import "./commands/coping";
 import "./commands/sculpt";
+import "./commands/biteSplint";
 import "./commands/nest";
 
 /**
@@ -70,6 +73,7 @@ export class DentalModule implements IAdditionalModule {
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_COPING },
             { tabName: DENTAL_TAB, groupName: GROUP_SHAPE, command: CMD_ADDMAT },
             { tabName: DENTAL_TAB, groupName: GROUP_SHAPE, command: CMD_REMMAT },
+            { tabName: DENTAL_TAB, groupName: GROUP_APPLIANCE, command: CMD_SPLINT },
             { tabName: DENTAL_TAB, groupName: GROUP_OUTPUT, command: CMD_NEST },
         ];
     }

@@ -20,6 +20,7 @@ export const GROUP_CASE = i18nKey("ribbon.group.dental.case");
 export const GROUP_SCAN = i18nKey("ribbon.group.dental.scan");
 export const GROUP_DESIGN = i18nKey("ribbon.group.dental.design");
 export const GROUP_SHAPE = i18nKey("ribbon.group.dental.shape");
+export const GROUP_APPLIANCE = i18nKey("ribbon.group.dental.appliance");
 export const GROUP_OUTPUT = i18nKey("ribbon.group.dental.output");
 
 // Command keys (registry id == string after `command.`).
@@ -36,3 +37,4 @@ export const CMD_COPING = cmdKey("dental.coping");
 export const CMD_ADDMAT = cmdKey("dental.addmat");
 export const CMD_REMMAT = cmdKey("dental.remmat");
 export const CMD_NEST = cmdKey("dental.nest");
+export const CMD_SPLINT = cmdKey("dental.splint");
