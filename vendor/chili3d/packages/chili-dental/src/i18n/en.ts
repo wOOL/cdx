@@ -7,6 +7,7 @@ const en: Record<string, string> = {
     "ribbon.group.dental.case": "Case",
     "ribbon.group.dental.scan": "Scan",
     "ribbon.group.dental.design": "Design",
+    "ribbon.group.dental.shape": "Shape",
     "ribbon.group.dental.output": "Output",
     // commands
     "command.dental.start": "Open Restoration",
@@ -16,6 +17,8 @@ const en: Record<string, string> = {
     "command.dental.margin": "Margin Line",
     "command.dental.axis": "Insertion Axis",
     "command.dental.propose": "Propose Crown",
+    "command.dental.addmat": "Add Material",
+    "command.dental.remmat": "Remove Material",
     // toasts / prompts
     "toast.dental.started": "Restoration workflow ready",
     "toast.dental.noscan": "Import a surface scan first (no mesh in the document)",
@@ -31,6 +34,8 @@ const en: Record<string, string> = {
     "toast.dental.margindone": "Margin line traced for FDI {0}",
     "toast.dental.nomargin": "No margin boundary found for FDI {0}",
     "toast.dental.axisdone": "Insertion axis shown for FDI {0}",
+    "prompt.dental.addmat": "Click on a surface to add material (Esc / right-click to finish)",
+    "prompt.dental.remmat": "Click on a surface to remove material (Esc / right-click to finish)",
     "toast.dental.notagged": "Run Auto-tag Teeth (AI) first",
     "toast.dental.nogap": "No single-tooth gap detected to restore",
     "toast.dental.proposing": "Proposing a crown for FDI {0}…",

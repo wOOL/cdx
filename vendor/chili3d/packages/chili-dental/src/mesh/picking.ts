@@ -63,6 +63,38 @@ export function invalidatePickCache(node: MeshNode): void {
     bvhCache.delete(node);
 }
 
+export interface NodeHit extends MeshHit {
+    node: MeshNode;
+    distance: number;
+}
+
+/** Raycast a click against several MeshNodes; return the nearest hit (or none). */
+export function pickAnyMesh(view: IView, nodes: MeshNode[], mx: number, my: number): NodeHit | undefined {
+    const ray = view.rayAt(mx, my);
+    const tr = new ThreeRay(
+        new Vector3(ray.location.x, ray.location.y, ray.location.z),
+        new Vector3(ray.direction.x, ray.direction.y, ray.direction.z).normalize(),
+    );
+    let best: NodeHit | undefined;
+    for (const node of nodes) {
+        const bvh = bvhFor(node);
+        if (!bvh) continue;
+        const hit = bvh.raycastFirst(tr, DoubleSide);
+        if (hit && hit.face && (best === undefined || hit.distance < best.distance)) {
+            best = {
+                node,
+                point: new XYZ(hit.point.x, hit.point.y, hit.point.z),
+                triangleIndex: hit.faceIndex ?? -1,
+                a: hit.face.a,
+                b: hit.face.b,
+                c: hit.face.c,
+                distance: hit.distance,
+            };
+        }
+    }
+    return best;
+}
+
 /** FDI tooth number at a hit triangle, from the node's segmentation region tags. */
 export function fdiAtHit(node: MeshNode, hit: MeshHit): number {
     const labels = getNodeRegions(node);

@@ -19,6 +19,7 @@ export const DENTAL_TAB = i18nKey("ribbon.tab.restoration");
 export const GROUP_CASE = i18nKey("ribbon.group.dental.case");
 export const GROUP_SCAN = i18nKey("ribbon.group.dental.scan");
 export const GROUP_DESIGN = i18nKey("ribbon.group.dental.design");
+export const GROUP_SHAPE = i18nKey("ribbon.group.dental.shape");
 export const GROUP_OUTPUT = i18nKey("ribbon.group.dental.output");
 
 // Command keys (registry id == string after `command.`).
@@ -29,3 +30,5 @@ export const CMD_SELECT = cmdKey("dental.select");
 export const CMD_MARGIN = cmdKey("dental.margin");
 export const CMD_AXIS = cmdKey("dental.axis");
 export const CMD_PROPOSE = cmdKey("dental.propose");
+export const CMD_ADDMAT = cmdKey("dental.addmat");
+export const CMD_REMMAT = cmdKey("dental.remmat");

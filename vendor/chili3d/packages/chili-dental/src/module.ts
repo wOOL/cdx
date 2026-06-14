@@ -4,17 +4,20 @@ import type { Locale } from "chili-core";
 import type { AdditionalCommand, IAdditionalModule } from "chili-builder";
 import en from "./i18n/en";
 import {
+    CMD_ADDMAT,
     CMD_AUTOTAG,
     CMD_AXIS,
     CMD_MARGIN,
     CMD_OPTIMIZE,
     CMD_PROPOSE,
+    CMD_REMMAT,
     CMD_SELECT,
     CMD_START,
     DENTAL_TAB,
     GROUP_CASE,
     GROUP_DESIGN,
     GROUP_SCAN,
+    GROUP_SHAPE,
 } from "./keys";
 
 // Side-effect imports: running each module executes its @command decorator,
@@ -26,6 +29,7 @@ import "./commands/selectTooth";
 import "./commands/margin";
 import "./commands/insertionAxis";
 import "./commands/proposeCrown";
+import "./commands/sculpt";
 
 /**
  * DWOS-style dental restoration design layer, registered with the Chili3D
@@ -52,6 +56,8 @@ export class DentalModule implements IAdditionalModule {
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_MARGIN },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_AXIS },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_PROPOSE },
+            { tabName: DENTAL_TAB, groupName: GROUP_SHAPE, command: CMD_ADDMAT },
+            { tabName: DENTAL_TAB, groupName: GROUP_SHAPE, command: CMD_REMMAT },
         ];
     }
 }

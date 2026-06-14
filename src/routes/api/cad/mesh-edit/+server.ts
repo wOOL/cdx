@@ -56,12 +56,11 @@ export const POST: RequestHandler = async ({ request }) => {
 		error(422, `Mesh edit failed: ${e instanceof Error ? e.message : String(e)}`);
 	}
 
-	const bytes = new Uint8Array(
-		result.positions.buffer,
+	const body = result.positions.buffer.slice(
 		result.positions.byteOffset,
-		result.positions.byteLength
-	);
-	return new Response(bytes, {
+		result.positions.byteOffset + result.positions.byteLength
+	) as ArrayBuffer;
+	return new Response(body, {
 		headers: {
 			'Content-Type': 'application/octet-stream',
 			'X-Triangles-After': String(result.triangles),
