@@ -1,9 +1,12 @@
 /**
- * Build the vendored chili3d CAD application (pinned release, see vendor/chili3d)
- * with the coDiagnostiX bridge patch applied, and stage the result for serving
- * at /cad-app/. Run via `bun run build:cad`; the patch keeps the submodule
- * pristine — modifications live in patches/chili3d-bridge.patch (AGPL-3.0,
- * like chili3d itself).
+ * Build the vendored chili3d CAD application and stage the result for serving
+ * at /cad-app/. Run via `bun run build:cad`.
+ *
+ * NOTE: vendor/chili3d is no longer pristine upstream — it is a maintained fork.
+ * The coDiagnostiX bridge (cdx-* postMessage protocol, render-mesh STL import,
+ * telemetry removal) and the dental restoration layer are committed directly
+ * into the vendored tree. The former patches/chili3d-bridge.patch has been
+ * retired; its changes now live in source. (Still AGPL-3.0, like chili3d.)
  */
 import { $ } from 'bun';
 import { cpSync, existsSync, rmSync } from 'node:fs';
@@ -11,7 +14,6 @@ import { join } from 'node:path';
 
 const ROOT = join(import.meta.dir, '..');
 const VENDOR = join(ROOT, 'vendor', 'chili3d');
-const PATCH = join(ROOT, 'patches', 'chili3d-bridge.patch');
 const OUT = join(ROOT, 'static', 'cad-app');
 
 if (!existsSync(join(VENDOR, 'package.json'))) {
@@ -19,32 +21,13 @@ if (!existsSync(join(VENDOR, 'package.json'))) {
 	process.exit(1);
 }
 
-// Apply the bridge patch (idempotent: skip when already applied).
-// IMPORTANT: run from the repo root with --directory. `git apply` resolves
-// patch paths relative to the repository root and SILENTLY IGNORES paths
-// outside the current directory — running it inside vendor/chili3d would
-// exit 0 without changing anything now that the vendor tree is part of the
-// host repository (it only worked before because the directory was its own
-// submodule repo).
-const APPLY = ['git', '-C', ROOT, 'apply', `--directory=vendor/chili3d`];
-const check = await $`${APPLY} --check ${PATCH}`.nothrow().quiet();
-if (check.exitCode === 0) {
-	await $`${APPLY} ${PATCH}`;
-	console.log('bridge patch applied');
-} else {
-	const reverse = await $`${APPLY} --reverse --check ${PATCH}`.nothrow().quiet();
-	if (reverse.exitCode === 0) console.log('bridge patch already applied');
-	else {
-		console.error('patch neither applies nor is applied — vendor tree diverged');
-		process.exit(1);
-	}
-}
-
-// verify the patch is really in the source — a path-resolution no-op must fail loudly
+// Sanity guard: the bridge must be present in the vendored source. It lives in
+// the tree directly now (no patch step); a missing marker means the working
+// tree was clobbered or checked out wrong, so fail loudly before building.
 const MARKER = 'cdx-cad-ready';
 const entry = await Bun.file(join(VENDOR, 'packages', 'chili-web', 'src', 'index.ts')).text();
 if (!entry.includes(MARKER)) {
-	console.error('bridge marker missing from patched entry — patch application was a no-op');
+	console.error('bridge marker missing from vendored entry — vendor/chili3d source is not the coDiagnostiX fork');
 	process.exit(1);
 }
 
@@ -77,7 +60,3 @@ if (distFiles !== 0) {
 rmSync(OUT, { recursive: true, force: true });
 cpSync(join(VENDOR, 'dist'), OUT, { recursive: true });
 console.log(`staged to static/cad-app`);
-
-// restore the vendored tree to pristine upstream state
-await $`git -C ${VENDOR} checkout -- .`;
-console.log('vendor tree restored to pristine');

@@ -1,0 +1,14 @@
+{
+    "name": "chili-dental",
+    "version": "0.6.1",
+    "description": "coDiagnostiX Web — DWOS-style dental restoration design layer for Chili3D",
+    "main": "src/index.ts",
+    "devDependencies": {
+        "chili-core": "*",
+        "chili": "*",
+        "chili-builder": "*",
+        "chili-three": "*",
+        "three": "0.175.0",
+        "three-mesh-bvh": "0.9.0"
+    }
+}

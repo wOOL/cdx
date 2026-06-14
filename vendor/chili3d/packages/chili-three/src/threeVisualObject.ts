@@ -184,15 +184,26 @@ export class ThreeMeshObject extends ThreeVisualObject implements IHighlightable
     };
 
     private newMesh() {
+        const meshData = this.meshNode.mesh;
         const buff = new BufferGeometry();
-        buff.setAttribute("position", new BufferAttribute(this.meshNode.mesh.position!, 3));
-        if (this.meshNode.mesh.normal)
-            buff.setAttribute("normal", new BufferAttribute(this.meshNode.mesh.normal, 3));
-        if (this.meshNode.mesh.uv) buff.setAttribute("uv", new BufferAttribute(this.meshNode.mesh.uv, 2));
-        if (this.meshNode.mesh.index) buff.setIndex(new BufferAttribute(this.meshNode.mesh.index, 1));
-        if (this.meshNode.mesh.groups.length > 1) buff.groups = this.meshNode.mesh.groups;
+        buff.setAttribute("position", new BufferAttribute(meshData.position!, 3));
+        if (meshData.normal) buff.setAttribute("normal", new BufferAttribute(meshData.normal, 3));
+        if (meshData.uv) buff.setAttribute("uv", new BufferAttribute(meshData.uv, 2));
+        if (meshData.index) buff.setIndex(new BufferAttribute(meshData.index, 1));
+        if (meshData.groups.length > 1) buff.groups = meshData.groups;
         buff.computeBoundingBox();
-        const mesh = new Mesh(buff, this.context.getMaterial(this.meshNode.materialId));
+        // Per-vertex colours (DWOS-style tooth-segmentation overlay): when
+        // mesh.color is a flat [r,g,b,...] array (0..1, one triple per vertex)
+        // render with vertex colours instead of the shared node material. A
+        // single numeric color keeps the original shared-material behaviour.
+        let material: Material | Material[];
+        if (Array.isArray(meshData.color)) {
+            buff.setAttribute("color", new BufferAttribute(new Float32Array(meshData.color), 3));
+            material = new MeshLambertMaterial({ vertexColors: true, side: DoubleSide });
+        } else {
+            material = this.context.getMaterial(this.meshNode.materialId);
+        }
+        const mesh = new Mesh(buff, material);
         mesh.layers.set(Constants.Layers.Solid);
         return mesh;
     }

@@ -19,7 +19,7 @@ import { ProjectView } from "./project";
 import { PropertyView } from "./property";
 import { MaterialDataContent, MaterialEditor } from "./property/material";
 import { Ribbon, RibbonDataContent } from "./ribbon";
-import { RibbonTabData } from "./ribbon/ribbonData";
+import { RibbonGroupData, RibbonTabData } from "./ribbon/ribbonData";
 import { Statusbar } from "./statusbar";
 import { LayoutViewport } from "./viewport";
 
@@ -133,9 +133,21 @@ export class Editor extends HTMLElement {
     };
 
     registerRibbonCommand(tabName: I18nKeys, groupName: I18nKeys, command: CommandKeys | Button) {
-        const tab = this.ribbonContent.ribbonTabs.find((p) => p.tabName === tabName);
-        const group = tab?.groups.find((p) => p.groupName === groupName);
-        group?.items.push(command);
+        // Create the tab/group on demand so additional modules (e.g. the dental
+        // restoration layer) can contribute entirely new ribbon tabs, not only
+        // extend existing ones. The collections are observable, so a freshly
+        // pushed tab/group renders immediately.
+        let tab = this.ribbonContent.ribbonTabs.find((p) => p.tabName === tabName);
+        if (!tab) {
+            tab = new RibbonTabData(tabName);
+            this.ribbonContent.ribbonTabs.push(tab);
+        }
+        let group = tab.groups.find((p) => p.groupName === groupName);
+        if (!group) {
+            group = new RibbonGroupData(groupName);
+            tab.groups.push(group);
+        }
+        group.items.push(command);
     }
 }
 
