@@ -134,3 +134,32 @@ export interface Measurement {
 export interface PatientWithCases extends Patient {
 	cases: Case[];
 }
+
+/** A single tooth unit in a restoration order (FDI number + role + subtype). */
+export interface RestorationUnit {
+	fdi: number;
+	role: string;
+	subtype: string;
+}
+
+/**
+ * A DWOS-style restoration order on a case. `units` and `bridges` are stored as
+ * JSON TEXT in the DB but the repo parses them, so callers always see arrays:
+ *   units   = RestorationUnit[]
+ *   bridges = number[][]  (each entry = a group of joined FDI numbers)
+ */
+export interface RestorationOrder {
+	id: number;
+	case_id: number;
+	order_number: string;
+	status: string;
+	dentist: string;
+	material: string;
+	shade: string;
+	anatomy_family: string;
+	units: RestorationUnit[];
+	bridges: number[][];
+	notes: string;
+	created_at: string;
+	updated_at: string;
+}

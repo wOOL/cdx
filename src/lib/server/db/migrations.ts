@@ -272,6 +272,26 @@ const MIGRATIONS: string[] = [
 	// 16 — per-implant position lock
 	`
 	ALTER TABLE implants ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;
+	`,
+	// 17 — DWOS-style restoration orders (per case)
+	`
+	CREATE TABLE restoration_orders (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		case_id INTEGER NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+		order_number TEXT NOT NULL UNIQUE,
+		status TEXT NOT NULL DEFAULT 'draft',
+		dentist TEXT NOT NULL DEFAULT '',
+		material TEXT NOT NULL DEFAULT '',
+		shade TEXT NOT NULL DEFAULT '',
+		anatomy_family TEXT NOT NULL DEFAULT '',
+		units TEXT NOT NULL DEFAULT '[]',
+		bridges TEXT NOT NULL DEFAULT '[]',
+		notes TEXT NOT NULL DEFAULT '',
+		created_at TEXT NOT NULL DEFAULT (datetime('now')),
+		updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+	);
+	CREATE INDEX idx_restoration_orders_case ON restoration_orders(case_id);
+	CREATE INDEX idx_restoration_orders_status ON restoration_orders(status);
 	`
 ];
 

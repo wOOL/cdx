@@ -4,6 +4,15 @@
 
 	let { data } = $props();
 
+	// active restoration order drives the CAD document context (passed to the iframe)
+	let activeOrderId = $state(data.activeOrderId);
+	$effect(() => {
+		activeOrderId = data.activeOrderId;
+	});
+	const frameSrc = $derived(
+		`/cad-app/index.html?case=${data.caseId}${activeOrderId ? `&order=${activeOrderId}` : ''}`
+	);
+
 	let frame: HTMLIFrameElement | undefined = $state();
 	let bridgeReady = $state(false);
 	let status = $state('Loading CAD workstation…');
@@ -100,6 +109,24 @@
 				{/each}
 			</select>
 
+			<div class="panel-header inner">Restoration orders</div>
+			{#each data.orders as o (o.id)}
+				<button
+					class="order-row"
+					class:active={o.id === activeOrderId}
+					onclick={() => goto(`/cad?case=${data.caseId}&order=${o.id}`, { invalidateAll: true })}
+				>
+					<span class="order-num">{o.order_number}</span>
+					<span class="faint">{o.status}</span>
+					<span class="faint">{o.units.length}u</span>
+				</button>
+			{:else}
+				<p class="muted">No restoration orders on this case.</p>
+			{/each}
+			<a class="btn" href="/restoration-orders?case={data.caseId}" style="width:100%;justify-content:center">
+				<Icon name="plus" size={14} /> Manage orders
+			</a>
+
 			<div class="panel-header inner">Send to CAD</div>
 			<p class="faint">
 				Large meshes are decimated to ≤48k triangles for the CAD kernel; the planning-side
@@ -133,7 +160,7 @@
 	<main class="cad-main panel">
 		<iframe
 			bind:this={frame}
-			src="/cad-app/index.html"
+			src={frameSrc}
 			title="Chili3D CAD workstation"
 			class="cad-frame"
 		></iframe>
@@ -222,6 +249,31 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+	.order-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 7px 8px;
+		border-radius: var(--radius);
+		border: 1px solid var(--border-soft);
+		background: var(--bg-1);
+		text-align: left;
+	}
+	.order-row:hover {
+		background: var(--bg-3);
+		border-color: var(--accent-dim);
+	}
+	.order-row.active {
+		border-color: var(--accent-bright);
+		background: var(--bg-3);
+	}
+	.order-num {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-weight: 600;
 	}
 	.status {
 		margin-top: 8px;

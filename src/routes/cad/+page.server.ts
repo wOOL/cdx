@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
+import { listOrdersForCase } from '$lib/server/restorationOrders';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) redirect(303, `/login?next=${encodeURIComponent(url.pathname + url.search)}`);
@@ -24,5 +25,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				.all(caseId) as { id: number; name: string; kind: string }[])
 		: [];
 
-	return { cases, caseId, models };
+	const orders = caseId ? listOrdersForCase(caseId) : [];
+	// active order from ?order= if it belongs to this case, else the newest one
+	const wantOrder = Number(url.searchParams.get('order') ?? 0);
+	const activeOrderId =
+		(wantOrder && orders.some((o) => o.id === wantOrder) ? wantOrder : orders[0]?.id) ?? 0;
+
+	return { cases, caseId, models, orders, activeOrderId };
 };
