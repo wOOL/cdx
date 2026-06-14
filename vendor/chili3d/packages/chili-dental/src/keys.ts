@@ -29,6 +29,7 @@ export const CMD_MATCH = cmdKey("dental.match");
 export const CMD_AUTOTAG = cmdKey("dental.autotag");
 export const CMD_SELECT = cmdKey("dental.select");
 export const CMD_MARGIN = cmdKey("dental.margin");
+export const CMD_EDITMARGIN = cmdKey("dental.editmargin");
 export const CMD_AXIS = cmdKey("dental.axis");
 export const CMD_PROPOSE = cmdKey("dental.propose");
 export const CMD_ADDMAT = cmdKey("dental.addmat");

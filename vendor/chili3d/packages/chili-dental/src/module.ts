@@ -7,6 +7,7 @@ import {
     CMD_ADDMAT,
     CMD_AUTOTAG,
     CMD_AXIS,
+    CMD_EDITMARGIN,
     CMD_MARGIN,
     CMD_MATCH,
     CMD_OPTIMIZE,
@@ -31,6 +32,7 @@ import "./commands/matchScan";
 import "./commands/autoTag";
 import "./commands/selectTooth";
 import "./commands/margin";
+import "./commands/editMargin";
 import "./commands/insertionAxis";
 import "./commands/proposeCrown";
 import "./commands/sculpt";
@@ -60,6 +62,7 @@ export class DentalModule implements IAdditionalModule {
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_AUTOTAG },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_SELECT },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_MARGIN },
+            { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_EDITMARGIN },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_AXIS },
             { tabName: DENTAL_TAB, groupName: GROUP_DESIGN, command: CMD_PROPOSE },
             { tabName: DENTAL_TAB, groupName: GROUP_SHAPE, command: CMD_ADDMAT },

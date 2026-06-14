@@ -51,7 +51,7 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
 ## D. Design parameters (IFU 4.4, 5.1–5.2)
 | # | Feature | Status | Notes |
 |---|---|---|---|
-| D1 | Margin / emergence line | 🟡 | auto-traced from segmentation; not interactive-editable |
+| D1 | Margin / emergence line | ✅ | auto-traced (Margin Line) + interactive point editing (Edit Margin) |
 | D2 | Insertion axis (auto) | ✅ | display |
 | D3 | Insertion axis (manual adjust) + undercut analysis | ⬜ | |
 
