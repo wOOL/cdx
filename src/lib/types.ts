@@ -160,6 +160,8 @@ export interface RestorationOrder {
 	units: RestorationUnit[];
 	bridges: number[][];
 	notes: string;
+	/** Lab contact this order was subcontracted to (migration 18), or null. */
+	subcontracted_to: number | null;
 	created_at: string;
 	updated_at: string;
 }

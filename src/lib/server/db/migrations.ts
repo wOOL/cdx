@@ -292,6 +292,10 @@ const MIGRATIONS: string[] = [
 	);
 	CREATE INDEX idx_restoration_orders_case ON restoration_orders(case_id);
 	CREATE INDEX idx_restoration_orders_status ON restoration_orders(status);
+	`,
+	// 18 — production: subcontract target (lab contact) on a restoration order
+	`
+	ALTER TABLE restoration_orders ADD COLUMN subcontracted_to INTEGER REFERENCES contacts(id) ON DELETE SET NULL;
 	`
 ];
 

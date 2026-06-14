@@ -23,6 +23,7 @@ interface OrderRow {
 	units: string;
 	bridges: string;
 	notes: string;
+	subcontracted_to: number | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -70,6 +71,7 @@ function hydrate(row: OrderRow): RestorationOrder {
 		units: parseUnits(row.units),
 		bridges: parseBridges(row.bridges),
 		notes: row.notes,
+		subcontracted_to: row.subcontracted_to ?? null,
 		created_at: row.created_at,
 		updated_at: row.updated_at
 	};

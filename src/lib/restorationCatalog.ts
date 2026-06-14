@@ -87,9 +87,30 @@ export const ANATOMY_FAMILIES: AnatomyFamily[] = [
 	{ id: 'functional', label: 'Functional' }
 ];
 
-/** Order status flow: draft → routed → designing → designed. */
-export const ORDER_STATUSES = ['draft', 'routed', 'designing', 'designed'] as const;
+/**
+ * Order status flow. The DWOS design states (draft → designing → designed) plus
+ * the production-station states used by the Production Management view (IFU 5.1
+ * "Send to production"): routed (subcontracted / queued) → in-production →
+ * produced. `routed` is shared with the design flow.
+ */
+export const ORDER_STATUSES = [
+	'draft',
+	'routed',
+	'designing',
+	'designed',
+	'in-production',
+	'produced'
+] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+/**
+ * Ordered production lifecycle used by the Production station. `advanceStatus`
+ * steps forward through this sequence; the UI exposes Route → In production →
+ * Produced controls. Kept separate from the design states above so the design
+ * flow is unaffected.
+ */
+export const PRODUCTION_STATUSES = ['routed', 'in-production', 'produced'] as const;
+export type ProductionStatus = (typeof PRODUCTION_STATUSES)[number];
 
 /**
  * Generate an order number in the DWOS-like form COM-YYDDD-N, where YYDDD is the

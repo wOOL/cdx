@@ -41,6 +41,7 @@
 			<a class="tab" href="/sleeves">Sleeves ↗</a>
 			<a class="tab" href="/designer">Designer ↗</a>
 			<a class="tab" href="/orders">Orders ↗</a>
+			<a class="tab" href="/production">Production ↗</a>
 			<a class="tab" href="/teams">Teams ↗</a>
 			<a class="tab" href="/evaluation">Evaluation ↗</a>
 		</span>
