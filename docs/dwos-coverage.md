@@ -23,7 +23,7 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
 | A8 | Anatomy Family selection | ✅ | placeholder library names |
 | A9 | FDI tooth-chart selection (pillars/pontics) | ✅ | clickable two-row chart |
 | A10 | Create Bridge (join units) | ✅ | bridge groupings |
-| A11 | Route Order | 🟡 | status field (draft→…); no production routing yet |
+| A11 | Route Order | ✅ | status lifecycle + production routing (/production) |
 | A12 | Active cases list (Chairside/Easy) | 🟡 | host case panel exists |
 | A13 | Import .xorder / model scans (Easy) | ⬜ | |
 
@@ -90,7 +90,7 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
 | G2 | Screw-retained bars & bridges (SRBB) | ⬜ | |
 | G3 | Partial frameworks (survey, clasps, connectors) | ⬜ | |
 | G4 | Full dentures | ⬜ | |
-| G5 | Bite splints | ⬜ | |
+| G5 | Bite splints | 🟡 | Bite Splint shell generation (offset over teeth); bite-relation/relief refinement pending |
 | G6 | Orthodontic appliances | ⬜ | |
 | G7 | Models (study/working) | ⬜ | |
 
@@ -107,9 +107,9 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
 |---|---|---|---|
 | I1 | Nesting (position in milling blank/disc) | 🟡 | Nest in Blank (Ø98×16 outline + fit check); multi-part packing/sprues pending |
 | I2 | Milling / CAM tool-data config | ⬜ | |
-| I3 | Production Management station | ⬜ | |
+| I3 | Production Management station | ✅ | /production queue (advance status, per-order routing) |
 | I4 | Export manufacturing STL | ✅ | bridge export (attach to case) |
-| I5 | Subcontract (send to lab) | ⬜ | build on our own Connect-equivalent (server-side sharing) |
+| I5 | Subcontract (send to lab) | ✅ | subcontract to a lab contact (+ transfer record) |
 
 ## J. Variants, connectivity, platform (IFU 2.2, 2.7–2.9, 3, 4)
 | # | Feature | Status | Notes |
@@ -131,9 +131,10 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
   Everything else — incl. DWOS Connect/Synergy, implant/material/anatomy libraries (our own,
   generic) — is buildable. 🚫 now ≈ 4 (B1, B2, G1-implant-data, H4-implant-data).
 - Buildable feature lines: ~74
-- ✅ done: ~18 · 🟡 partial: ~14 · ⬜ missing: ~42
-- **Approx. completeness: ~28%** of buildable scope.
-  (pass 2: Optimize Mesh/B5; pass 3: order station A1–A11, Add/Remove material E5)
+- ✅ done: ~24 · 🟡 partial: ~18 · ⬜ missing: ~32
+- **Approx. completeness: ~38%** of buildable scope.
+  (pass 2: Optimize/B5; pass 3: order A1–A11, material E5; pass 4: Match B6, Nest I1,
+   Edit Margin D1, offset primitive + Coping E3/E4, Bite Splint G5, Production I3/I5)
 
 ## Build order (depth + breadth, long-run-correct)
 1. **Order creation station** (A) — real order model: families/subtypes/materials/shades/FDI chart/routing.
