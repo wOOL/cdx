@@ -60,8 +60,8 @@ Goal: replicate every feature/function the IFU describes. Updated each build inc
 |---|---|---|---|
 | E1 | Automatic anatomy proposition | 🟡 | library tooth placed at gap (parametric), not context-fit |
 | E2 | Tooth-Chain technology (context + statistics) | ⬜ | biogeneric/data problem (no model needed) |
-| E3 | Intrados / cement-gap (fitting surface) | ⬜ | needs robust mesh offset/boolean |
-| E4 | Full-contour crown solid (anatomy ∪ collar, hollowed) | ⬜ | |
+| E3 | Intrados / cement-gap (fitting surface) | 🟡 | robust offset primitive built (meshSdf thickenSurface + /api/cad/offset); margin-bounded intrados assembly pending |
+| E4 | Full-contour crown solid (anatomy ∪ collar, hollowed) | 🟡 | crown proposal is solid; coping shell generation done; hollowing pending |
 | E5 | Shaping: Add/Remove material | ✅ | interactive wax-knife brush (Shape group) via /api/cad/mesh-edit |
 | E6 | Shaping: Clinical Handles | ⬜ | |
 | E7 | Shaping: Transforms | ⬜ | |

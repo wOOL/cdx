@@ -32,6 +32,7 @@ export const CMD_MARGIN = cmdKey("dental.margin");
 export const CMD_EDITMARGIN = cmdKey("dental.editmargin");
 export const CMD_AXIS = cmdKey("dental.axis");
 export const CMD_PROPOSE = cmdKey("dental.propose");
+export const CMD_COPING = cmdKey("dental.coping");
 export const CMD_ADDMAT = cmdKey("dental.addmat");
 export const CMD_REMMAT = cmdKey("dental.remmat");
 export const CMD_NEST = cmdKey("dental.nest");
